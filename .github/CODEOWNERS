@@ -1,9 +1,9 @@
 # Todo necesita al menos leads
-* @tu-org/Software262
+* @Software262/tech-leads
 
 # Backend específico
-backend/ @tu-org/backend-ps-devs
-app/ @Software262/backend-ps-devs
+backend/ @Software262/backend-ps-devs
+api/ @Software262/backend-ps-devs
 *.py @Software262/backend-ps-devs
 
 # Docs y config
