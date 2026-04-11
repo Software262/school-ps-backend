@@ -355,7 +355,7 @@ git fetch origin
 git rebase origin/develop
 
 # Output:
-# CONFLICT (content): Merge conflict in src/services/payment.service
+# CONFLICT (content): Merge conflict in src/services/student.service
 # error: could not apply abc123... feat: add payment retry logic
 
 # 3. Edit the file, look for markers:
