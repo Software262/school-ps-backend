@@ -2,9 +2,9 @@
 * @Software262/tech-leads
 
 # Backend específico
-backend/ @Software262/backend-ps-devs
-api/ @Software262/backend-ps-devs
-*.py @Software262/backend-ps-devs
+backend/ @Software262/backend-ps-devs @Software262/tech-leads
+api/ @Software262/backend-ps-devs @Software262/tech-leads
+*.py @Software262/backend-ps-devs @Software262/tech-leads
 
 # Docs y config
 docs/ @Software262/tech-leads
