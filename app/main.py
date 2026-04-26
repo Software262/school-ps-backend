@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 
+from app.modules import router
+
 app = FastAPI()
 
 
-@app.get("/")
-async def root():
-    return {"status": "ok"}
+app.include_router(router)
