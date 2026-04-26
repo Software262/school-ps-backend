@@ -5,7 +5,7 @@ description = "Backend for the school peace and safety project"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-  "fastapi[standard]>=0.136.1",
+  "fastapi[standard]==0.136.1",
 ]
 
 [dependency-groups]
