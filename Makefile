@@ -11,7 +11,7 @@ format:
 	@uv run ruff format
 
 install-dev:
-	@uv sync --no-cache --group dev
+	@uv sync --group dev
 
 install-prod:
-	@uv sync --no-cache --group prod
+	@uv sync --group prod

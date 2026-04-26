@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies (dev)
         run: make install-dev
 
-      - name: Lint, format, type check.
+      - name: Lint and check formatting.
         env:
           PYTHONPATH: .
         run: make lint && make format
