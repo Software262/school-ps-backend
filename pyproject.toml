@@ -5,5 +5,18 @@ description = "Backend for the school peace and safety project"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "fastapi[all]>=0.136.1",
+  "fastapi[standard]==0.136.1",
+]
+
+[dependency-groups]
+dev = [
+  "pytest==9.0.3",
+  "httpx==0.28.1",
+  "pytest-asyncio==1.3.0",
+  "ruff==0.15.12",
+  "zuban==0.7.1",
+]
+prod = [
+  "uvicorn==0.46.0",
+  "psycopg2-binary==2.9.12",
 ]
