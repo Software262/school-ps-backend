@@ -22,5 +22,5 @@ class Pension(Base, table=True):
 
 class DetallePension(Base, table=True):
     pension_id: int = Field(foreign_key="pension.id")
-    detalle_matricula: int = Field(foreign_key="detallematricula.id")
+    detalle_matricula_id: int = Field(foreign_key="detallematricula.id")
     mes: int = Field()

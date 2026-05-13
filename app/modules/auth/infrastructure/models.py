@@ -28,5 +28,5 @@ class DetalleActividades(Base, table=True):
 class Usuario(Base, table=True):
     rol: str = Field(max_length=50)
     username: str = Field(max_length=50)
-    contraseña: str = Field(max_length=255)
+    contrasenia: str = Field(max_length=255)
     estado: bool = Field(default=True)
