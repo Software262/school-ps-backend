@@ -5,7 +5,9 @@ router = APIRouter()
 ##
 profesores = [
     "Profesor A",
-    "Profesor B",]
+    "Profesor B",
+]
+
 
 @router.get("/profesores")
 async def get_all_profesores():
