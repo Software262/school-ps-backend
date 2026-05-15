@@ -1,9 +1,7 @@
-from app.modules.inventory.api.domain.repositories import InventoryRepository
-
+from app.modules.inventory.domain.repositories import InventoryRepository
 
 
 class InventoryService:
-    
     def __init__(self, repository: InventoryRepository):
         self.repository = repository
 
