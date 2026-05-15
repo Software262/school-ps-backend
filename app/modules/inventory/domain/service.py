@@ -1,5 +1,8 @@
 from app.modules.inventory.domain.repositories import InventoryRepository
-from app.modules.inventory.schemas.request import CreateItemRequest
+from app.modules.inventory.schemas.request import (
+    CreateItemRequest,
+    CreateTypeInventoryRequest,
+)
 
 
 class InventoryService:
@@ -11,3 +14,6 @@ class InventoryService:
 
     async def create_item(self, item_data: CreateItemRequest):
         return await self.repository.create_item(item_data)
+
+    async def create_type_inventory(self, type_data: CreateTypeInventoryRequest):
+        return await self.repository.create_type_inventory(name=type_data.nombre)

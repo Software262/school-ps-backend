@@ -26,9 +26,9 @@ class InventoryRepository:
         self.session.refresh(new_item)
 
         return new_item
-    
-    async def create_type_inventory(self, nombre: str):
-        new_type = TipoInventario(nombre=nombre)
+
+    async def create_type_inventory(self, name: str):
+        new_type = TipoInventario(nombre=name)
 
         self.session.add(new_type)
         self.session.commit()
