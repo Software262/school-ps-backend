@@ -22,5 +22,10 @@ class Pension(Base, table=True):
 
 class DetallePension(Base, table=True):
     pension_id: int = Field(foreign_key="pension.id")
-    detalle_matricula_id: int = Field(foreign_key="detallematricula.id")
+    estudiante_id: int = Field(foreign_key="estudiante.id")
     mes: int = Field()
+    cuota: int = Field()
+    valor_total: int = Field()
+    valor_pagado: int = Field()
+    fecha_pago: datetime = Field()
+    faltante: bool = Field()
