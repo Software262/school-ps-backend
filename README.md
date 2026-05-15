@@ -1,5 +1,7 @@
 # Backend - School PS
 
+This repository contains the backend for the School PS system, a school payment clearance (Paz y Salvo) platform. It provides the services and project structure used to support development, collaboration, and deployment of the application.
+
 ---
 
 ## Table of Contents
