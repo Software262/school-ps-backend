@@ -163,8 +163,6 @@ chore: update dependencies to latest versions
 
 ---
 
-<a id="development-workflow"></a>
-
 ## 🎯 Development Workflow
 
 ### Step-by-Step Process:
@@ -212,8 +210,6 @@ chore: update dependencies to latest versions
 
 ---
 
-<a id="branch-protection-rules"></a>
-
 ## 🛡️ Branch Protection Rules
 
 **All branches are protected with the following rules:**
@@ -231,8 +227,6 @@ chore: update dependencies to latest versions
 - All feature branches are read-only until PR is merged
 
 ---
-
-<a id="team-internal-rules"></a>
 
 ## 👥 Team Internal Rules
 
@@ -285,8 +279,6 @@ chore: update dependencies to latest versions
    - Approval is a professional commitment, not a checkbox
 
 ---
-
-<a id="conflict-prevention-resolution"></a>
 
 ## 🤝 Conflict Prevention & Resolution
 
@@ -441,8 +433,6 @@ Before pushing after resolving conflicts:
 
 ---
 
-<a id="getting-started"></a>
-
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -476,8 +466,6 @@ Before pushing after resolving conflicts:
 
 ---
 
-<a id="notes"></a>
-
 ## 📝 Notes
 
 - This is a Paz y Salvo (payment clearance) system for schools
@@ -488,8 +476,6 @@ Before pushing after resolving conflicts:
 
 ---
 
-<a id="support"></a>
-
 ## 📞 Support
 
 For questions about this workflow or branch protection rules, reach out to the tech lead or team.
@@ -499,8 +485,6 @@ For questions about this workflow or branch protection rules, reach out to the t
 **Last Updated:** 2026
 **Repository:** School PS Backend
 **Team:** Development Team
-
-<a id="additional-documentation"></a>
 
 ## 📚 Additional documentation — Backend (migrations, environment variables, queries, Makefile)
 
@@ -589,8 +573,6 @@ Repository reference:
 ```
 
 ---
-
-<a id="creating-the-database"></a>
 
 ### 🗄️ Creating the database (PostgreSQL)
 
