@@ -1,7 +1,7 @@
 from sqlmodel import select
 
 from app.core.db import SessionDep
-from app.modules.inventory.infrastructure.models import Inventario
+from app.modules.inventory.infrastructure.models import Inventario, TipoInventario
 from app.modules.inventory.schemas.request import CreateItemRequest
 
 
@@ -26,3 +26,12 @@ class InventoryRepository:
         self.session.refresh(new_item)
 
         return new_item
+    
+    async def create_type_inventory(self, nombre: str):
+        new_type = TipoInventario(nombre=nombre)
+
+        self.session.add(new_type)
+        self.session.commit()
+        self.session.refresh(new_type)
+
+        return new_type
