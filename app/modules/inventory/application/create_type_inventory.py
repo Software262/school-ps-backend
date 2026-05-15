@@ -9,4 +9,4 @@ class CreateTypeInventory:
         self.service = InventoryService(repository=self.repository)
 
     async def execute(self, type_data: CreateTypeInventoryRequest):
-        return await self.service.create_item(type_data)
+        return await self.service.create_type_inventory(type_data)
