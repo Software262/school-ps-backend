@@ -1,6 +1,23 @@
 # Backend - School PS
 
-Welcome to the School PS Backend repository. This is the backend for a school payment clearance (Paz y Salvo) system. This document outlines the essential guidelines and conventions for working with this codebase.
+This repository contains the backend for the School PS system, a school payment clearance (Paz y Salvo) platform. It provides the services and project structure used to support development, collaboration, and deployment of the application.
+
+---
+
+## Table of Contents
+
+- [Naming Conventions](#naming-conventions)
+- [Development Workflow](#development-workflow)
+- [Branch Protection Rules](#branch-protection-rules)
+- [Team Internal Rules](#team-internal-rules)
+- [Conflict Prevention & Resolution](#conflict-prevention-resolution)
+- [Quick Reference Guide](#quick-reference-guide)
+- [Critical Reminders](#critical-reminders)
+- [Getting Started](#getting-started)
+- [Notes](#notes)
+- [Support](#support)
+- [Additional documentation](#additional-documentation)
+  - [Create the database](#creating-the-database)
 
 ---
 
@@ -391,6 +408,8 @@ Before pushing after resolving conflicts:
 
 ---
 
+<a id="quick-reference-guide"></a>
+
 ## 📊 Quick Reference Guide
 
 | Element   | Pattern                | Example                              |
@@ -401,6 +420,8 @@ Before pushing after resolving conflicts:
 | PR Target | Always `develop`       | Never directly to `main`             |
 
 ---
+
+<a id="critical-reminders"></a>
 
 ## ⚠️ Critical Reminders for All Developers
 
@@ -466,3 +487,254 @@ For questions about this workflow or branch protection rules, reach out to the t
 **Last Updated:** 2026
 **Repository:** School PS Backend
 **Team:** Development Team
+
+## 📚 Additional documentation — Backend (migrations, environment variables, queries, Makefile)
+
+This section documents recent and important backend additions: Alembic migrations, recommended environment variables, an example database query (based on the `health` endpoint), and Makefile commands used during development.
+
+---
+
+### 🔁 Migrations (Alembic)
+
+Where:
+
+- Migration directory: `alembic/`
+- Config: `alembic.ini`
+- Alembic's env uses `SQLModel.metadata` and reads the database URL from application settings (`app/core/config.py`).
+
+Key notes:
+
+- `alembic/env.py` reads the DB URL from `settings.database_url` and imports model modules so `autogenerate` can detect schema changes.
+- Check `alembic/versions/` for generated migration files (the folder may be empty until you create revisions).
+
+Basic commands (run from `school-ps/backend`):
+
+1. Install development dependencies (includes Alembic):
+   - `make install-dev` (runs `uv sync --group dev`)
+
+2. Create a migration (autogenerate):
+   - `uv run alembic revision --autogenerate -m "describe change"`
+   - or `alembic revision --autogenerate -m "describe change"` inside your venv
+
+3. Apply migrations:
+   - `uv run alembic upgrade head`
+   - or `alembic upgrade head`
+
+Best practices:
+
+- Review generated files under `alembic/versions/` before committing.
+- Commit migration files together with the PR that changes models.
+- If `autogenerate` doesn't detect changes, ensure models are imported by `alembic/env.py`.
+
+References:
+
+```school-ps/backend/alembic/env.py#L1-200
+# env.py uses `get_settings()` to read the DB URL and `SQLModel.metadata`.
+```
+
+---
+
+### 🔐 Environment variables (important)
+
+The application uses `pydantic-settings` and automatically loads `.env` (or `.env.test` in testing). See `app/core/config.py` for default values.
+
+Important variables:
+
+- `DATABASE_URL`
+  - Example: `postgresql://postgres:password@localhost:5432/postgres`
+  - Used by the app to create the SQLAlchemy engine (`app.core.db`).
+
+- `ENVIRONMENT`
+  - `development` | `testing` | `production`
+  - When set to `testing` (or when pytest is running), the app uses `.env.test`.
+
+- `SECRET_KEY` — secret for signing tokens.
+- `ALGORITHM` — JWT signing algorithm (e.g. `HS256`).
+- `ACCESS_TOKEN_EXPIRE_MINUTES` — token expiry in minutes (e.g. `30`).
+- `PORT` — application port (e.g. `8000`).
+- `PREFIX_API` — API prefix (default `/api/v1`).
+
+Minimal `.env` example:
+
+```/dev/null/.env.example#L1-20
+ENVIRONMENT=development
+DATABASE_URL=postgresql://postgres:password@localhost:5432/postgres
+SECRET_KEY=super-secret-key
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+PORT=8000
+PREFIX_API=/api/v1
+```
+
+If you use `docker-compose` for the DB, the `db` service already defines `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` in `docker-compose.yml`.
+
+Repository reference:
+
+```school-ps/backend/app/core/config.py#L1-200
+# Settings and default values (get_env_file, Settings)
+```
+
+---
+
+### 🗄️ Creating the database (PostgreSQL)
+
+There are two common ways to create or ensure the database exists for local development: using Docker Compose (recommended) or creating it manually with Postgres client tools. The compose service defines the DB name, user and password and will create the database automatically when started.
+
+Docker Compose (recommended):
+
+```/dev/null/docker_compose_up.sh#L1-4
+# Start only the postgres service (recommended for local dev)
+docker compose up -d db
+# or (legacy)
+docker-compose up -d db
+```
+
+To start the whole stack:
+
+```/dev/null/docker_compose_up_all.sh#L1
+docker compose up -d
+```
+
+The `db` service in this repo uses these env vars:
+
+```school-ps/backend/docker-compose.yml#L1-20
+services:
+  db:
+    image: postgres:17-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+volumes:
+  postgres_data:
+```
+
+Manual creation (if you have Postgres client installed):
+
+```/dev/null/create_db.sh#L1-4
+# Using createdb (Postgres client must be installed)
+PGPASSWORD=password createdb -h localhost -p 5432 -U postgres postgres
+
+# Or with psql:
+PGPASSWORD=password psql -h localhost -U postgres -p 5432 -c "CREATE DATABASE postgres;"
+```
+
+After the database is available, run migrations to create tables and schema:
+
+```/dev/null/migrations_cmds.sh#L1-2
+uv run alembic upgrade head
+```
+
+If you use a different database name, update `DATABASE_URL` in your `.env` accordingly before running migrations.
+
+---
+
+### 🧪 Example: querying the database (health pattern)
+
+The existing `health` endpoint demonstrates the pattern: it receives a DB session via dependency and executes a minimal statement (`select(1)`) to verify connectivity.
+
+Existing example (health ping):
+
+```school-ps/backend/app/modules/health/api/routes.py#L1-40
+from fastapi import APIRouter
+from sqlmodel import select
+
+from app.core.db import SessionDep
+
+router = APIRouter(
+    responses={
+        200: {"description": "OK"},
+    }
+)
+
+
+@router.get("")
+async def health(session: SessionDep):
+    session.exec(select(1))
+    print("¡Ping exitoso! Conexión a la base de datos establecida.")
+    return {"status": "ok"}
+```
+
+Pattern for reading rows from a model (example with `TipoInventario`):
+
+```/dev/null/example_query.py#L1-40
+from fastapi import APIRouter
+from sqlmodel import select
+
+from app.core.db import SessionDep
+from app.modules.inventory.infrastructure.models import TipoInventario
+
+router = APIRouter(prefix="/inventory")
+
+@router.get("/types")
+def list_inventory_types(session: SessionDep):
+    stmt = select(TipoInventario)
+    types = session.exec(stmt).all()
+    return types
+```
+
+Quick curl checks (when app is running):
+
+```/dev/null/examples.sh#L1-4
+# Health (DB connectivity check)
+curl http://localhost:8000/api/v1/health
+
+# Example query endpoint (if implemented)
+curl http://localhost:8000/api/v1/inventory/types
+```
+
+References:
+
+```school-ps/backend/app/core/db.py#L1-200
+# `engine = create_engine(settings.database_url)` and `SessionDep`.
+```
+
+---
+
+### 🧰 Makefile — useful commands
+
+Current `Makefile` (reference):
+
+```school-ps/backend/Makefile#L1-40
+.PHONY: run lint format install-dev install-prod
+
+run:
+	@uv run fastapi dev app/main.py
+
+lint:
+	@uv run zuban check
+	@uv run ruff check
+
+format:
+	@uv run ruff format
+
+install-dev:
+	@uv sync --group dev
+
+install-prod:
+	@uv sync --group prod
+```
+
+Quick descriptions:
+
+- `make run` — start the app in development (`uv run fastapi dev app/main.py`).
+- `make lint` — run linters (`zuban` and `ruff`).
+- `make format` — format code with `ruff`.
+- `make install-dev` — install development dependencies (includes Alembic).
+- `make install-prod` — install production dependencies.
+
+---
+
+### ✅ Quick command summary
+
+- Install dev deps: `make install-dev`
+- Start app (dev): `make run`
+- Create migration: `uv run alembic revision --autogenerate -m "msg"`
+- Apply migrations: `uv run alembic upgrade head`
+- Lint / format: `make lint`, `make format`
+
+---
