@@ -5,3 +5,8 @@ class PupitreOutSchema (BaseModel):
     estado_pupitre: bool
     observacion: str|None
     mensaje: str
+
+
+class BulkUpdateResponse (BaseModel):
+    total_actualizados: int
+    mensaje: str
