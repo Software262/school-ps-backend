@@ -8,14 +8,15 @@ from app.modules.inventory.application.create_borrowing_inventory import (
 )
 from app.modules.inventory.application.create_item_inventory import CreateItemInventory
 from app.modules.inventory.application.create_type_inventory import CreateTypeInventory
+from app.modules.inventory.application.edit_single_item import EditSingleItem
 from app.modules.inventory.application.get_items_inventory import GetItemsInventory
 from app.modules.inventory.application.update_item_inventory import UpdateItemInventory
-from app.modules.inventory.application.edit_single_item import EditSingleItem
 from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     CreateItemRequest,
     CreateTypeInventoryRequest,
-    UpdateItemRequest,
+    UpdateCompleteItemRequest,
+    UpdateSingleItemRequest,
 )
 from app.modules.inventory.schemas.response import (
     CreateItemBorrowingResponse,
@@ -110,7 +111,7 @@ async def create_type_inventory(
 
 @router.put("/items/{item_id}")
 async def update_item(
-    session: SessionDep, item_id: int, update_item_request: UpdateItemRequest
+    session: SessionDep, item_id: int, update_item_request: UpdateCompleteItemRequest
 ):
     update_item_app = UpdateItemInventory(session=session)
     data = await update_item_app.execute(item_id, update_item_request)
@@ -180,9 +181,10 @@ async def create_borrowing(session: SessionDep, borrow_data: CreateBorrowRequest
         details={"message": "Prestamo creado exitosamente"},
     ).to_dict()
 
-@router.put("/items/{item_id}/edit")
+
+@router.patch("/items/{item_id}")
 async def edit_item(
-    session: SessionDep, item_id: int, update_item_request: UpdateItemRequest
+    session: SessionDep, item_id: int, update_item_request: UpdateSingleItemRequest
 ):
     edit_item_app = EditSingleItem(session=session)
     data = await edit_item_app.execute(item_id, update_item_request)

@@ -14,7 +14,8 @@ from app.modules.inventory.infrastructure.models import (
 from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     CreateItemRequest,
-    UpdateItemRequest,
+    UpdateCompleteItemRequest,
+    UpdateSingleItemRequest,
 )
 
 
@@ -74,7 +75,7 @@ class InventoryRepository(InventoryRepositoryInterface):
     async def get_item_by_id(self, item_id: int):
         return self.session.get(Inventario, item_id)
 
-    async def update_item(self, item: Inventario, item_data: UpdateItemRequest):
+    async def update_item(self, item: Inventario, item_data: UpdateCompleteItemRequest):
         item.tipo_inventario_id = item_data.tipo_inventario_id
         item.nombre = item_data.nombre
         item.cantidad = item_data.cantidad
@@ -113,7 +114,7 @@ class InventoryRepository(InventoryRepositoryInterface):
 
         return item
 
-    async def edit_item(self, id: int, item_data: UpdateItemRequest):
+    async def edit_item(self, id: int, item_data: UpdateSingleItemRequest):
         item = self.session.exec(select(Inventario).where(Inventario.id == id)).first()
 
         if not item:

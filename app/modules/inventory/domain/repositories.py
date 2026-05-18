@@ -9,7 +9,8 @@ from app.modules.inventory.infrastructure.models import (
 from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     CreateItemRequest,
-    UpdateItemRequest,
+    UpdateCompleteItemRequest,
+    UpdateSingleItemRequest,
 )
 
 
@@ -44,7 +45,7 @@ class InventoryRepository(ABC):
 
     @abstractmethod
     async def update_item(
-        self, item: Inventario, item_data: UpdateItemRequest
+        self, item: Inventario, item_data: UpdateCompleteItemRequest
     ) -> Inventario:
         pass
 
@@ -58,6 +59,6 @@ class InventoryRepository(ABC):
 
     @abstractmethod
     async def edit_item(
-        self, id: int, item_data: UpdateItemRequest
+        self, id: int, item_data: UpdateSingleItemRequest
     ) -> Inventario | None:
         pass

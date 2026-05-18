@@ -3,7 +3,8 @@ from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     CreateItemRequest,
     CreateTypeInventoryRequest,
-    UpdateItemRequest,
+    UpdateCompleteItemRequest,
+    UpdateSingleItemRequest,
 )
 from app.shared.schemas.filter_pagination import FilterPagination
 from app.shared.utils.filter_pagination import calculate_offset
@@ -39,7 +40,7 @@ class InventoryService:
     async def create_type_inventory(self, type_data: CreateTypeInventoryRequest):
         return await self.repository.create_type_inventory(name=type_data.nombre)
 
-    async def update_item(self, item_id: int, item_data: UpdateItemRequest):
+    async def update_item(self, item_id: int, item_data: UpdateCompleteItemRequest):
         item = await self.repository.get_item_by_id(item_id)
         if not item:
             return None
@@ -67,6 +68,6 @@ class InventoryService:
         await self.repository.update_amount_item(item.id, item.cantidad)
 
         return borrow
-    
-    async def edit_item(self, item_id: int, item_data: UpdateItemRequest):
+
+    async def edit_item(self, item_id: int, item_data: UpdateSingleItemRequest):
         return await self.repository.edit_item(id=item_id, item_data=item_data)
