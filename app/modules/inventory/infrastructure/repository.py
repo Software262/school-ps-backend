@@ -95,7 +95,7 @@ class InventoryRepository(InventoryRepositoryInterface):
             inventario_id=borrow_data.inventario_id,
             estudiante_id=borrow_data.estudiante_id,
             fecha_salida=borrow_data.fecha_salida,
-            estado_prestamo=borrow_data.estado_prestamo,
+            estado_prestamo=True,
             cantidad=borrow_data.cantidad,
             fecha_devolucion=None,
             observacion=borrow_data.observacion,
@@ -136,16 +136,18 @@ class InventoryRepository(InventoryRepositoryInterface):
 
         return borrow
 
-    async def return_borrow(self, borrow_data: ReturnBorrowRequest):
+    async def return_borrow(self, borrow_id: int, borrow_data: ReturnBorrowRequest):
         borrow = self.session.exec(
             select(Prestamo).where(
-                Prestamo.inventario_id == borrow_data.inventario_id
+                Prestamo.id == borrow_id
+                and Prestamo.inventario_id == borrow_data.inventario_id
                 and Prestamo.estudiante_id == borrow_data.estudiante_id
             )
         ).one()
         borrow.fecha_devolucion = datetime.now()
         borrow.estado_prestamo = False
         borrow.cantidad = borrow_data.cantidad
+        borrow.observacion = borrow_data.observacion
         self.session.add(borrow)
         self.session.commit()
         self.session.refresh(borrow)

@@ -56,8 +56,6 @@ class InventoryService:
         if borrow_data.cantidad > item.cantidad:
             return None
 
-        item.cantidad -= borrow_data.cantidad
-
         if not item.id:
             return None
 
@@ -65,6 +63,8 @@ class InventoryService:
 
         if not borrow:
             return None
+
+        item.cantidad -= borrow_data.cantidad
 
         await self.repository.update_amount_item(item.id, item.cantidad)
 
@@ -101,4 +101,6 @@ class InventoryService:
 
         await self.repository.update_amount_item(item.id, item.cantidad)
 
-        return await self.repository.return_borrow(borrow_data)
+        return await self.repository.return_borrow(
+            borrow_id=borrow_id, borrow_data=borrow_data
+        )

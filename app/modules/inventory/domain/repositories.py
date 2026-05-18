@@ -69,5 +69,7 @@ class InventoryRepository(ABC):
         pass
 
     @abstractmethod
-    async def return_borrow(self, borrow_data: ReturnBorrowRequest) -> Prestamo:
+    async def return_borrow(
+        self, borrow_id: int, borrow_data: ReturnBorrowRequest
+    ) -> Prestamo:
         pass

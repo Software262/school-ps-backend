@@ -24,6 +24,7 @@ from app.modules.inventory.schemas.response import (
     CreateItemBorrowingResponse,
     CreateItemInventoryResponse,
     CreateTypeInventoryResponse,
+    ReturnItemBorrowingResponse,
     UpdateItemInventoryResponse,
 )
 from app.shared.schemas.filter_pagination import FilterPagination
@@ -176,6 +177,7 @@ async def create_borrowing(session: SessionDep, borrow_data: CreateBorrowRequest
             inventario_id=data.inventario_id,
             estudiante_id=data.estudiante_id,
             cantidad=data.cantidad,
+            estado_prestamo=data.estado_prestamo,
             observacion=data.observacion,
         ),
         message="Prestamo creado exitosamente",
@@ -200,8 +202,31 @@ async def return_borrowing(
             details={"message": "Error al devolver el prestamo"},
         ).to_dict()
 
+    if not data.id:
+        return Response(
+            data=None,
+            message="Error al devolver el prestamo",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"message": "Error al devolver el prestamo"},
+        ).to_dict()
+
+    if not data.observacion:
+        return Response(
+            data=None,
+            message="Error al devolver el prestamo",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"message": "Error al devolver el prestamo"},
+        ).to_dict()
+
     return Response(
-        data=data,
+        data=ReturnItemBorrowingResponse(
+            id=data.id,
+            inventario_id=data.inventario_id,
+            estudiante_id=data.estudiante_id,
+            cantidad=data.cantidad,
+            estado_prestamo=data.estado_prestamo,
+            observacion=data.observacion,
+        ),
         message="Prestamo devuelto exitosamente",
         status_code=status.HTTP_200_OK,
         details={"message": "Prestamo devuelto exitosamente"},

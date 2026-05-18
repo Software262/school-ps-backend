@@ -56,7 +56,6 @@ class CreateBorrowRequest(BaseModel):
         description="Fecha de préstamo en formato YYYY-MM-DD", examples=[datetime.now()]
     )
     cantidad: int = Field(ge=1, description="Cantidad del articulo a prestar")
-    estado_prestamo: bool = Field(description="Estado del préstamo")
     observacion: str | None = Field(None, description="Observación del préstamo")
 
 
@@ -66,4 +65,4 @@ class ReturnBorrowRequest(BaseModel):
         ge=1, description="ID del estudiante que devuelve el articulo"
     )
     cantidad: int = Field(ge=1, description="Cantidad del articulo a devolver")
-    observacion: str | None = Field(None, description="Observación del préstamo")
+    observacion: str = Field(description="Observación del préstamo")
