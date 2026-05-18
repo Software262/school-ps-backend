@@ -186,7 +186,7 @@ async def create_borrowing(session: SessionDep, borrow_data: CreateBorrowRequest
     ).to_dict()
 
 
-@router.patch("/borrowings/{borrow_id}")
+@router.patch("/borrow/{borrow_id}")
 async def return_borrowing(
     session: SessionDep, borrow_id: int, return_borrow_request: ReturnBorrowRequest
 ):
