@@ -1,6 +1,6 @@
-from app.modules.inventory.domain.repositories import InventoryRepository
 from app.modules.inventory.domain.service import InventoryService
-from app.modules.inventory.schemas.request import UpdateItemRequest
+from app.modules.inventory.infrastructure.repository import InventoryRepository
+from app.modules.inventory.schemas.request import UpdateCompleteItemRequest
 
 
 class UpdateItemInventory:
@@ -8,5 +8,5 @@ class UpdateItemInventory:
         self.repository = InventoryRepository(session=session)
         self.service = InventoryService(repository=self.repository)
 
-    async def execute(self, item_id: int, item_data: UpdateItemRequest):
+    async def execute(self, item_id: int, item_data: UpdateCompleteItemRequest):
         return await self.service.update_item(item_id, item_data)
