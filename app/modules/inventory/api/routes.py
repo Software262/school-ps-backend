@@ -10,11 +10,13 @@ from app.modules.inventory.application.create_item_inventory import CreateItemIn
 from app.modules.inventory.application.create_type_inventory import CreateTypeInventory
 from app.modules.inventory.application.edit_single_item import EditSingleItem
 from app.modules.inventory.application.get_items_inventory import GetItemsInventory
+from app.modules.inventory.application.return_borrowing import ReturnBorrowing
 from app.modules.inventory.application.update_item_inventory import UpdateItemInventory
 from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     CreateItemRequest,
     CreateTypeInventoryRequest,
+    ReturnBorrowRequest,
     UpdateCompleteItemRequest,
     UpdateSingleItemRequest,
 )
@@ -179,6 +181,30 @@ async def create_borrowing(session: SessionDep, borrow_data: CreateBorrowRequest
         message="Prestamo creado exitosamente",
         status_code=status.HTTP_201_CREATED,
         details={"message": "Prestamo creado exitosamente"},
+    ).to_dict()
+
+
+@router.patch("/borrowings/{borrow_id}")
+async def return_borrowing(
+    session: SessionDep, borrow_id: int, return_borrow_request: ReturnBorrowRequest
+):
+    return_borrow_app = ReturnBorrowing(session=session)
+
+    data = await return_borrow_app.execute(borrow_id, return_borrow_request)
+
+    if not data:
+        return Response(
+            data=None,
+            message="Error al devolver el prestamo",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"message": "Error al devolver el prestamo"},
+        ).to_dict()
+
+    return Response(
+        data=data,
+        message="Prestamo devuelto exitosamente",
+        status_code=status.HTTP_200_OK,
+        details={"message": "Prestamo devuelto exitosamente"},
     ).to_dict()
 
 

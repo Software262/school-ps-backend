@@ -3,6 +3,7 @@ from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     CreateItemRequest,
     CreateTypeInventoryRequest,
+    ReturnBorrowRequest,
     UpdateCompleteItemRequest,
     UpdateSingleItemRequest,
 )
@@ -71,3 +72,33 @@ class InventoryService:
 
     async def edit_item(self, item_id: int, item_data: UpdateSingleItemRequest):
         return await self.repository.edit_item(id=item_id, item_data=item_data)
+
+    async def return_borrow(self, borrow_id: int, borrow_data: ReturnBorrowRequest):
+        item = await self.repository.get_item_by_id(borrow_data.inventario_id)
+        if not item:
+            return None
+
+        if not item.id:
+            return None
+
+        borrow = await self.repository.get_borrowing(borrow_id)
+        if not borrow:
+            return None
+
+        if borrow.inventario_id != borrow_data.inventario_id:
+            return None
+
+        if borrow.estudiante_id != borrow_data.estudiante_id:
+            return None
+
+        if borrow.cantidad != borrow_data.cantidad:
+            return None
+
+        if not borrow.estado_prestamo:
+            return None
+
+        item.cantidad += borrow_data.cantidad
+
+        await self.repository.update_amount_item(item.id, item.cantidad)
+
+        return await self.repository.return_borrow(borrow_data)

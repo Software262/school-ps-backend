@@ -58,3 +58,12 @@ class CreateBorrowRequest(BaseModel):
     cantidad: int = Field(ge=1, description="Cantidad del articulo a prestar")
     estado_prestamo: bool = Field(description="Estado del préstamo")
     observacion: str | None = Field(None, description="Observación del préstamo")
+
+
+class ReturnBorrowRequest(BaseModel):
+    inventario_id: int = Field(ge=1, description="ID del item a devolver")
+    estudiante_id: int = Field(
+        ge=1, description="ID del estudiante que devuelve el articulo"
+    )
+    cantidad: int = Field(ge=1, description="Cantidad del articulo a devolver")
+    observacion: str | None = Field(None, description="Observación del préstamo")
