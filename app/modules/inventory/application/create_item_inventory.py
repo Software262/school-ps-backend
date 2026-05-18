@@ -1,5 +1,5 @@
-from app.modules.inventory.domain.repositories import InventoryRepository
 from app.modules.inventory.domain.service import InventoryService
+from app.modules.inventory.infrastructure.repository import InventoryRepository
 from app.modules.inventory.schemas.request import CreateItemRequest
 
 
