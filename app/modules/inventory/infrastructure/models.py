@@ -21,6 +21,7 @@ class Prestamo(Base, table=True):
     inventario_id: int = Field(foreign_key="inventario.id")
     estudiante_id: int = Field(foreign_key="estudiante.id")
     fecha_salida: datetime = Field(nullable=False)
-    fecha_devolucion: datetime = Field(nullable=False)
+    fecha_devolucion: datetime | None = Field(nullable=True)
     estado_prestamo: bool = Field(nullable=False)
+    cantidad: int = Field(ge=1, nullable=False)
     observacion: str | None = Field(max_length=400)
