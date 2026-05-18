@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Sequence
 
 from sqlmodel import select
@@ -14,7 +15,9 @@ from app.modules.inventory.infrastructure.models import (
 from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     CreateItemRequest,
-    UpdateItemRequest,
+    ReturnBorrowRequest,
+    UpdateCompleteItemRequest,
+    UpdateSingleItemRequest,
 )
 
 
@@ -74,7 +77,7 @@ class InventoryRepository(InventoryRepositoryInterface):
     async def get_item_by_id(self, item_id: int):
         return self.session.get(Inventario, item_id)
 
-    async def update_item(self, item: Inventario, item_data: UpdateItemRequest):
+    async def update_item(self, item: Inventario, item_data: UpdateCompleteItemRequest):
         item.tipo_inventario_id = item_data.tipo_inventario_id
         item.nombre = item_data.nombre
         item.cantidad = item_data.cantidad
@@ -92,7 +95,7 @@ class InventoryRepository(InventoryRepositoryInterface):
             inventario_id=borrow_data.inventario_id,
             estudiante_id=borrow_data.estudiante_id,
             fecha_salida=borrow_data.fecha_salida,
-            estado_prestamo=borrow_data.estado_prestamo,
+            estado_prestamo=True,
             cantidad=borrow_data.cantidad,
             fecha_devolucion=None,
             observacion=borrow_data.observacion,
@@ -112,3 +115,41 @@ class InventoryRepository(InventoryRepositoryInterface):
         self.session.refresh(item)
 
         return item
+
+    async def edit_item(self, id: int, item_data: UpdateSingleItemRequest):
+        item = self.session.exec(select(Inventario).where(Inventario.id == id)).one()
+
+        update_data = item_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(item, field, value)
+
+        self.session.add(item)
+        self.session.commit()
+        self.session.refresh(item)
+
+        return item
+
+    async def get_borrowing(self, borrow_id: int) -> Prestamo | None:
+        borrow = self.session.exec(
+            select(Prestamo).where(Prestamo.id == borrow_id)
+        ).first()
+
+        return borrow
+
+    async def return_borrow(self, borrow_id: int, borrow_data: ReturnBorrowRequest):
+        borrow = self.session.exec(
+            select(Prestamo).where(
+                Prestamo.id == borrow_id
+                and Prestamo.inventario_id == borrow_data.inventario_id
+                and Prestamo.estudiante_id == borrow_data.estudiante_id
+            )
+        ).one()
+        borrow.fecha_devolucion = datetime.now()
+        borrow.estado_prestamo = False
+        borrow.cantidad = borrow_data.cantidad
+        borrow.observacion = borrow_data.observacion
+        self.session.add(borrow)
+        self.session.commit()
+        self.session.refresh(borrow)
+
+        return borrow
