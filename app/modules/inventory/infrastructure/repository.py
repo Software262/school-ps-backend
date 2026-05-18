@@ -153,3 +153,18 @@ class InventoryRepository(InventoryRepositoryInterface):
         self.session.refresh(borrow)
 
         return borrow
+    
+    async def get_borrowings_pagination(
+        self, offset: int, limit: int, active_only: bool = False
+    ) -> Sequence[Prestamo]:
+        from sqlmodel import select
+        from app.modules.inventory.infrastructure.models import Prestamo
+        
+        query = select(Prestamo)
+        
+        if active_only:
+            query = query.where(Prestamo.estado_prestamo)
+            
+        query = query.offset(offset).limit(limit)
+        
+        return self.session.exec(query).all()

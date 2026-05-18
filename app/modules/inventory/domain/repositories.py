@@ -73,3 +73,9 @@ class InventoryRepository(ABC):
         self, borrow_id: int, borrow_data: ReturnBorrowRequest
     ) -> Prestamo:
         pass
+
+    @abstractmethod
+    async def get_borrowings_pagination(
+        self, offset: int, limit: int, active_only: bool = False
+    ) -> Sequence[Prestamo]:
+        pass
