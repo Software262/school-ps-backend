@@ -10,6 +10,7 @@ from app.modules.inventory.application.create_item_inventory import CreateItemIn
 from app.modules.inventory.application.create_type_inventory import CreateTypeInventory
 from app.modules.inventory.application.get_items_inventory import GetItemsInventory
 from app.modules.inventory.application.update_item_inventory import UpdateItemInventory
+from app.modules.inventory.application.edit_single_item import EditSingleItem
 from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     CreateItemRequest,
@@ -177,4 +178,40 @@ async def create_borrowing(session: SessionDep, borrow_data: CreateBorrowRequest
         message="Prestamo creado exitosamente",
         status_code=status.HTTP_201_CREATED,
         details={"message": "Prestamo creado exitosamente"},
+    ).to_dict()
+
+@router.put("/items/{item_id}/edit")
+async def edit_item(
+    session: SessionDep, item_id: int, update_item_request: UpdateItemRequest
+):
+    edit_item_app = EditSingleItem(session=session)
+    data = await edit_item_app.execute(item_id, update_item_request)
+
+    if not data:
+        return Response(
+            data=None,
+            message="Error al editar el articulo",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"message": "Error al editar el articulo"},
+        ).to_dict()
+
+    if not data.id:
+        return Response(
+            data=None,
+            message="Error al editar el articulo",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"message": "Error al editar el articulo"},
+        ).to_dict()
+
+    return Response(
+        data=UpdateItemInventoryResponse(
+            id=data.id,
+            nombre=data.nombre,
+            cantidad=data.cantidad,
+            estado_objeto=data.estado_objeto,
+            observacion=data.observacion,
+        ),
+        message="Articulo editado exitosamente",
+        status_code=status.HTTP_200_OK,
+        details={"message": "Articulo editado exitosamente"},
     ).to_dict()

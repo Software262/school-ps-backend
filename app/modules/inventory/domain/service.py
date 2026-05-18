@@ -67,3 +67,6 @@ class InventoryService:
         await self.repository.update_amount_item(item.id, item.cantidad)
 
         return borrow
+    
+    async def edit_item(self, item_id: int, item_data: UpdateItemRequest):
+        return await self.repository.edit_item(id=item_id, item_data=item_data)

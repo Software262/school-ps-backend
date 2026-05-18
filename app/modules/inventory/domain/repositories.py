@@ -100,3 +100,20 @@ class InventoryRepository:
         self.session.refresh(item)
 
         return item
+    
+    # Metodo para editar uno o mas campos del item
+    async def edit_item(self, id: int, item_data: UpdateItemRequest):
+        item = self.session.exec(select(Inventario).where(Inventario.id == id)).first()
+
+        if not item:
+            return None
+
+        update_data = item_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(item, field, value)
+
+        self.session.add(item)
+        self.session.commit()
+        self.session.refresh(item)
+
+        return item
