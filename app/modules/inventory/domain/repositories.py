@@ -55,3 +55,9 @@ class InventoryRepository(ABC):
     @abstractmethod
     async def update_amount_item(self, id: int, amount: int) -> Inventario:
         pass
+
+    @abstractmethod
+    async def edit_item(
+        self, id: int, item_data: UpdateItemRequest
+    ) -> Inventario | None:
+        pass
