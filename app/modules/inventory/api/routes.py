@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Depends, Query, status
 
 from app.core.db import SessionDep
 from app.modules.inventory.application.create_borrowing_inventory import (
@@ -273,7 +273,7 @@ async def edit_item(
 @router.get("/borrow")
 async def get_borrowings(
     session: SessionDep,
-    filter_pagination_query: Annotated[FilterPagination, Query()],
+    filter_pagination_query: Annotated[FilterPagination, Depends()],
     active_only: bool = Query(False, description="Filtrar solo los prestamos activos (sin devolver)")
 ):
     get_borrowings_app = GetBorrowings(session=session)
