@@ -12,6 +12,7 @@ class TuitionInstallmentResponse(BaseModel):
     fecha_pago: datetime
     faltante: bool
 
+
 class TuitionAccountResponse(BaseModel):
     estudiante_id: int
     valor_total_anual: int

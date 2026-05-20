@@ -1,16 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 from app.modules.tuition.schemas.request import PaymentCreateRequest
-from app.modules.tuition.schemas.response import TuitionAccountResponse, TuitionInstallmentResponse
+from app.modules.tuition.schemas.response import (
+    TuitionAccountResponse,
+    TuitionInstallmentResponse,
+)
 from app.modules.tuition.infrastructure.repositories import SQLModelTuitionRepository
-from app.modules.tuition.application.register_tuition_payment import RegisterTuitionPaymentUseCase
+from app.modules.tuition.application.register_tuition_payment import (
+    RegisterTuitionPaymentUseCase,
+)
 from app.modules.tuition.application.get_student_tuition import GetStudentTuitionUseCase
 
-# Assuming a dependency for session exists globally, otherwise you can define one here
-def get_session():
-    pass
+from app.core.db import get_session
 
-router = APIRouter(prefix="/tuition", tags=["tuition"])
+router = APIRouter(tags=["tuition"])
+
 
 @router.get("/student/{student_id}", response_model=TuitionAccountResponse)
 def get_tuition_account(student_id: int, session: Session = Depends(get_session)):
@@ -19,7 +23,7 @@ def get_tuition_account(student_id: int, session: Session = Depends(get_session)
     account = use_case.execute(student_id)
     if not account:
         raise HTTPException(status_code=404, detail="Tuition account not found")
-        
+
     return TuitionAccountResponse(
         estudiante_id=account.estudiante_id,
         valor_total_anual=account.valor_total,
@@ -32,13 +36,17 @@ def get_tuition_account(student_id: int, session: Session = Depends(get_session)
                 valor_total=inst.valor_total,
                 valor_pagado=inst.valor_pagado,
                 fecha_pago=inst.fecha_pago,
-                faltante=inst.faltante
-            ) for inst in account.installments
-        ]
+                faltante=inst.faltante,
+            )
+            for inst in account.installments
+        ],
     )
 
+
 @router.post("/payment", response_model=TuitionInstallmentResponse)
-def register_payment(request: PaymentCreateRequest, session: Session = Depends(get_session)):
+def register_payment(
+    request: PaymentCreateRequest, session: Session = Depends(get_session)
+):
     repo = SQLModelTuitionRepository(session)
     use_case = RegisterTuitionPaymentUseCase(repo)
     try:
@@ -50,7 +58,7 @@ def register_payment(request: PaymentCreateRequest, session: Session = Depends(g
             valor_total=installment.valor_total,
             valor_pagado=installment.valor_pagado,
             fecha_pago=installment.fecha_pago,
-            faltante=installment.faltante
+            faltante=installment.faltante,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

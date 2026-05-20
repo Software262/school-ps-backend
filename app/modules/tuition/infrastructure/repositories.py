@@ -14,10 +14,12 @@ class SQLModelTuitionRepository(TuitionRepository):
         pension_model = self.session.exec(statement).first()
         if not pension_model:
             return None
-        
-        inst_statement = select(DetallePension).where(DetallePension.pension_id == pension_model.id)
+
+        inst_statement = select(DetallePension).where(
+            DetallePension.pension_id == pension_model.id
+        )
         installments_models = self.session.exec(inst_statement).all()
-        
+
         installments = [
             TuitionInstallment(
                 id=inst.id,
@@ -29,9 +31,10 @@ class SQLModelTuitionRepository(TuitionRepository):
                 valor_pagado=inst.valor_pagado,
                 fecha_pago=inst.fecha_pago,
                 faltante=inst.faltante,
-            ) for inst in installments_models
+            )
+            for inst in installments_models
         ]
-        
+
         return TuitionAccount(
             id=pension_model.id,
             para_pension_id=pension_model.para_pension_id,
@@ -40,16 +43,17 @@ class SQLModelTuitionRepository(TuitionRepository):
             valor_total=pension_model.valor_total,
             fecha_registro=pension_model.fecha_registro,
             estado_pension=pension_model.estado_pension,
-            installments=installments
+            installments=installments,
         )
 
     def save_account(self, account: TuitionAccount) -> TuitionAccount:
         pass
 
-    def get_installments_by_month(self, student_id: int, mes: int) -> List[TuitionInstallment]:
+    def get_installments_by_month(
+        self, student_id: int, mes: int
+    ) -> List[TuitionInstallment]:
         statement = select(DetallePension).where(
-            DetallePension.estudiante_id == student_id,
-            DetallePension.mes == mes
+            DetallePension.estudiante_id == student_id, DetallePension.mes == mes
         )
         models = self.session.exec(statement).all()
         return [
@@ -63,7 +67,8 @@ class SQLModelTuitionRepository(TuitionRepository):
                 valor_pagado=m.valor_pagado,
                 fecha_pago=m.fecha_pago,
                 faltante=m.faltante,
-            ) for m in models
+            )
+            for m in models
         ]
 
     def save_installment(self, installment: TuitionInstallment) -> TuitionInstallment:
@@ -75,11 +80,11 @@ class SQLModelTuitionRepository(TuitionRepository):
             valor_total=installment.valor_total,
             valor_pagado=installment.valor_pagado,
             fecha_pago=installment.fecha_pago,
-            faltante=installment.faltante
+            faltante=installment.faltante,
         )
         self.session.add(model)
         self.session.commit()
         self.session.refresh(model)
-        
+
         installment.id = model.id
         return installment

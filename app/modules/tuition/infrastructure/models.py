@@ -4,6 +4,8 @@ from sqlmodel import Field
 
 from app.shared.infrastructure.base import Base
 
+# Import external models to ensure SQLModel can resolve Foreign Keys
+
 
 class ParametrizarPension(Base, table=True):
     grado_id: int = Field(foreign_key="grado.id")

@@ -11,11 +11,12 @@ class RegisterTuitionPaymentUseCase:
     def execute(self, request: PaymentCreateRequest) -> TuitionInstallment:
         account = self.repository.get_account_by_student_id(request.estudiante_id)
         if not account:
-            raise ValueError(f"No pension account found for student {request.estudiante_id}")
+            raise ValueError(
+                f"No pension account found for student {request.estudiante_id}"
+            )
 
         previous_installments = self.repository.get_installments_by_month(
-            student_id=request.estudiante_id, 
-            mes=request.mes
+            student_id=request.estudiante_id, mes=request.mes
         )
 
         monthly_total = 0
@@ -24,10 +25,16 @@ class RegisterTuitionPaymentUseCase:
         else:
             monthly_total = account.valor_total // 10
 
+        TuitionService.validate_payment_amount(
+            previous_installments=previous_installments,
+            new_payment_amount=request.valor_pagado,
+            total_monthly_value=monthly_total,
+        )
+
         faltante = TuitionService.calculate_installment_status(
             previous_installments=previous_installments,
             new_payment_amount=request.valor_pagado,
-            total_monthly_value=monthly_total
+            total_monthly_value=monthly_total,
         )
 
         next_cuota = TuitionService.get_next_cuota_number(previous_installments)
@@ -40,7 +47,7 @@ class RegisterTuitionPaymentUseCase:
             valor_total=monthly_total,
             valor_pagado=request.valor_pagado,
             fecha_pago=request.fecha_pago,
-            faltante=faltante
+            faltante=faltante,
         )
 
         saved_installment = self.repository.save_installment(new_installment)

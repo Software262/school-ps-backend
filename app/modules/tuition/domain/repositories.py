@@ -14,7 +14,9 @@ class TuitionRepository(ABC):
         pass
 
     @abstractmethod
-    def get_installments_by_month(self, student_id: int, mes: int) -> List[TuitionInstallment]:
+    def get_installments_by_month(
+        self, student_id: int, mes: int
+    ) -> List[TuitionInstallment]:
         pass
 
     @abstractmethod
