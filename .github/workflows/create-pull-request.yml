@@ -173,7 +173,7 @@ jobs:
       - name: Build Copilot prompt
         run: |
           cat <<'EOF' > copilot_prompt.md
-          You are a PR reviewer for a backend-only repository. Use ONLY the changed files list and the provided diff.
+          You are a PR reviewer. Use ONLY the changed files list and the provided diff.
           Your output must be a clear, actionable Markdown report.
 
           Report requirements:
