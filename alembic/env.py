@@ -4,6 +4,7 @@ from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 
 from alembic import context
+from app.core.config import get_settings
 from app.modules.auth.infrastructure import models as auth  # noqa: F401
 from app.modules.cafeteria.infrastructure import models as cafeteria  # noqa: F401
 from app.modules.classroom.infrastructure import models as classroom  # noqa: F401
@@ -12,12 +13,15 @@ from app.modules.inventory.infrastructure import models as inventory  # noqa: F4
 from app.modules.peace_safe.infrastructure import models as peace_safe  # noqa: F401
 from app.modules.principal.infrastructure import models as principal  # noqa: F401
 from app.modules.tests.infrastructure import models as tests  # noqa: F401
-from app.modules.training_schools.infrastructure import models as training_schools  # noqa: F401
+from app.modules.training_schools.infrastructure import (
+    models as training_schools,  # noqa: F401
+)
 from app.modules.tuition.infrastructure import models as tuition  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+settings = get_settings()
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -48,7 +52,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = settings.database_url
     context.configure(
         url=url,
         target_metadata=target_metadata,
