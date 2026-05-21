@@ -1,8 +1,1 @@
 * @Software262/tech-leads
-
-backend/ @Software262/backend-ps-devs @Software262/tech-leads
-app/ @Software262/backend-ps-devs @Software262/tech-leads
-*.py @Software262/backend-ps-devs @Software262/tech-leads
-
-docs/ @Software262/tech-leads
-.github/ @Software262/tech-leads
