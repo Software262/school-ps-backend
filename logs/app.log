@@ -1,0 +1,3 @@
+2026-05-21 09:09:48 | INFO | app.main:11 | Starting application
+2026-05-21 09:09:49 | INFO | app.main:11 | Starting application
+2026-05-21 09:14:45 | INFO | app.modules.health.api.routes:18 | ¡Ping exitoso! Conexión a la base de datos establecida.

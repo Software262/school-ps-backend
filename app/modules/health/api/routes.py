@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from sqlmodel import select
 
 from app.core.db import SessionDep
+from app.core.logger import setup_logger
 
 router = APIRouter(
     responses={
@@ -13,5 +14,6 @@ router = APIRouter(
 @router.get("")
 async def health(session: SessionDep):
     session.exec(select(1))
-    print("¡Ping exitoso! Conexión a la base de datos establecida.")
+    logger = setup_logger()
+    logger.info("¡Ping exitoso! Conexión a la base de datos establecida.")
     return {"status": "ok"}
