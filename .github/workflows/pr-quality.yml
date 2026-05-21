@@ -162,14 +162,15 @@ jobs:
           node-version: 24
 
       - name: Install Copilot CLI
-        run: npm install -g @github/copilot
+        run: pnpm install -g @github/copilot
 
       - name: Collect PR diff
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh pr diff ${{ github.event.pull_request.number }} --name-only > changed_files.txt
-          gh pr diff ${{ github.event.pull_request.number }} --stat > diff.stat
+          git fetch --no-tags origin ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }}
+          git diff --stat ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} > diff.stat
           gh pr diff ${{ github.event.pull_request.number }} --patch > diff.patch
           head -c 120000 diff.patch > diff.trim.patch
 
