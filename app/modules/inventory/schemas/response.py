@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from datetime import datetime
 
 
 class CreateTypeInventoryResponse(BaseModel):
@@ -38,3 +39,13 @@ class ReturnItemBorrowingResponse(BaseModel):
     cantidad: int
     estado_prestamo: bool
     observacion: str
+
+
+class BorrowingResponse(BaseModel):
+    id: int
+    inventario_id: int
+    estudiante_id: int
+    fecha_salida: datetime
+    fecha_devolucion: datetime
+    estado_prestamo: bool
+    observacion: str | None = None
