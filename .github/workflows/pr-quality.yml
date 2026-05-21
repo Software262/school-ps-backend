@@ -156,11 +156,13 @@ jobs:
               });
             }
 
-      - name: Install GitHub Copilot CLI
-        env:
-          GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
-        run: |
-          gh extension install github/gh-copilot || gh extension upgrade github/gh-copilot
+      - name: Set up Node.js environment
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install Copilot CLI
+        run: npm install -g @github/copilot
 
       - name: Collect PR diff
         env:
@@ -203,7 +205,7 @@ jobs:
           GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
           COPILOT_GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         run: |
-          gh copilot -p "$(cat copilot_prompt.md)" --assistant > copilot_review.md
+          copilot -p "$(cat copilot_prompt.md)"  --allow-tool='shell(git:*)' --allow-tool=write --no-ask-user > copilot_review.md
 
       - name: Publish Copilot review comment
         uses: actions/github-script@v9
