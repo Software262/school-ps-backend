@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session
+from app.core.db import SessionDep
 from app.modules.tuition.schemas.request import PaymentCreateRequest
 from app.modules.tuition.schemas.response import (
     TuitionAccountResponse,
@@ -11,13 +11,11 @@ from app.modules.tuition.application.register_tuition_payment import (
 )
 from app.modules.tuition.application.get_student_tuition import GetStudentTuitionUseCase
 
-from app.core.db import get_session
-
-router = APIRouter(tags=["tuition"])
+router = APIRouter()
 
 
 @router.get("/student/{student_id}", response_model=TuitionAccountResponse)
-def get_tuition_account(student_id: int, session: Session = Depends(get_session)):
+def get_tuition_account(session: SessionDep, student_id: int):
     repo = SQLModelTuitionRepository(session)
     use_case = GetStudentTuitionUseCase(repo)
     account = use_case.execute(student_id)
@@ -44,9 +42,7 @@ def get_tuition_account(student_id: int, session: Session = Depends(get_session)
 
 
 @router.post("/payment", response_model=TuitionInstallmentResponse)
-def register_payment(
-    request: PaymentCreateRequest, session: Session = Depends(get_session)
-):
+def register_payment(session: SessionDep, request: PaymentCreateRequest):
     repo = SQLModelTuitionRepository(session)
     use_case = RegisterTuitionPaymentUseCase(repo)
     try:
