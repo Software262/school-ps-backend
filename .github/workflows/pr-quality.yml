@@ -52,7 +52,7 @@ jobs:
               missing.push("Description section is missing.");
             } else {
               const text = sectionText(descriptionSection, "Description");
-              if (!text || text === placeholders.description || /^n\\/a$/i.test(text)) {
+              if (!text || text === placeholders.description || /^\s*n\s*[/\-]\s*a\s*$/i.test(text)) {
                 missing.push("Description must be filled out.");
               }
             }
@@ -86,7 +86,7 @@ jobs:
               missing.push("Testing section is missing.");
             } else {
               const text = sectionText(testingSection, "Testing");
-              const allowedNA = /n\\/a|no aplica|not applicable/i.test(text);
+              const allowedNA = /n\s*[/\-]\s*a|no aplica|not applicable/i.test(text);
               if (!text || text === placeholders.testing || (!allowedNA && text.length < 3)) {
                 missing.push("Testing must include what you ran (or explicitly say N/A).");
               }
@@ -198,7 +198,6 @@ jobs:
 
           printf '\n\n## Diff (trimmed)\n' >> copilot_prompt.md
           cat diff.trim.patch >> copilot_prompt.md
-
       - name: Generate Copilot review
         env:
           GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
