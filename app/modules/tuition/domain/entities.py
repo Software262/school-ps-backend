@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional, List
 
@@ -25,4 +25,4 @@ class TuitionAccount:
     fecha_registro: datetime
     estado_pension: bool
     id: Optional[int] = None
-    installments: List[TuitionInstallment] = None
+    installments: List[TuitionInstallment] = field(default_factory=list)

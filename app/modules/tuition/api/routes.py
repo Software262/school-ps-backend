@@ -28,7 +28,7 @@ def get_tuition_account(session: SessionDep, student_id: int):
         estado_pension_general=account.estado_pension,
         installments=[
             TuitionInstallmentResponse(
-                id=inst.id,
+                id=inst.id or 0,
                 mes=inst.mes,
                 cuota=inst.cuota,
                 valor_total=inst.valor_total,
@@ -48,7 +48,7 @@ def register_payment(session: SessionDep, request: PaymentCreateRequest):
     try:
         installment = use_case.execute(request)
         return TuitionInstallmentResponse(
-            id=installment.id,
+            id=installment.id or 0,
             mes=installment.mes,
             cuota=installment.cuota,
             valor_total=installment.valor_total,

@@ -40,7 +40,7 @@ class RegisterTuitionPaymentUseCase:
         next_cuota = TuitionService.get_next_cuota_number(previous_installments)
 
         new_installment = TuitionInstallment(
-            pension_id=account.id,
+            pension_id=account.id or 0,
             estudiante_id=request.estudiante_id,
             mes=request.mes,
             cuota=next_cuota,

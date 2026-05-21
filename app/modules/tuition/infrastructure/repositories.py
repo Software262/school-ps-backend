@@ -47,7 +47,7 @@ class SQLModelTuitionRepository(TuitionRepository):
         )
 
     def save_account(self, account: TuitionAccount) -> TuitionAccount:
-        pass
+        raise NotImplementedError
 
     def get_installments_by_month(
         self, student_id: int, mes: int
