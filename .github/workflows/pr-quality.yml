@@ -162,7 +162,7 @@ jobs:
           node-version: 24
 
       - name: Install Copilot CLI
-        run: pnpm install -g @github/copilot
+        run: npm install -g @github/copilot
 
       - name: Collect PR diff
         env:
