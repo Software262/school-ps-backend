@@ -187,16 +187,16 @@ jobs:
           Include a section named "Evidence" with anything still missing from the PR description.
           EOF
 
-          echo "\n## Pull Request Template" >> copilot_prompt.md
+          printf '\n## Pull Request Template\n' >> copilot_prompt.md
           cat .github/pull_request_template.md >> copilot_prompt.md
 
-          echo "\n\n## Files changed" >> copilot_prompt.md
+          printf '\n\n## Files changed\n' >> copilot_prompt.md
           cat changed_files.txt >> copilot_prompt.md
 
-          echo "\n\n## Diff stats" >> copilot_prompt.md
+          printf '\n\n## Diff stats\n' >> copilot_prompt.md
           cat diff.stat >> copilot_prompt.md
 
-          echo "\n\n## Diff (trimmed)" >> copilot_prompt.md
+          printf '\n\n## Diff (trimmed)\n' >> copilot_prompt.md
           cat diff.trim.patch >> copilot_prompt.md
 
       - name: Generate Copilot review
