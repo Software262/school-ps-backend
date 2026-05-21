@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 
+
 class CreateTypeInventoryResponse(BaseModel):
     id: int
     nombre: str
@@ -38,6 +39,7 @@ class ReturnItemBorrowingResponse(BaseModel):
     cantidad: int
     estado_prestamo: bool
     observacion: str
+
 
 class BorrowingResponse(BaseModel):
     id: int

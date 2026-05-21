@@ -31,6 +31,7 @@ from app.shared.schemas.filter_pagination import FilterPagination
 from app.shared.utils.response import Response
 
 from app.modules.inventory.application.get_borrowings import GetBorrowings
+
 router = APIRouter()
 
 
@@ -270,16 +271,18 @@ async def edit_item(
         details={"message": "Articulo editado exitosamente"},
     ).to_dict()
 
+
 @router.get("/borrow")
 async def get_borrowings(
     session: SessionDep,
     filter_pagination_query: Annotated[FilterPagination, Depends()],
-    active_only: bool = Query(False, description="Filtrar solo los prestamos activos (sin devolver)")
+    active_only: bool = Query(
+        False, description="Filtrar solo los prestamos activos (sin devolver)"
+    ),
 ):
     get_borrowings_app = GetBorrowings(session=session)
     data = await get_borrowings_app.execute(
-        filter_pagination=filter_pagination_query,
-        active_only=active_only
+        filter_pagination=filter_pagination_query, active_only=active_only
     )
 
     return (
