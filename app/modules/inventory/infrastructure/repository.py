@@ -149,12 +149,14 @@ class InventoryRepository(InventoryRepositoryInterface):
     async def get_borrowings_pagination(
         self, offset: int, limit: int, active: bool | None, type_id: int | None
     ) -> Sequence[Prestamo]:
-        query = select(Prestamo).offset(offset).limit(limit).join(Inventario)
+        query = select(Prestamo).offset(offset).limit(limit)
 
         if active is not None:
             query = query.where(Prestamo.estado_prestamo == active)
 
         if type_id is not None:
-            query = query.where(Inventario.tipo_inventario_id == type_id)
+            query = query.join(Inventario).where(
+                Inventario.tipo_inventario_id == type_id
+            )
 
         return self.session.exec(query).all()
