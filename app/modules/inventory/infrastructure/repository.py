@@ -25,14 +25,6 @@ class InventoryRepository(InventoryRepositoryInterface):
     def __init__(self, session: SessionDep):
         self.session = session
 
-    async def get_items_pagination(
-        self, offset: int, limit: int
-    ) -> Sequence[Inventario]:
-        items: Sequence[Inventario] = self.session.exec(
-            select(Inventario).offset(offset).limit(limit)
-        ).all()
-        return items
-
     async def get_type_id_by_name(self, item_type: str) -> int | None:
         result = self.session.exec(
             select(TipoInventario).where(TipoInventario.nombre == item_type)
@@ -41,14 +33,14 @@ class InventoryRepository(InventoryRepositoryInterface):
         return result.id if result else None
 
     async def get_items_filter_pagination(
-        self, offset: int, limit: int, type_id: int
+        self, offset: int, limit: int, type_id: int | None
     ) -> Sequence[Inventario]:
-        return self.session.exec(
-            select(Inventario)
-            .where(Inventario.tipo_inventario_id == type_id)
-            .offset(offset)
-            .limit(limit)
-        ).all()
+        query = select(Inventario).offset(offset).limit(limit)
+
+        if type_id is not None:
+            query = query.where(Inventario.tipo_inventario_id == type_id)
+
+        return self.session.exec(query).all()
 
     async def create_item(self, item_data: CreateItemRequest):
         new_item = Inventario(
@@ -155,17 +147,14 @@ class InventoryRepository(InventoryRepositoryInterface):
         return borrow
 
     async def get_borrowings_pagination(
-        self, offset: int, limit: int, active_only: bool, type_id: int | None
+        self, offset: int, limit: int, active: bool | None, type_id: int | None
     ) -> Sequence[Prestamo]:
-        return self.session.exec(
-            select(Prestamo)
-            .where(Prestamo.estado_prestamo == active_only)
-            .offset(offset)
-            .limit(limit)
-            .join(Inventario)
-            .where(
-                Inventario.tipo_inventario_id == type_id
-                if type_id is not None
-                else True
-            )
-        ).all()
+        query = select(Prestamo).offset(offset).limit(limit).join(Inventario)
+
+        if active is not None:
+            query = query.where(Prestamo.estado_prestamo == active)
+
+        if type_id is not None:
+            query = query.where(Inventario.tipo_inventario_id == type_id)
+
+        return self.session.exec(query).all()

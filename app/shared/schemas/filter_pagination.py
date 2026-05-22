@@ -16,4 +16,4 @@ class FilterPagination(BaseModel):
 
 
 class FilterPaginationBorrowings(FilterPagination):
-    active_only: bool = False
+    active: bool | None = None

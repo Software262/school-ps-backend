@@ -17,18 +17,12 @@ from app.modules.inventory.schemas.request import (
 
 class InventoryRepository(ABC):
     @abstractmethod
-    async def get_items_pagination(
-        self, offset: int, limit: int
-    ) -> Sequence[Inventario]:
-        pass
-
-    @abstractmethod
     async def get_type_id_by_name(self, item_type: str) -> int | None:
         pass
 
     @abstractmethod
     async def get_items_filter_pagination(
-        self, offset: int, limit: int, type_id: int
+        self, offset: int, limit: int, type_id: int | None
     ) -> Sequence[Inventario]:
         pass
 
@@ -76,6 +70,6 @@ class InventoryRepository(ABC):
 
     @abstractmethod
     async def get_borrowings_pagination(
-        self, offset: int, limit: int, active_only: bool, type_id: int | None
+        self, offset: int, limit: int, active: bool | None, type_id: int | None
     ) -> Sequence[Prestamo]:
         pass

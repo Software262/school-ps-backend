@@ -22,15 +22,11 @@ class InventoryService:
         offset = calculate_offset(filter_pagination.page, filter_pagination.limit)
 
         if not filter_pagination.item_type:
-            return await self.repository.get_items_pagination(
-                offset=offset, limit=filter_pagination.limit
+            return await self.repository.get_items_filter_pagination(
+                offset=offset, limit=filter_pagination.limit, type_id=None
             )
 
         type_id = await self.repository.get_type_id_by_name(filter_pagination.item_type)
-        if not type_id:
-            return await self.repository.get_items_pagination(
-                offset=offset, limit=filter_pagination.limit
-            )
 
         return await self.repository.get_items_filter_pagination(
             offset=offset,
@@ -109,7 +105,7 @@ class InventoryService:
         )
 
     async def get_borrowings(
-        self, filter_pagination: FilterPagination, active_only: bool = False
+        self, filter_pagination: FilterPagination, active: bool | None
     ) -> Sequence[Prestamo]:
         offset = calculate_offset(filter_pagination.page, filter_pagination.limit)
 
@@ -117,7 +113,7 @@ class InventoryService:
             return await self.repository.get_borrowings_pagination(
                 offset=offset,
                 limit=filter_pagination.limit,
-                active_only=active_only,
+                active=active,
                 type_id=None,
             )
 
@@ -126,6 +122,6 @@ class InventoryService:
         return await self.repository.get_borrowings_pagination(
             offset=offset,
             limit=filter_pagination.limit,
-            active_only=active_only,
+            active=active,
             type_id=type_id,
         )

@@ -16,5 +16,5 @@ class GetBorrowings:
     ) -> Sequence[Prestamo]:
         return await self.service.get_borrowings(
             filter_pagination=filter_pagination,
-            active_only=filter_pagination.active_only,
+            active=filter_pagination.active,
         )
