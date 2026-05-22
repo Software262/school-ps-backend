@@ -76,6 +76,6 @@ class InventoryRepository(ABC):
 
     @abstractmethod
     async def get_borrowings_pagination(
-        self, offset: int, limit: int, active_only: bool = False
+        self, offset: int, limit: int, active_only: bool, type_id: int | None
     ) -> Sequence[Prestamo]:
         pass

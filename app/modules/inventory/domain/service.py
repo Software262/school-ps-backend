@@ -1,4 +1,7 @@
+from typing import Sequence
+
 from app.modules.inventory.domain.repositories import InventoryRepository
+from app.modules.inventory.infrastructure.models import Prestamo
 from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     CreateItemRequest,
@@ -9,8 +12,6 @@ from app.modules.inventory.schemas.request import (
 )
 from app.shared.schemas.filter_pagination import FilterPagination
 from app.shared.utils.filter_pagination import calculate_offset
-from typing import Sequence
-from app.modules.inventory.infrastructure.models import Prestamo
 
 
 class InventoryService:
@@ -110,8 +111,21 @@ class InventoryService:
     async def get_borrowings(
         self, filter_pagination: FilterPagination, active_only: bool = False
     ) -> Sequence[Prestamo]:
-        offset = (filter_pagination.page - 1) * filter_pagination.limit
+        offset = calculate_offset(filter_pagination.page, filter_pagination.limit)
+
+        if not filter_pagination.item_type:
+            return await self.repository.get_borrowings_pagination(
+                offset=offset,
+                limit=filter_pagination.limit,
+                active_only=active_only,
+                type_id=None,
+            )
+
+        type_id = await self.repository.get_type_id_by_name(filter_pagination.item_type)
 
         return await self.repository.get_borrowings_pagination(
-            offset=offset, limit=filter_pagination.limit, active_only=active_only
+            offset=offset,
+            limit=filter_pagination.limit,
+            active_only=active_only,
+            type_id=type_id,
         )

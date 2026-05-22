@@ -4,6 +4,7 @@ from typing import Sequence
 from sqlmodel import select
 
 from app.core.db import SessionDep
+from app.modules.enrollment.infrastructure.models import Estudiante  # noqa: F401
 from app.modules.inventory.domain.repositories import (
     InventoryRepository as InventoryRepositoryInterface,
 )
@@ -155,16 +156,17 @@ class InventoryRepository(InventoryRepositoryInterface):
         return borrow
 
     async def get_borrowings_pagination(
-        self, offset: int, limit: int, active_only: bool = False
+        self, offset: int, limit: int, active_only: bool, type_id: int | None
     ) -> Sequence[Prestamo]:
-        from sqlmodel import select
-        from app.modules.inventory.infrastructure.models import Prestamo
-
-        query = select(Prestamo)
-
-        if active_only:
-            query = query.where(Prestamo.estado_prestamo)
-
-        query = query.offset(offset).limit(limit)
-
-        return self.session.exec(query).all()
+        return self.session.exec(
+            select(Prestamo)
+            .where(Prestamo.estado_prestamo == active_only)
+            .offset(offset)
+            .limit(limit)
+            .join(Inventario)
+            .where(
+                Inventario.tipo_inventario_id == type_id
+                if type_id is not None
+                else True
+            )
+        ).all()

@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Query, status
 
 from app.core.db import SessionDep
 from app.modules.inventory.application.create_borrowing_inventory import (
@@ -9,6 +9,7 @@ from app.modules.inventory.application.create_borrowing_inventory import (
 from app.modules.inventory.application.create_item_inventory import CreateItemInventory
 from app.modules.inventory.application.create_type_inventory import CreateTypeInventory
 from app.modules.inventory.application.edit_single_item import EditSingleItem
+from app.modules.inventory.application.get_borrowings import GetBorrowings
 from app.modules.inventory.application.get_items_inventory import GetItemsInventory
 from app.modules.inventory.application.return_borrowing import ReturnBorrowing
 from app.modules.inventory.application.update_item_inventory import UpdateItemInventory
@@ -27,10 +28,11 @@ from app.modules.inventory.schemas.response import (
     ReturnItemBorrowingResponse,
     UpdateItemInventoryResponse,
 )
-from app.shared.schemas.filter_pagination import FilterPagination
+from app.shared.schemas.filter_pagination import (
+    FilterPagination,
+    FilterPaginationBorrowings,
+)
 from app.shared.utils.response import Response
-
-from app.modules.inventory.application.get_borrowings import GetBorrowings
 
 router = APIRouter()
 
@@ -275,15 +277,10 @@ async def edit_item(
 @router.get("/borrow")
 async def get_borrowings(
     session: SessionDep,
-    filter_pagination_query: Annotated[FilterPagination, Depends()],
-    active_only: bool = Query(
-        False, description="Filtrar solo los prestamos activos (sin devolver)"
-    ),
+    filter_pagination_query: Annotated[FilterPaginationBorrowings, Query()],
 ):
     get_borrowings_app = GetBorrowings(session=session)
-    data = await get_borrowings_app.execute(
-        filter_pagination=filter_pagination_query, active_only=active_only
-    )
+    data = await get_borrowings_app.execute(filter_pagination=filter_pagination_query)
 
     return (
         Response(
