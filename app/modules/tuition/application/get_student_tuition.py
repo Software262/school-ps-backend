@@ -1,11 +1,10 @@
-from typing import Optional
-from app.modules.tuition.domain.repositories import TuitionRepository
+from app.modules.tuition.domain.service import TuitionService
 from app.modules.tuition.domain.entities import TuitionAccount
 
 
 class GetStudentTuitionUseCase:
-    def __init__(self, repository: TuitionRepository):
-        self.repository = repository
+    def __init__(self, service: TuitionService):
+        self.service = service
 
-    def execute(self, student_id: int) -> Optional[TuitionAccount]:
-        return self.repository.get_account_by_student_id(student_id)
+    def execute(self, student_id: int) -> TuitionAccount | None:
+        return self.service.get_student_account(student_id)

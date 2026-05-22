@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List
 
 from app.modules.tuition.domain.entities import TuitionAccount, TuitionInstallment
 
 
 class TuitionRepository(ABC):
     @abstractmethod
-    def get_account_by_student_id(self, student_id: int) -> Optional[TuitionAccount]:
+    def get_account_by_student_id(self, student_id: int) -> TuitionAccount | None:
         pass
 
     @abstractmethod
