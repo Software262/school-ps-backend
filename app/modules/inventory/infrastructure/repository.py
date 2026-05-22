@@ -4,7 +4,6 @@ from typing import Sequence
 from sqlmodel import select
 
 from app.core.db import SessionDep
-from app.modules.enrollment.infrastructure.models import Estudiante  # noqa: F401
 from app.modules.inventory.domain.repositories import (
     InventoryRepository as InventoryRepositoryInterface,
 )
