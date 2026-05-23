@@ -1,11 +1,11 @@
-from sqlmodel import Session
+from app.core.db import SessionDep
 from app.modules.tuition.infrastructure.repositories import SQLModelTuitionRepository
 from app.modules.tuition.domain.service import TuitionService
 from app.modules.tuition.domain.entities import TuitionAccount
 
 
 class GetStudentTuitionUseCase:
-    def __init__(self, session: Session):
+    def __init__(self, session: SessionDep):
         repo = SQLModelTuitionRepository(session)
         self.service = TuitionService(repo)
 
