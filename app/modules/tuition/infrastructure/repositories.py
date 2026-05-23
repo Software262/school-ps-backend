@@ -1,15 +1,16 @@
-from typing import List, Optional
-from sqlmodel import Session, select
+from sqlmodel import select
+
+from app.core.db import SessionDep
 from app.modules.tuition.domain.entities import TuitionAccount, TuitionInstallment
 from app.modules.tuition.domain.repositories import TuitionRepository
 from app.modules.tuition.infrastructure.models import Pension, DetallePension
 
 
 class SQLModelTuitionRepository(TuitionRepository):
-    def __init__(self, session: Session):
+    def __init__(self, session: SessionDep):
         self.session = session
 
-    def get_account_by_student_id(self, student_id: int) -> Optional[TuitionAccount]:
+    def get_account_by_student_id(self, student_id: int) -> TuitionAccount | None:
         statement = select(Pension).where(Pension.estudiante_id == student_id)
         pension_model = self.session.exec(statement).first()
         if not pension_model:
@@ -51,7 +52,7 @@ class SQLModelTuitionRepository(TuitionRepository):
 
     def get_installments_by_month(
         self, student_id: int, mes: int
-    ) -> List[TuitionInstallment]:
+    ) -> list[TuitionInstallment]:
         statement = select(DetallePension).where(
             DetallePension.estudiante_id == student_id, DetallePension.mes == mes
         )
