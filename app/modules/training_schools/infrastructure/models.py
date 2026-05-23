@@ -12,3 +12,4 @@ class DetalleEscuelaFormacion(Base, table=True):
     mes: str = Field(max_length=20)
     activo: bool = Field()
     estado_escuela: bool = Field()
+    motivo_baja: str | None = Field(default=None, max_length=255)
