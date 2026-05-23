@@ -15,6 +15,7 @@ from app.modules.inventory.infrastructure.models import (
 from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     CreateItemRequest,
+    InventoryItemRequest,
     ReturnBorrowRequest,
     UpdateCompleteItemRequest,
     UpdateSingleItemRequest,
@@ -160,3 +161,22 @@ class InventoryRepository(InventoryRepositoryInterface):
             )
 
         return self.session.exec(query).all()
+
+    async def create_items_batch(self, create_items_data: list[InventoryItemRequest]):
+        inventory: list[Inventario] = []
+        for _, data in enumerate(create_items_data):
+            item: Inventario = Inventario(
+                tipo_inventario_id=data.tipo_inventario_id,
+                cantidad=data.cantidad,
+                nombre=data.nombre,
+                estado_objeto=data.estado_objeto,
+                observacion=data.observacion,
+            )
+
+            self.session.add(item)
+            self.session.commit()
+            self.session.refresh(item)
+
+            inventory.append(item)
+
+        return inventory

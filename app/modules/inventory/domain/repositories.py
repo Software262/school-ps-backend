@@ -9,6 +9,7 @@ from app.modules.inventory.infrastructure.models import (
 from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     CreateItemRequest,
+    InventoryItemRequest,
     ReturnBorrowRequest,
     UpdateCompleteItemRequest,
     UpdateSingleItemRequest,
@@ -72,4 +73,10 @@ class InventoryRepository(ABC):
     async def get_borrowings_pagination(
         self, offset: int, limit: int, active: bool | None, type_id: int | None
     ) -> Sequence[Prestamo]:
+        pass
+
+    @abstractmethod
+    async def create_items_batch(
+        self, create_items_data: list[InventoryItemRequest]
+    ) -> list[Inventario]:
         pass

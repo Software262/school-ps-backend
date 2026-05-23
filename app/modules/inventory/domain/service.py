@@ -6,6 +6,7 @@ from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     CreateItemRequest,
     CreateTypeInventoryRequest,
+    InventoryItemRequest,
     ReturnBorrowRequest,
     UpdateCompleteItemRequest,
     UpdateSingleItemRequest,
@@ -124,4 +125,11 @@ class InventoryService:
             limit=filter_pagination.limit,
             active=active,
             type_id=type_id,
+        )
+
+    async def create_items_inventory_from_file(
+        self, create_items_data: list[InventoryItemRequest]
+    ):
+        return await self.repository.create_items_batch(
+            create_items_data=create_items_data
         )

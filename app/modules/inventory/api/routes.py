@@ -1,12 +1,15 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, File, Query, UploadFile, status
 
 from app.core.db import SessionDep
 from app.modules.inventory.application.create_borrowing_inventory import (
     CreateItemBorrowing,
 )
 from app.modules.inventory.application.create_item_inventory import CreateItemInventory
+from app.modules.inventory.application.create_items_inventory_from_file import (
+    CreateItemsIventoryFromFile,
+)
 from app.modules.inventory.application.create_type_inventory import CreateTypeInventory
 from app.modules.inventory.application.edit_single_item import EditSingleItem
 from app.modules.inventory.application.get_borrowings import GetBorrowings
@@ -28,6 +31,7 @@ from app.modules.inventory.schemas.response import (
     ReturnItemBorrowingResponse,
     UpdateItemInventoryResponse,
 )
+from app.modules.inventory.utils.file import validate_data, validate_file
 from app.shared.schemas.filter_pagination import (
     FilterPagination,
     FilterPaginationBorrowings,
@@ -294,3 +298,34 @@ async def get_borrowings(
         )
         .to_dict()
     )
+
+
+@router.post("/items/csv")
+async def upload_csv(
+    session: SessionDep,
+    file: Annotated[UploadFile, File()],
+):
+    data = await validate_file(file=file)
+
+    if data is None:
+        return Response(
+            data=None,
+            message="Archivo invalido solamente se aceptan csv o excel",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={},
+        ).to_dict()
+
+    items_inventory = await validate_data(filename=file.filename, data=data)
+
+    create_items_inventory_from_file = CreateItemsIventoryFromFile(session=session)
+
+    res = await create_items_inventory_from_file.execute(
+        items_inventory=items_inventory
+    )
+
+    return Response(
+        data=res,
+        message="Archivo cargado exitosamente",
+        status_code=status.HTTP_200_OK,
+        details={"message": "Archivo cargado exitosamente"},
+    ).to_dict()
