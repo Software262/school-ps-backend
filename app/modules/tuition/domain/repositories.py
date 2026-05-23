@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import List
 
 from app.modules.tuition.domain.entities import TuitionAccount, TuitionInstallment
 
@@ -16,7 +15,7 @@ class TuitionRepository(ABC):
     @abstractmethod
     def get_installments_by_month(
         self, student_id: int, mes: int
-    ) -> List[TuitionInstallment]:
+    ) -> list[TuitionInstallment]:
         pass
 
     @abstractmethod
