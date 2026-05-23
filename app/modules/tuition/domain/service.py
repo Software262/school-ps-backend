@@ -1,4 +1,3 @@
-from typing import List
 from app.modules.tuition.domain.entities import TuitionInstallment, TuitionAccount
 from app.modules.tuition.domain.repositories import TuitionRepository
 from app.modules.tuition.schemas.request import PaymentCreateRequest
@@ -57,7 +56,7 @@ class TuitionService:
 
     def calculate_installment_status(
         self,
-        previous_installments: List[TuitionInstallment],
+        previous_installments: list[TuitionInstallment],
         new_payment_amount: int,
         total_monthly_value: int,
     ) -> bool:
@@ -72,7 +71,7 @@ class TuitionService:
 
     def validate_payment_amount(
         self,
-        previous_installments: List[TuitionInstallment],
+        previous_installments: list[TuitionInstallment],
         new_payment_amount: int,
         total_monthly_value: int,
     ) -> None:
@@ -94,7 +93,7 @@ class TuitionService:
             )
 
     def get_next_cuota_number(
-        self, previous_installments: List[TuitionInstallment]
+        self, previous_installments: list[TuitionInstallment]
     ) -> int:
         """
         Calculates the next installment number (cuota).
