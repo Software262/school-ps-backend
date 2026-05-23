@@ -5,21 +5,17 @@ from app.modules.tuition.schemas.response import (
     TuitionAccountResponse,
     TuitionInstallmentResponse,
 )
-from app.modules.tuition.infrastructure.repositories import SQLModelTuitionRepository
 from app.modules.tuition.application.register_tuition_payment import (
     RegisterTuitionPaymentUseCase,
 )
 from app.modules.tuition.application.get_student_tuition import GetStudentTuitionUseCase
-from app.modules.tuition.domain.service import TuitionService
 
 router = APIRouter()
 
 
 @router.get("/student/{student_id}", response_model=TuitionAccountResponse)
 def get_tuition_account(session: SessionDep, student_id: int):
-    repo = SQLModelTuitionRepository(session)
-    service = TuitionService(repo)
-    use_case = GetStudentTuitionUseCase(service)
+    use_case = GetStudentTuitionUseCase(session)
     account = use_case.execute(student_id)
     if not account:
         raise HTTPException(status_code=404, detail="Tuition account not found")
@@ -45,9 +41,7 @@ def get_tuition_account(session: SessionDep, student_id: int):
 
 @router.post("/payment", response_model=TuitionInstallmentResponse)
 def register_payment(session: SessionDep, request: PaymentCreateRequest):
-    repo = SQLModelTuitionRepository(session)
-    service = TuitionService(repo)
-    use_case = RegisterTuitionPaymentUseCase(service)
+    use_case = RegisterTuitionPaymentUseCase(session)
     try:
         installment = use_case.execute(request)
         return TuitionInstallmentResponse(
