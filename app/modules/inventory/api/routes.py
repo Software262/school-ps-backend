@@ -8,7 +8,7 @@ from app.modules.inventory.application.create_borrowing_inventory import (
 )
 from app.modules.inventory.application.create_item_inventory import CreateItemInventory
 from app.modules.inventory.application.create_items_inventory_from_file import (
-    CreateItemsIventoryFromFile,
+    CreateItemsInventoryFromFile,
 )
 from app.modules.inventory.application.create_type_inventory import CreateTypeInventory
 from app.modules.inventory.application.edit_single_item import EditSingleItem
@@ -300,8 +300,8 @@ async def get_borrowings(
     )
 
 
-@router.post("/items/csv")
-async def upload_csv(
+@router.post("/items/import")
+async def upload_items_file(
     session: SessionDep,
     file: Annotated[UploadFile, File()],
 ):
@@ -317,7 +317,7 @@ async def upload_csv(
 
     items_inventory = await validate_data(filename=file.filename, data=data)
 
-    create_items_inventory_from_file = CreateItemsIventoryFromFile(session=session)
+    create_items_inventory_from_file = CreateItemsInventoryFromFile(session=session)
 
     res = await create_items_inventory_from_file.execute(
         items_inventory=items_inventory

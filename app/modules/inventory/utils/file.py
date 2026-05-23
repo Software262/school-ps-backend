@@ -14,12 +14,10 @@ content_types = {
 
 async def validate_file(file: UploadFile) -> bytes | None:
     if not file.filename:
-        raise ValueError("No filename provided")
+        return None
 
     if file.content_type not in content_types.keys():
-        raise ValueError(
-            f"Invalid file type. Expected one of {', '.join(content_types.keys())}"
-        )
+        return None
 
     return await file.read()
 
