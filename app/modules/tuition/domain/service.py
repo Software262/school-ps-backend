@@ -17,6 +17,8 @@ class TuitionService:
                 f"No pension account found for student {request.estudiante_id}"
             )
 
+        self.validate_consecutive_months(account, request.mes)
+
         previous_installments = self.repository.get_installments_by_month(
             student_id=request.estudiante_id, mes=request.mes
         )
@@ -53,6 +55,26 @@ class TuitionService:
         )
 
         return self.repository.save_installment(new_installment)
+
+    def validate_consecutive_months(self, account: TuitionAccount, target_month: int) -> None:
+        """
+        Validates that the previous month has been fully paid before allowing payment for the current month.
+        """
+        if target_month <= 1:
+            return
+
+        previous_month = target_month - 1
+        prev_month_installments = [
+            inst for inst in account.installments if inst.mes == previous_month
+        ]
+
+        monthly_total = account.valor_total // 10
+        total_paid_prev_month = sum(inst.valor_pagado for inst in prev_month_installments)
+
+        if total_paid_prev_month < monthly_total:
+            raise ValueError(
+                f"No puede pagar el mes {target_month} porque el mes anterior ({previous_month}) no ha sido pagado en su totalidad."
+            )
 
     def calculate_installment_status(
         self,
