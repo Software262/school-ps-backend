@@ -16,5 +16,7 @@ router = APIRouter(
 @router.get("")
 async def health(session: SessionDep):
     session.exec(select(1))
+
     logger.info("¡Ping exitoso! Conexión a la base de datos establecida.")
+
     return {"status": "ok"}
