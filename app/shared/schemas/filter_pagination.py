@@ -13,3 +13,7 @@ class FilterPagination(BaseModel):
     page: int = 1
     limit: int = 10
     item_type: Literal["banda", "deporte", "ajedrez"] | None = None
+
+
+class FilterPaginationBorrowings(FilterPagination):
+    active: bool | None = None

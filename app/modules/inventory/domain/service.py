@@ -1,8 +1,12 @@
+from typing import Sequence
+
 from app.modules.inventory.domain.repositories import InventoryRepository
+from app.modules.inventory.infrastructure.models import Prestamo
 from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     CreateItemRequest,
     CreateTypeInventoryRequest,
+    InventoryItemRequest,
     ReturnBorrowRequest,
     UpdateCompleteItemRequest,
     UpdateSingleItemRequest,
@@ -19,15 +23,11 @@ class InventoryService:
         offset = calculate_offset(filter_pagination.page, filter_pagination.limit)
 
         if not filter_pagination.item_type:
-            return await self.repository.get_items_pagination(
-                offset=offset, limit=filter_pagination.limit
+            return await self.repository.get_items_filter_pagination(
+                offset=offset, limit=filter_pagination.limit, type_id=None
             )
 
         type_id = await self.repository.get_type_id_by_name(filter_pagination.item_type)
-        if not type_id:
-            return await self.repository.get_items_pagination(
-                offset=offset, limit=filter_pagination.limit
-            )
 
         return await self.repository.get_items_filter_pagination(
             offset=offset,
@@ -103,4 +103,33 @@ class InventoryService:
 
         return await self.repository.return_borrow(
             borrow_id=borrow_id, borrow_data=borrow_data
+        )
+
+    async def get_borrowings(
+        self, filter_pagination: FilterPagination, active: bool | None
+    ) -> Sequence[Prestamo]:
+        offset = calculate_offset(filter_pagination.page, filter_pagination.limit)
+
+        if not filter_pagination.item_type:
+            return await self.repository.get_borrowings_pagination(
+                offset=offset,
+                limit=filter_pagination.limit,
+                active=active,
+                type_id=None,
+            )
+
+        type_id = await self.repository.get_type_id_by_name(filter_pagination.item_type)
+
+        return await self.repository.get_borrowings_pagination(
+            offset=offset,
+            limit=filter_pagination.limit,
+            active=active,
+            type_id=type_id,
+        )
+
+    async def create_items_inventory_from_file(
+        self, create_items_data: list[InventoryItemRequest]
+    ):
+        return await self.repository.create_items_batch(
+            create_items_data=create_items_data
         )
