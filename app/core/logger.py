@@ -1,3 +1,4 @@
+import pathlib
 import sys
 from functools import lru_cache
 
@@ -14,6 +15,10 @@ def setup_logger():
         level="DEBUG",
         colorize=True,
     )
+
+    path = pathlib.Path("logs")
+
+    path.mkdir(exist_ok=True)
 
     logger.add(
         "logs/app.log",
