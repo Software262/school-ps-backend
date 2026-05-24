@@ -84,8 +84,8 @@ prod = [
 requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = "==0.136.1" },
     { name = "loguru", specifier = "==0.7.3" },
-    { name = "openpyxl", specifier = ">=3.1.5" },
-    { name = "pandas", specifier = ">=3.0.3" },
+    { name = "openpyxl", specifier = "==3.1.5" },
+    { name = "pandas", specifier = "==3.0.3" },
     { name = "psycopg2-binary", specifier = "==2.9.12" },
     { name = "sqlmodel", specifier = "==0.0.38" },
 ]
