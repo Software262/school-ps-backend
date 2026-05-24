@@ -8,7 +8,7 @@ dependencies = [
   "fastapi[standard]==0.136.1",
   "sqlmodel==0.0.38",
   "psycopg2-binary==2.9.12",
-  "loguru>=0.7.3",
+  "loguru==0.7.3",
 ]
 
 [dependency-groups]
