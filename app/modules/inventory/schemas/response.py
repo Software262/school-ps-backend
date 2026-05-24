@@ -27,4 +27,14 @@ class CreateItemBorrowingResponse(BaseModel):
     inventario_id: int
     estudiante_id: int
     cantidad: int
+    estado_prestamo: bool
     observacion: str | None
+
+
+class ReturnItemBorrowingResponse(BaseModel):
+    id: int
+    inventario_id: int
+    estudiante_id: int
+    cantidad: int
+    estado_prestamo: bool
+    observacion: str

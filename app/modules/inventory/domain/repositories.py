@@ -9,24 +9,21 @@ from app.modules.inventory.infrastructure.models import (
 from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     CreateItemRequest,
-    UpdateItemRequest,
+    InventoryItemRequest,
+    ReturnBorrowRequest,
+    UpdateCompleteItemRequest,
+    UpdateSingleItemRequest,
 )
 
 
 class InventoryRepository(ABC):
-    @abstractmethod
-    async def get_items_pagination(
-        self, offset: int, limit: int
-    ) -> Sequence[Inventario]:
-        pass
-
     @abstractmethod
     async def get_type_id_by_name(self, item_type: str) -> int | None:
         pass
 
     @abstractmethod
     async def get_items_filter_pagination(
-        self, offset: int, limit: int, type_id: int
+        self, offset: int, limit: int, type_id: int | None
     ) -> Sequence[Inventario]:
         pass
 
@@ -44,7 +41,7 @@ class InventoryRepository(ABC):
 
     @abstractmethod
     async def update_item(
-        self, item: Inventario, item_data: UpdateItemRequest
+        self, item: Inventario, item_data: UpdateCompleteItemRequest
     ) -> Inventario:
         pass
 
@@ -54,4 +51,32 @@ class InventoryRepository(ABC):
 
     @abstractmethod
     async def update_amount_item(self, id: int, amount: int) -> Inventario:
+        pass
+
+    @abstractmethod
+    async def edit_item(
+        self, id: int, item_data: UpdateSingleItemRequest
+    ) -> Inventario | None:
+        pass
+
+    @abstractmethod
+    async def get_borrowing(self, borrow_id: int) -> Prestamo | None:
+        pass
+
+    @abstractmethod
+    async def return_borrow(
+        self, borrow_id: int, borrow_data: ReturnBorrowRequest
+    ) -> Prestamo:
+        pass
+
+    @abstractmethod
+    async def get_borrowings_pagination(
+        self, offset: int, limit: int, active: bool | None, type_id: int | None
+    ) -> Sequence[Prestamo]:
+        pass
+
+    @abstractmethod
+    async def create_items_batch(
+        self, create_items_data: list[InventoryItemRequest]
+    ) -> list[Inventario]:
         pass

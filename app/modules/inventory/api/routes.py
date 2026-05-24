@@ -1,28 +1,41 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, File, Query, UploadFile, status
 
 from app.core.db import SessionDep
 from app.modules.inventory.application.create_borrowing_inventory import (
     CreateItemBorrowing,
 )
 from app.modules.inventory.application.create_item_inventory import CreateItemInventory
+from app.modules.inventory.application.create_items_inventory_from_file import (
+    CreateItemsInventoryFromFile,
+)
 from app.modules.inventory.application.create_type_inventory import CreateTypeInventory
+from app.modules.inventory.application.edit_single_item import EditSingleItem
+from app.modules.inventory.application.get_borrowings import GetBorrowings
 from app.modules.inventory.application.get_items_inventory import GetItemsInventory
+from app.modules.inventory.application.return_borrowing import ReturnBorrowing
 from app.modules.inventory.application.update_item_inventory import UpdateItemInventory
 from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     CreateItemRequest,
     CreateTypeInventoryRequest,
-    UpdateItemRequest,
+    ReturnBorrowRequest,
+    UpdateCompleteItemRequest,
+    UpdateSingleItemRequest,
 )
 from app.modules.inventory.schemas.response import (
     CreateItemBorrowingResponse,
     CreateItemInventoryResponse,
     CreateTypeInventoryResponse,
+    ReturnItemBorrowingResponse,
     UpdateItemInventoryResponse,
 )
-from app.shared.schemas.filter_pagination import FilterPagination
+from app.modules.inventory.utils.file import validate_data, validate_file
+from app.shared.schemas.filter_pagination import (
+    FilterPagination,
+    FilterPaginationBorrowings,
+)
 from app.shared.utils.response import Response
 
 router = APIRouter()
@@ -109,7 +122,7 @@ async def create_type_inventory(
 
 @router.put("/items/{item_id}")
 async def update_item(
-    session: SessionDep, item_id: int, update_item_request: UpdateItemRequest
+    session: SessionDep, item_id: int, update_item_request: UpdateCompleteItemRequest
 ):
     update_item_app = UpdateItemInventory(session=session)
     data = await update_item_app.execute(item_id, update_item_request)
@@ -172,9 +185,147 @@ async def create_borrowing(session: SessionDep, borrow_data: CreateBorrowRequest
             inventario_id=data.inventario_id,
             estudiante_id=data.estudiante_id,
             cantidad=data.cantidad,
+            estado_prestamo=data.estado_prestamo,
             observacion=data.observacion,
         ),
         message="Prestamo creado exitosamente",
         status_code=status.HTTP_201_CREATED,
         details={"message": "Prestamo creado exitosamente"},
+    ).to_dict()
+
+
+@router.patch("/borrow/{borrow_id}")
+async def return_borrowing(
+    session: SessionDep, borrow_id: int, return_borrow_request: ReturnBorrowRequest
+):
+    return_borrow_app = ReturnBorrowing(session=session)
+
+    data = await return_borrow_app.execute(borrow_id, return_borrow_request)
+
+    if not data:
+        return Response(
+            data=None,
+            message="Error al devolver el prestamo",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"message": "Error al devolver el prestamo"},
+        ).to_dict()
+
+    if not data.id:
+        return Response(
+            data=None,
+            message="Error al devolver el prestamo",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"message": "Error al devolver el prestamo"},
+        ).to_dict()
+
+    if not data.observacion:
+        return Response(
+            data=None,
+            message="Error al devolver el prestamo",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"message": "Error al devolver el prestamo"},
+        ).to_dict()
+
+    return Response(
+        data=ReturnItemBorrowingResponse(
+            id=data.id,
+            inventario_id=data.inventario_id,
+            estudiante_id=data.estudiante_id,
+            cantidad=data.cantidad,
+            estado_prestamo=data.estado_prestamo,
+            observacion=data.observacion,
+        ),
+        message="Prestamo devuelto exitosamente",
+        status_code=status.HTTP_200_OK,
+        details={"message": "Prestamo devuelto exitosamente"},
+    ).to_dict()
+
+
+@router.patch("/items/{item_id}")
+async def edit_item(
+    session: SessionDep, item_id: int, update_item_request: UpdateSingleItemRequest
+):
+    edit_item_app = EditSingleItem(session=session)
+    data = await edit_item_app.execute(item_id, update_item_request)
+
+    if not data:
+        return Response(
+            data=None,
+            message="Error al editar el articulo",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"message": "Error al editar el articulo"},
+        ).to_dict()
+
+    if not data.id:
+        return Response(
+            data=None,
+            message="Error al editar el articulo",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"message": "Error al editar el articulo"},
+        ).to_dict()
+
+    return Response(
+        data=UpdateItemInventoryResponse(
+            id=data.id,
+            nombre=data.nombre,
+            cantidad=data.cantidad,
+            estado_objeto=data.estado_objeto,
+            observacion=data.observacion,
+        ),
+        message="Articulo editado exitosamente",
+        status_code=status.HTTP_200_OK,
+        details={"message": "Articulo editado exitosamente"},
+    ).to_dict()
+
+
+@router.get("/borrow")
+async def get_borrowings(
+    session: SessionDep,
+    filter_pagination_query: Annotated[FilterPaginationBorrowings, Query()],
+):
+    get_borrowings_app = GetBorrowings(session=session)
+    data = await get_borrowings_app.execute(filter_pagination=filter_pagination_query)
+
+    return (
+        Response(
+            data=data,
+            message="Lista de préstamos obtenida exitosamente",
+            status_code=status.HTTP_200_OK,
+            details={"message": "Lista de préstamos obtenida exitosamente"},
+        )
+        .filterPagination(
+            page=filter_pagination_query.page, limit=filter_pagination_query.limit
+        )
+        .to_dict()
+    )
+
+
+@router.post("/items/import")
+async def upload_items_file(
+    session: SessionDep,
+    file: Annotated[UploadFile, File()],
+):
+    data = await validate_file(file=file)
+
+    if data is None:
+        return Response(
+            data=None,
+            message="Archivo invalido solamente se aceptan csv o excel",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={},
+        ).to_dict()
+
+    items_inventory = await validate_data(filename=file.filename, data=data)
+
+    create_items_inventory_from_file = CreateItemsInventoryFromFile(session=session)
+
+    res = await create_items_inventory_from_file.execute(
+        items_inventory=items_inventory
+    )
+
+    return Response(
+        data=res,
+        message="Archivo cargado exitosamente",
+        status_code=status.HTTP_200_OK,
+        details={"message": "Archivo cargado exitosamente"},
     ).to_dict()
