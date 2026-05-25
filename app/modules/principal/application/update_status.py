@@ -8,6 +8,7 @@ Author: Yessyth Jaimes
 Role: Product Owner and developer of the rectoria module
 """
 
+from app.core.db import SessionDep
 from app.modules.principal.domain.service import PrincipalService
 from app.modules.principal.infrastructure.repository import (
     PrincipalRepository,
@@ -22,12 +23,12 @@ class UpdateStatus:
     Use case to handle updating an existing administrative status record.
     """
 
-    def __init__(self, session):
+    def __init__(self, session: SessionDep):
         """
         Initializes the use case with a database session to instantiate service and repository dependencies.
 
         Args:
-            session: SQLModel Database session.
+            session (SessionDep): SQLModel Database session.
         """
         self.repository = PrincipalRepository(session=session)
 

@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     version: str = "1.0.0"
     environment: str = "development"
     prefix_api: str = "/api/v1"
-    database_url: str = "postgresql://postgres:archdb@localhost:5432/db_sps"
+    database_url: str = "postgresql://postgres:password@localhost:5432/postgres"
     secret_key: str = ""
     algorithm: str = ""
     access_token_expire_minutes: int = 30

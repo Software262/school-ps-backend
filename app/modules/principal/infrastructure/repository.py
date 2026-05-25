@@ -11,7 +11,6 @@ Role: Product Owner and developer of the rectoria module
 
 from datetime import datetime
 
-from sqlalchemy import text
 from sqlmodel import select
 
 from app.core.db import SessionDep
@@ -58,45 +57,79 @@ class PrincipalRepository(PrincipalRepositoryInterface):
             list[dict]: A list of dictionaries, where each dictionary represents a teacher
                 and contains nested lists for their administrative statuses and observations.
         """
-        query = text("SELECT * FROM docente ORDER BY id")
-        result = self.session.execute(query)
-        teachers = [dict(row) for row in result.mappings().all()]
-
-        for teacher in teachers:
-            teacher_id = teacher["id"]
-            # Fetch statuses
-            status_query = select(RectoriaEstado).where(
-                RectoriaEstado.docente_id == teacher_id
+        statement = (
+            select(Docente, RectoriaEstado, RectoriaObservaciones)
+            .join(
+                RectoriaEstado,
+                RectoriaEstado.docente_id == Docente.id,  # type: ignore[arg-type]
+                isouter=True,
             )
-            statuses = self.session.exec(status_query).all()
-            teacher["estados_administrativos"] = [
-                {
-                    "id": s.id,
-                    "periodo_id": s.periodo_id,
-                    "motivo_estado": s.motivo_estado,
-                    "fecha_actualizacion": s.fecha_actualizacion.isoformat()
-                    if s.fecha_actualizacion
+            .join(
+                RectoriaObservaciones,
+                RectoriaObservaciones.docente_id == Docente.id,  # type: ignore[arg-type]
+                isouter=True,
+            )
+            .order_by(Docente.id)  # type: ignore[arg-type]
+        )
+        results = self.session.execute(statement).all()
+
+        teachers_map = {}
+        for docente, estado, observacion in results:
+            docente_id = docente.id
+            if docente_id is None:
+                continue
+
+            if docente_id not in teachers_map:
+                teachers_map[docente_id] = {
+                    "id": docente_id,
+                    "nombre": docente.nombre,
+                    "documento": docente.documento,
+                    "estado": docente.estado,
+                    "asignatura": docente.asignatura,
+                    "estados_administrativos": {},
+                    "observaciones": {},
+                }
+
+            t_data = teachers_map[docente_id]
+            if (
+                estado
+                and estado.id is not None
+                and estado.id not in t_data["estados_administrativos"]
+            ):
+                t_data["estados_administrativos"][estado.id] = {
+                    "id": estado.id,
+                    "periodo_id": estado.periodo_id,
+                    "motivo_estado": estado.motivo_estado,
+                    "fecha_actualizacion": estado.fecha_actualizacion.isoformat()
+                    if estado.fecha_actualizacion
                     else None,
                 }
-                for s in statuses
-            ]
-
-            # Fetch observations
-            obs_query = select(RectoriaObservaciones).where(
-                RectoriaObservaciones.docente_id == teacher_id
-            )
-            observations = self.session.exec(obs_query).all()
-            teacher["observaciones"] = [
-                {
-                    "id": o.id,
-                    "periodo_id": o.periodo_id,
-                    "descripcion": o.descripcion,
-                    "tipo_observacion": o.tipo_observacion,
-                    "fecha": o.fecha.isoformat() if o.fecha else None,
+            if (
+                observacion
+                and observacion.id is not None
+                and observacion.id not in t_data["observaciones"]
+            ):
+                t_data["observaciones"][observacion.id] = {
+                    "id": observacion.id,
+                    "periodo_id": observacion.periodo_id,
+                    "descripcion": observacion.descripcion,
+                    "tipo_observacion": observacion.tipo_observacion,
+                    "fecha": observacion.fecha.isoformat()
+                    if observacion.fecha
+                    else None,
                 }
-                for o in observations
-            ]
-        return teachers
+
+        # Convert dict of dicts to list of lists
+        teachers_list = []
+        for t_id in sorted(teachers_map.keys()):
+            t_data = teachers_map[t_id]
+            t_data["estados_administrativos"] = list(
+                t_data["estados_administrativos"].values()
+            )
+            t_data["observaciones"] = list(t_data["observaciones"].values())
+            teachers_list.append(t_data)
+
+        return teachers_list
 
     async def create_observation(
         self,
@@ -112,33 +145,7 @@ class PrincipalRepository(PrincipalRepositoryInterface):
 
         Returns:
             RectoriaObservaciones: The newly created administrative observation record.
-
-        Raises:
-            ValueError: If the user does not exist, does not have Rectoría/Admin privileges,
-                if the docente does not exist, or if the academic period does not exist.
         """
-        # Validations
-        usuario = self.session.get(Usuario, observation_data.id_usuario)
-        if not usuario:
-            raise ValueError("El usuario no existe")
-        if usuario.rol.lower() not in [
-            "rectoría",
-            "rectoria",
-            "rector",
-            "administrador",
-            "administrador del sistema",
-            "admin",
-        ]:
-            raise ValueError("El usuario no tiene permisos de Rectoría o Administrador")
-
-        docente = self.session.get(Docente, observation_data.docente_id)
-        if not docente:
-            raise ValueError("El docente no existe")
-
-        periodo = self.session.get(Periodo, observation_data.periodo_id)
-        if not periodo:
-            raise ValueError("El periodo no existe")
-
         new_observation = RectoriaObservaciones(
             docente_id=observation_data.docente_id,
             periodo_id=observation_data.periodo_id,
@@ -174,7 +181,7 @@ class PrincipalRepository(PrincipalRepositoryInterface):
     ) -> RectoriaEstado:
         """
         Creates and stores a new administrative status for a teacher in a specific academic period,
-        provided that one does not already exist, and registers an audit trail.
+        and registers an audit trail.
 
         Args:
             status_data (CreateStatusRequest): Object containing docente_id, periodo_id,
@@ -182,46 +189,7 @@ class PrincipalRepository(PrincipalRepositoryInterface):
 
         Returns:
             RectoriaEstado: The newly created administrative status record.
-
-        Raises:
-            ValueError: If the user does not exist, does not have Rectoría/Admin privileges,
-                if the docente does not exist, if the academic period does not exist, or if
-                an administrative status already exists for that teacher and period.
         """
-        # Validations
-        usuario = self.session.get(Usuario, status_data.id_usuario)
-        if not usuario:
-            raise ValueError("El usuario no existe")
-        if usuario.rol.lower() not in [
-            "rectoría",
-            "rectoria",
-            "rector",
-            "administrador",
-            "administrador del sistema",
-            "admin",
-        ]:
-            raise ValueError("El usuario no tiene permisos de Rectoría o Administrador")
-
-        docente = self.session.get(Docente, status_data.docente_id)
-        if not docente:
-            raise ValueError("El docente no existe")
-
-        periodo = self.session.get(Periodo, status_data.periodo_id)
-        if not periodo:
-            raise ValueError("El periodo no existe")
-
-        existing_status = self.session.exec(
-            select(RectoriaEstado).where(
-                RectoriaEstado.docente_id == status_data.docente_id,
-                RectoriaEstado.periodo_id == status_data.periodo_id,
-            )
-        ).first()
-
-        if existing_status:
-            raise ValueError(
-                "Ya existe un estado administrativo para ese docente y periodo"
-            )
-
         new_status = RectoriaEstado(
             docente_id=status_data.docente_id,
             periodo_id=status_data.periodo_id,
@@ -275,25 +243,7 @@ class PrincipalRepository(PrincipalRepositoryInterface):
 
         Returns:
             RectoriaEstado: The updated administrative status record.
-
-        Raises:
-            ValueError: If the user performing the update does not exist or lacks
-                sufficient Rectoría/Admin privileges.
         """
-        # Validations
-        usuario = self.session.get(Usuario, status_data.id_usuario)
-        if not usuario:
-            raise ValueError("El usuario no existe")
-        if usuario.rol.lower() not in [
-            "rectoría",
-            "rectoria",
-            "rector",
-            "administrador",
-            "administrador del sistema",
-            "admin",
-        ]:
-            raise ValueError("El usuario no tiene permisos de Rectoría o Administrador")
-
         valor_anterior = status.motivo_estado
         status.motivo_estado = status_data.motivo_estado
         status.fecha_actualizacion = datetime.utcnow()
@@ -315,6 +265,62 @@ class PrincipalRepository(PrincipalRepositoryInterface):
         )
 
         return status
+
+    async def get_user_by_id(self, user_id: int) -> Usuario | None:
+        """
+        Retrieves a user by their unique identifier.
+
+        Args:
+            user_id (int): Unique identifier of the user.
+
+        Returns:
+            Usuario | None: The user entity if found, otherwise None.
+        """
+        return self.session.get(Usuario, user_id)
+
+    async def get_teacher_by_id(self, teacher_id: int) -> Docente | None:
+        """
+        Retrieves a teacher by their unique identifier.
+
+        Args:
+            teacher_id (int): Unique identifier of the teacher.
+
+        Returns:
+            Docente | None: The teacher entity if found, otherwise None.
+        """
+        return self.session.get(Docente, teacher_id)
+
+    async def get_period_by_id(self, period_id: int) -> Periodo | None:
+        """
+        Retrieves an academic period by its unique identifier.
+
+        Args:
+            period_id (int): Unique identifier of the academic period.
+
+        Returns:
+            Periodo | None: The academic period entity if found, otherwise None.
+        """
+        return self.session.get(Periodo, period_id)
+
+    async def get_status_by_docente_and_period(
+        self, docente_id: int, period_id: int
+    ) -> RectoriaEstado | None:
+        """
+        Retrieves an administrative status by teacher and academic period.
+
+        Args:
+            docente_id (int): Unique identifier of the teacher.
+            period_id (int): Unique identifier of the academic period.
+
+        Returns:
+            RectoriaEstado | None: The administrative status if found, otherwise None.
+        """
+        return self.session.exec(
+            select(RectoriaEstado).where(
+                RectoriaEstado.docente_id == docente_id,
+                RectoriaEstado.periodo_id == period_id,
+            )
+        ).first()
 
     def _register_audit(
         self,

@@ -123,6 +123,7 @@ def test_get_teachers_with_data(session, client):
         periodo_id=periodo.id,
         descripcion="Buen desempeño",
         tipo_observacion="Positiva",
+        fecha=datetime.now(),
     )
     est = RectoriaEstado(
         docente_id=docente.id,

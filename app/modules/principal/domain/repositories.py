@@ -10,6 +10,8 @@ Role: Product Owner and developer of the rectoria module
 
 from abc import ABC, abstractmethod
 
+from app.modules.auth.infrastructure.models import Usuario
+from app.modules.enrollment.infrastructure.models import Docente, Periodo
 from app.modules.principal.infrastructure.models import (
     PrincipalObservation,
     PrincipalStatus,
@@ -99,5 +101,60 @@ class PrincipalRepository(ABC):
 
         Returns:
             PrincipalStatus: The updated status database entity.
+        """
+        pass
+
+    @abstractmethod
+    async def get_user_by_id(self, user_id: int) -> Usuario | None:
+        """
+        Retrieves a user by their unique identifier.
+
+        Args:
+            user_id (int): Unique identifier of the user.
+
+        Returns:
+            Usuario | None: The user entity if found, otherwise None.
+        """
+        pass
+
+    @abstractmethod
+    async def get_teacher_by_id(self, teacher_id: int) -> Docente | None:
+        """
+        Retrieves a teacher by their unique identifier.
+
+        Args:
+            teacher_id (int): Unique identifier of the teacher.
+
+        Returns:
+            Docente | None: The teacher entity if found, otherwise None.
+        """
+        pass
+
+    @abstractmethod
+    async def get_period_by_id(self, period_id: int) -> Periodo | None:
+        """
+        Retrieves an academic period by its unique identifier.
+
+        Args:
+            period_id (int): Unique identifier of the academic period.
+
+        Returns:
+            Periodo | None: The academic period entity if found, otherwise None.
+        """
+        pass
+
+    @abstractmethod
+    async def get_status_by_docente_and_period(
+        self, docente_id: int, period_id: int
+    ) -> PrincipalStatus | None:
+        """
+        Retrieves an administrative status by teacher and academic period.
+
+        Args:
+            docente_id (int): Unique identifier of the teacher.
+            period_id (int): Unique identifier of the academic period.
+
+        Returns:
+            PrincipalStatus | None: The administrative status if found, otherwise None.
         """
         pass

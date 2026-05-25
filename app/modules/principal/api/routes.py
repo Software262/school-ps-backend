@@ -90,8 +90,8 @@ async def get_teachers(session: SessionDep):
     },
 )
 async def create_observation(
-    observation_data: CreateObservationRequest,
     session: SessionDep,
+    observation_data: CreateObservationRequest,
 ):
     """
     HTTP POST endpoint to register a new administrative observation for a teacher.
@@ -137,8 +137,8 @@ async def create_observation(
     },
 )
 async def create_status(
-    status_data: CreateStatusRequest,
     session: SessionDep,
+    status_data: CreateStatusRequest,
 ):
     """
     HTTP POST endpoint to assign a new administrative status to a teacher.
@@ -188,9 +188,9 @@ async def create_status(
     },
 )
 async def update_status(
+    session: SessionDep,
     status_id: int,
     status_data: UpdateStatusRequest,
-    session: SessionDep,
 ):
     """
     HTTP PUT endpoint to update an existing administrative status record.

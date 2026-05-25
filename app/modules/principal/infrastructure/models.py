@@ -49,7 +49,7 @@ class RectoriaObservaciones(Base, table=True):
     periodo_id: int = Field(foreign_key="periodo.id")
     descripcion: str = Field(max_length=400)
     tipo_observacion: str = Field(max_length=50)
-    fecha: datetime = Field(default_factory=datetime.utcnow)
+    fecha: datetime
 
 
 class Observador(Base, table=True):
