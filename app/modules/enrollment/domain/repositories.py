@@ -86,7 +86,9 @@ class EnrollmentRepository(ABC):
     # === Pagos ===
 
     @abstractmethod
-    def get_enrollment_by_id(self, matricula_id: int) -> tuple | None:
+    def get_enrollment_by_id(
+        self, matricula_id: int
+    ) -> tuple | None:
         """
         Obtiene matrícula por ID con sus pendientes.
 
@@ -147,7 +149,9 @@ class EnrollmentRepository(ABC):
         ...
 
     @abstractmethod
-    def update_enrollment_status(self, matricula_id: int, status: str) -> None:
+    def update_enrollment_status(
+        self, matricula_id: int, status: str
+    ) -> None:
         """Actualiza el estado_matricula (sin_abono / parcial / paz_y_salvo)."""
         ...
 
@@ -160,12 +164,7 @@ class EnrollmentRepository(ABC):
 
     @abstractmethod
     def create_complementary(
-        self,
-        tipo_complementario: str,
-        anio: int,
-        valor: int,
-        estado: str,
-        uso_matricula: bool,
+        self, tipo_complementario: str, anio: int, valor: int, estado: str, uso_matricula: bool
     ) -> int:
         """Crea un nuevo concepto complementario en la base de datos."""
         ...
@@ -177,11 +176,7 @@ class EnrollmentRepository(ABC):
 
     @abstractmethod
     def assign_complementary_to_enrollment(
-        self,
-        matricula_id: int,
-        complementary_id: int,
-        valor_completo: int,
-        descuento: int,
+        self, matricula_id: int, complementary_id: int, valor_completo: int, descuento: int
     ) -> int:
         """
         Asigna un complementario a una matrícula existente (crea DetalleMatricula).
