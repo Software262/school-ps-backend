@@ -8,13 +8,19 @@ class TuitionService:
         self.repository = repository
 
     def get_student_account(self, student_id: int) -> TuitionAccount | None:
+        """
+        Obtiene la cuenta de pensión asociada a un estudiante específico.
+        """
         return self.repository.get_account_by_student_id(student_id)
 
     def register_payment(self, request: PaymentCreateRequest) -> TuitionInstallment:
+        """
+        Registra un nuevo abono a la pensión de un estudiante aplicando validaciones financieras.
+        """
         account = self.repository.get_account_by_student_id(request.estudiante_id)
         if not account:
             raise ValueError(
-                f"No pension account found for student {request.estudiante_id}"
+                f"No se encontró cuenta de pensión para el estudiante {request.estudiante_id}"
             )
 
         self.validate_consecutive_months(account, request.mes)
@@ -58,7 +64,8 @@ class TuitionService:
 
     def validate_consecutive_months(self, account: TuitionAccount, target_month: int) -> None:
         """
-        Validates that the previous month has been fully paid before allowing payment for the current month.
+        Valida que el mes anterior haya sido pagado en su totalidad antes de permitir
+        el pago del mes actual, garantizando pagos consecutivos.
         """
         if target_month <= 1:
             return
@@ -83,8 +90,8 @@ class TuitionService:
         total_monthly_value: int,
     ) -> bool:
         """
-        Calculates if the month is still missing payments (faltante == True)
-        after the new payment is applied.
+        Calcula si el mes todavía tiene saldo pendiente (faltante == True)
+        después de aplicar el nuevo abono.
         """
         total_paid_so_far = sum(inst.valor_pagado for inst in previous_installments)
         new_total_paid = total_paid_so_far + new_payment_amount
@@ -98,27 +105,27 @@ class TuitionService:
         total_monthly_value: int,
     ) -> None:
         """
-        Validates that a new payment does not exceed the monthly total
-        and that the month isn't already fully paid.
+        Valida que un nuevo abono no exceda el total mensual permitido
+        y que el mes no se encuentre ya pagado en su totalidad.
         """
         total_paid_so_far = sum(inst.valor_pagado for inst in previous_installments)
 
         if total_paid_so_far >= total_monthly_value:
             raise ValueError(
-                "El mes ya se encuentra pagado en su totalidad. No se requieren más abonos."
+                "MSG-11: El estudiante ya se encuentra en paz y salvo en este módulo para el mes seleccionado."
             )
 
         if total_paid_so_far + new_payment_amount > total_monthly_value:
             faltante = total_monthly_value - total_paid_so_far
             raise ValueError(
-                f"El abono excede el valor pendiente del mes. El saldo faltante es de solo {faltante}."
+                f"MSG-03: El abono supera el saldo permitido. El saldo faltante es de solo {faltante}."
             )
 
     def get_next_cuota_number(
         self, previous_installments: list[TuitionInstallment]
     ) -> int:
         """
-        Calculates the next installment number (cuota).
+        Calcula el siguiente número de cuota (consecutivo) para el mes.
         """
         if not previous_installments:
             return 1

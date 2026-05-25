@@ -18,7 +18,7 @@ def get_tuition_account(session: SessionDep, student_id: int):
     use_case = GetStudentTuitionUseCase(session)
     account = use_case.execute(student_id)
     if not account:
-        raise HTTPException(status_code=404, detail="Tuition account not found")
+        raise HTTPException(status_code=404, detail="No se encontró cuenta de pensión para el estudiante")
 
     return TuitionAccountResponse(
         estudiante_id=account.estudiante_id,
