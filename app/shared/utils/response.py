@@ -48,9 +48,7 @@ class Response:
             data_to_encode = serialize_item(self.data)
 
         encoded = (
-            jsonable_encoder(data_to_encode)
-            if data_to_encode is not None
-            else None
+            jsonable_encoder(data_to_encode) if data_to_encode is not None else None
         )
 
         return {

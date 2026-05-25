@@ -7,6 +7,7 @@ including their consolidated administrative statuses and observations.
 Author: Yessyth Jaimes
 Role: Product Owner and developer of the rectoria module
 """
+
 from app.modules.principal.domain.service import PrincipalService
 from app.modules.principal.infrastructure.repository import (
     PrincipalRepository,
@@ -25,13 +26,9 @@ class GetTeachers:
         Args:
             session: SQLModel Database session.
         """
-        self.repository = PrincipalRepository(
-            session=session
-        )
+        self.repository = PrincipalRepository(session=session)
 
-        self.service = PrincipalService(
-            repository=self.repository
-        )
+        self.service = PrincipalService(repository=self.repository)
 
     async def execute(self):
         """

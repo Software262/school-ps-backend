@@ -17,7 +17,9 @@ class StudentInfo:
 class ComplementaryDetail:
     """Detalle de un complementario dentro de la matrícula."""
 
-    detalle_id: int = 0  # ID del registro en detallematricula (usar en PUT para descuentos)
+    detalle_id: int = (
+        0  # ID del registro en detallematricula (usar en PUT para descuentos)
+    )
     complementario_id: int = 0
     tipo_complementario: str = ""
     valor: int = 0

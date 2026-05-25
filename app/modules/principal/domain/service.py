@@ -8,7 +8,6 @@ from app.modules.principal.schemas.request import (
 
 
 class PrincipalService:
-
     def __init__(self, repository: PrincipalRepository):
         self.repository = repository
 
@@ -20,18 +19,14 @@ class PrincipalService:
         observation_data: CreateObservationRequest,
     ):
 
-        return await self.repository.create_observation(
-            observation_data
-        )
+        return await self.repository.create_observation(observation_data)
 
     async def create_status(
         self,
         status_data: CreateStatusRequest,
     ):
 
-        return await self.repository.create_status(
-            status_data
-        )
+        return await self.repository.create_status(status_data)
 
     async def update_status(
         self,

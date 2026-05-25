@@ -7,6 +7,7 @@ incoming request payloads for teacher observations and administrative statuses.
 Author: Yessyth Jaimes
 Role: Product Owner and developer of the rectoria module
 """
+
 from pydantic import BaseModel, Field
 
 
@@ -21,6 +22,7 @@ class CreateObservationRequest(BaseModel):
         descripcion (str): Detailed text of the observation (length between 3 and 400).
         tipo_observacion (str): Type of observation (length between 3 and 50).
     """
+
     docente_id: int = Field(ge=1)
     periodo_id: int = Field(ge=1)
     id_usuario: int = Field(ge=1)
@@ -38,6 +40,7 @@ class CreateStatusRequest(BaseModel):
         id_usuario (int): Unique identifier of the user assigning the status (must be >= 1).
         motivo_estado (str): Reason or details for the status assignment (length between 3 and 400).
     """
+
     docente_id: int = Field(ge=1)
     periodo_id: int = Field(ge=1)
     id_usuario: int = Field(ge=1)
@@ -52,5 +55,6 @@ class UpdateStatusRequest(BaseModel):
         id_usuario (int): Unique identifier of the user executing the update (must be >= 1).
         motivo_estado (str): The updated reason or details (length between 3 and 400).
     """
+
     id_usuario: int = Field(ge=1)
     motivo_estado: str = Field(min_length=3, max_length=400)

@@ -7,6 +7,7 @@ status (paz y salvo) to a teacher.
 Author: Yessyth Jaimes
 Role: Product Owner and developer of the rectoria module
 """
+
 from app.modules.principal.domain.service import PrincipalService
 from app.modules.principal.infrastructure.repository import (
     PrincipalRepository,
@@ -28,13 +29,9 @@ class CreateStatus:
         Args:
             session: SQLModel Database session.
         """
-        self.repository = PrincipalRepository(
-            session=session
-        )
+        self.repository = PrincipalRepository(session=session)
 
-        self.service = PrincipalService(
-            repository=self.repository
-        )
+        self.service = PrincipalService(repository=self.repository)
 
     async def execute(
         self,
@@ -53,6 +50,4 @@ class CreateStatus:
         Raises:
             ValueError: If validation checks for existing entities, user permissions, or duplicate records fail.
         """
-        return await self.service.create_status(
-            status_data
-        )
+        return await self.service.create_status(status_data)

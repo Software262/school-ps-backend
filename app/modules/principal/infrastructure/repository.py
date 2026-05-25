@@ -8,6 +8,7 @@ teachers, observations, statuses, and audit records, enforcing constraints.
 Author: Yessyth Jaimes
 Role: Product Owner and developer of the rectoria module
 """
+
 from datetime import datetime
 
 from sqlalchemy import text
@@ -58,26 +59,32 @@ class PrincipalRepository(PrincipalRepositoryInterface):
                 and contains nested lists for their administrative statuses and observations.
         """
         query = text("SELECT * FROM docente ORDER BY id")
-        result = self.session.exec(query)
+        result = self.session.execute(query)
         teachers = [dict(row) for row in result.mappings().all()]
 
         for teacher in teachers:
             teacher_id = teacher["id"]
             # Fetch statuses
-            status_query = select(RectoriaEstado).where(RectoriaEstado.docente_id == teacher_id)
+            status_query = select(RectoriaEstado).where(
+                RectoriaEstado.docente_id == teacher_id
+            )
             statuses = self.session.exec(status_query).all()
             teacher["estados_administrativos"] = [
                 {
                     "id": s.id,
                     "periodo_id": s.periodo_id,
                     "motivo_estado": s.motivo_estado,
-                    "fecha_actualizacion": s.fecha_actualizacion.isoformat() if s.fecha_actualizacion else None
+                    "fecha_actualizacion": s.fecha_actualizacion.isoformat()
+                    if s.fecha_actualizacion
+                    else None,
                 }
                 for s in statuses
             ]
 
             # Fetch observations
-            obs_query = select(RectoriaObservaciones).where(RectoriaObservaciones.docente_id == teacher_id)
+            obs_query = select(RectoriaObservaciones).where(
+                RectoriaObservaciones.docente_id == teacher_id
+            )
             observations = self.session.exec(obs_query).all()
             teacher["observaciones"] = [
                 {
@@ -85,7 +92,7 @@ class PrincipalRepository(PrincipalRepositoryInterface):
                     "periodo_id": o.periodo_id,
                     "descripcion": o.descripcion,
                     "tipo_observacion": o.tipo_observacion,
-                    "fecha": o.fecha.isoformat() if o.fecha else None
+                    "fecha": o.fecha.isoformat() if o.fecha else None,
                 }
                 for o in observations
             ]
@@ -114,7 +121,14 @@ class PrincipalRepository(PrincipalRepositoryInterface):
         usuario = self.session.get(Usuario, observation_data.id_usuario)
         if not usuario:
             raise ValueError("El usuario no existe")
-        if usuario.rol.lower() not in ["rectoría", "rectoria", "rector", "administrador", "administrador del sistema", "admin"]:
+        if usuario.rol.lower() not in [
+            "rectoría",
+            "rectoria",
+            "rector",
+            "administrador",
+            "administrador del sistema",
+            "admin",
+        ]:
             raise ValueError("El usuario no tiene permisos de Rectoría o Administrador")
 
         docente = self.session.get(Docente, observation_data.docente_id)
@@ -136,6 +150,9 @@ class PrincipalRepository(PrincipalRepositoryInterface):
         self.session.add(new_observation)
         self.session.commit()
         self.session.refresh(new_observation)
+
+        if new_observation.id is None:
+            raise ValueError("Failed to generate observation ID")
 
         self._register_audit(
             id_usuario=observation_data.id_usuario,
@@ -175,7 +192,14 @@ class PrincipalRepository(PrincipalRepositoryInterface):
         usuario = self.session.get(Usuario, status_data.id_usuario)
         if not usuario:
             raise ValueError("El usuario no existe")
-        if usuario.rol.lower() not in ["rectoría", "rectoria", "rector", "administrador", "administrador del sistema", "admin"]:
+        if usuario.rol.lower() not in [
+            "rectoría",
+            "rectoria",
+            "rector",
+            "administrador",
+            "administrador del sistema",
+            "admin",
+        ]:
             raise ValueError("El usuario no tiene permisos de Rectoría o Administrador")
 
         docente = self.session.get(Docente, status_data.docente_id)
@@ -208,6 +232,9 @@ class PrincipalRepository(PrincipalRepositoryInterface):
         self.session.add(new_status)
         self.session.commit()
         self.session.refresh(new_status)
+
+        if new_status.id is None:
+            raise ValueError("Failed to generate status ID")
 
         self._register_audit(
             id_usuario=status_data.id_usuario,
@@ -257,7 +284,14 @@ class PrincipalRepository(PrincipalRepositoryInterface):
         usuario = self.session.get(Usuario, status_data.id_usuario)
         if not usuario:
             raise ValueError("El usuario no existe")
-        if usuario.rol.lower() not in ["rectoría", "rectoria", "rector", "administrador", "administrador del sistema", "admin"]:
+        if usuario.rol.lower() not in [
+            "rectoría",
+            "rectoria",
+            "rector",
+            "administrador",
+            "administrador del sistema",
+            "admin",
+        ]:
             raise ValueError("El usuario no tiene permisos de Rectoría o Administrador")
 
         valor_anterior = status.motivo_estado
@@ -267,6 +301,9 @@ class PrincipalRepository(PrincipalRepositoryInterface):
         self.session.add(status)
         self.session.commit()
         self.session.refresh(status)
+
+        if status.id is None:
+            raise ValueError("Failed to generate status ID")
 
         self._register_audit(
             id_usuario=status_data.id_usuario,

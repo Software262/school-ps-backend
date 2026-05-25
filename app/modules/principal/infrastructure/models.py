@@ -8,6 +8,7 @@ administrative status, observations, student observer records, and audit logs.
 Author: Yessyth Jaimes
 Role: Product Owner and developer of the rectoria module
 """
+
 from datetime import datetime
 
 from sqlmodel import Field
@@ -25,6 +26,7 @@ class RectoriaEstado(Base, table=True):
         motivo_estado (str): Reason or details regarding the administrative status.
         fecha_actualizacion (datetime): Timestamp of the last status update.
     """
+
     docente_id: int = Field(foreign_key="docente.id")
     periodo_id: int = Field(foreign_key="periodo.id")
     motivo_estado: str = Field(max_length=400)
@@ -42,6 +44,7 @@ class RectoriaObservaciones(Base, table=True):
         tipo_observacion (str): Classification type of the observation (e.g. positive, warning).
         fecha (datetime): Timestamp when the observation was registered.
     """
+
     docente_id: int = Field(foreign_key="docente.id")
     periodo_id: int = Field(foreign_key="periodo.id")
     descripcion: str = Field(max_length=400)
@@ -59,6 +62,7 @@ class Observador(Base, table=True):
         descripcion (str): Detailed text describing the incidence.
         fecha (datetime): Timestamp when the record was registered.
     """
+
     estudiante_id: int = Field(foreign_key="estudiante.id")
     tipo_incidencia: str = Field(max_length=50)
     descripcion: str = Field(max_length=400)
@@ -78,6 +82,7 @@ class Auditoria(Base, table=True):
         valor_nuevo (str): String representation of the record after the modification.
         fecha_accion (datetime): Timestamp when the operation took place.
     """
+
     id_usuario: int = Field(foreign_key="usuario.id")
     tabla_nombre: str = Field(max_length=50)
     registro_id: int

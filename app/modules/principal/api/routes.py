@@ -8,6 +8,7 @@ standardized responses.
 Author: Yessyth Jaimes
 Role: Product Owner and developer of the rectoria module
 """
+
 from fastapi import APIRouter, HTTPException, status
 
 from app.core.db import SessionDep
@@ -47,12 +48,12 @@ router = APIRouter()
                         "statusCode": 200,
                         "data": [],
                         "message": "Teachers obtained successfully",
-                        "details": None
+                        "details": None,
                     }
                 }
-            }
+            },
         }
-    }
+    },
 )
 async def get_teachers(session: SessionDep):
     """
@@ -85,8 +86,8 @@ async def get_teachers(session: SessionDep):
         },
         400: {
             "description": "Bad Request due to invalid user/docente/periodo identifier or unauthorized role",
-        }
-    }
+        },
+    },
 )
 async def create_observation(
     observation_data: CreateObservationRequest,
@@ -132,8 +133,8 @@ async def create_observation(
         },
         400: {
             "description": "Bad Request due to invalid user/docente/periodo identifier, duplicate status, or unauthorized role",
-        }
-    }
+        },
+    },
 )
 async def create_status(
     status_data: CreateStatusRequest,
@@ -158,7 +159,6 @@ async def create_status(
         data = await app.execute(status_data)
 
     except ValueError as exc:
-
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
@@ -184,8 +184,8 @@ async def create_status(
         },
         404: {
             "description": "Administrative status record not found",
-        }
-    }
+        },
+    },
 )
 async def update_status(
     status_id: int,
@@ -220,7 +220,6 @@ async def update_status(
         ) from exc
 
     if not data:
-
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Administrative status not found",

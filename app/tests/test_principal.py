@@ -7,6 +7,7 @@ FastAPI endpoints and business validations, using an in-memory SQLite database.
 Author: Yessyth Jaimes
 Role: Product Owner and developer of the rectoria module
 """
+
 import pytest
 from datetime import datetime
 from sqlmodel import SQLModel, Session, create_engine
@@ -18,7 +19,11 @@ from app.main import app
 from app.core.db import get_session
 from app.modules.enrollment.infrastructure.models import Docente, Periodo
 from app.modules.auth.infrastructure.models import Usuario
-from app.modules.principal.infrastructure.models import RectoriaEstado, RectoriaObservaciones, Auditoria
+from app.modules.principal.infrastructure.models import (
+    RectoriaEstado,
+    RectoriaObservaciones,
+    Auditoria,
+)
 
 from sqlalchemy.pool import StaticPool
 
@@ -29,6 +34,7 @@ test_engine = create_engine(
     poolclass=StaticPool,
 )
 
+
 @event.listens_for(test_engine, "connect")
 def set_sqlite_pragma(dbapi_connection, connection_record):
     """
@@ -37,6 +43,7 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA foreign_keys=ON")
     cursor.close()
+
 
 @pytest.fixture(name="session")
 def session_fixture():
@@ -54,6 +61,7 @@ def session_fixture():
     # Drop all tables after the test
     SQLModel.metadata.drop_all(test_engine)
 
+
 @pytest.fixture(name="client")
 def client_fixture(session):
     """
@@ -66,8 +74,10 @@ def client_fixture(session):
     Yields:
         TestClient: Configured TestClient for the FastAPI app.
     """
+
     def override_get_session():
         yield session
+
     app.dependency_overrides[get_session] = override_get_session
     yield TestClient(app)
     app.dependency_overrides.clear()
@@ -95,8 +105,12 @@ def test_get_teachers_with_data(session, client):
     then asserts that the GET endpoint correctly returns them consolidated.
     """
     # Seed data
-    docente = Docente(nombre="Juan Pérez", documento="123456", estado=True, asignatura="Matemáticas")
-    periodo = Periodo(periodo_electivo=datetime.now(), estado=True, fecha=datetime.now())
+    docente = Docente(
+        nombre="Juan Pérez", documento="123456", estado=True, asignatura="Matemáticas"
+    )
+    periodo = Periodo(
+        periodo_electivo=datetime.now(), estado=True, fecha=datetime.now()
+    )
     session.add(docente)
     session.add(periodo)
     session.commit()
@@ -104,8 +118,17 @@ def test_get_teachers_with_data(session, client):
     session.refresh(periodo)
 
     # Seed observations and administrative status
-    obs = RectoriaObservaciones(docente_id=docente.id, periodo_id=periodo.id, descripcion="Buen desempeño", tipo_observacion="Positiva")
-    est = RectoriaEstado(docente_id=docente.id, periodo_id=periodo.id, motivo_estado="Paz y salvo administrativo")
+    obs = RectoriaObservaciones(
+        docente_id=docente.id,
+        periodo_id=periodo.id,
+        descripcion="Buen desempeño",
+        tipo_observacion="Positiva",
+    )
+    est = RectoriaEstado(
+        docente_id=docente.id,
+        periodo_id=periodo.id,
+        motivo_estado="Paz y salvo administrativo",
+    )
     session.add(obs)
     session.add(est)
     session.commit()
@@ -117,7 +140,10 @@ def test_get_teachers_with_data(session, client):
     assert len(data) == 1
     assert data[0]["nombre"] == "Juan Pérez"
     assert len(data[0]["estados_administrativos"]) == 1
-    assert data[0]["estados_administrativos"][0]["motivo_estado"] == "Paz y salvo administrativo"
+    assert (
+        data[0]["estados_administrativos"][0]["motivo_estado"]
+        == "Paz y salvo administrativo"
+    )
     assert len(data[0]["observaciones"]) == 1
     assert data[0]["observaciones"][0]["descripcion"] == "Buen desempeño"
 
@@ -134,8 +160,12 @@ def test_create_observation_success(session, client):
     - A corresponding log is added to the system audit trail.
     """
     # Seed relations
-    docente = Docente(nombre="Juan Pérez", documento="123456", estado=True, asignatura="Matemáticas")
-    periodo = Periodo(periodo_electivo=datetime.now(), estado=True, fecha=datetime.now())
+    docente = Docente(
+        nombre="Juan Pérez", documento="123456", estado=True, asignatura="Matemáticas"
+    )
+    periodo = Periodo(
+        periodo_electivo=datetime.now(), estado=True, fecha=datetime.now()
+    )
     usuario = Usuario(rol="Rectoría", username="rector", contrasenia="123", estado=True)
     session.add(docente)
     session.add(periodo)
@@ -150,7 +180,7 @@ def test_create_observation_success(session, client):
         "periodo_id": periodo.id,
         "id_usuario": usuario.id,
         "descripcion": "Observación sobre el docente",
-        "tipo_observacion": "General"
+        "tipo_observacion": "General",
     }
 
     response = client.post("/api/v1/principal/observations", json=payload)
@@ -161,7 +191,11 @@ def test_create_observation_success(session, client):
     assert json_data["data"]["descripcion"] == "Observación sobre el docente"
 
     # Verify audit log
-    audit = session.query(Auditoria).filter(Auditoria.tabla_nombre == "RectoriaObservaciones").first()
+    audit = (
+        session.query(Auditoria)
+        .filter(Auditoria.tabla_nombre == "RectoriaObservaciones")
+        .first()
+    )
     assert audit is not None
     assert audit.id_usuario == usuario.id
     assert audit.operacion == "INSERT"
@@ -176,8 +210,12 @@ def test_create_observation_invalid_relations(session, client):
     are rejected with a 400 Bad Request status code.
     """
     # Seed partial relations
-    docente = Docente(nombre="Juan Pérez", documento="123456", estado=True, asignatura="Matemáticas")
-    periodo = Periodo(periodo_electivo=datetime.now(), estado=True, fecha=datetime.now())
+    docente = Docente(
+        nombre="Juan Pérez", documento="123456", estado=True, asignatura="Matemáticas"
+    )
+    periodo = Periodo(
+        periodo_electivo=datetime.now(), estado=True, fecha=datetime.now()
+    )
     usuario = Usuario(rol="Rectoría", username="rector", contrasenia="123", estado=True)
     session.add(docente)
     session.add(periodo)
@@ -193,7 +231,7 @@ def test_create_observation_invalid_relations(session, client):
         "periodo_id": periodo.id,
         "id_usuario": 999,
         "descripcion": "Observación sobre el docente",
-        "tipo_observacion": "General"
+        "tipo_observacion": "General",
     }
     response = client.post("/api/v1/principal/observations", json=payload)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -205,7 +243,7 @@ def test_create_observation_invalid_relations(session, client):
         "periodo_id": periodo.id,
         "id_usuario": usuario.id,
         "descripcion": "Observación sobre el docente",
-        "tipo_observacion": "General"
+        "tipo_observacion": "General",
     }
     response = client.post("/api/v1/principal/observations", json=payload)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -217,7 +255,7 @@ def test_create_observation_invalid_relations(session, client):
         "periodo_id": 999,
         "id_usuario": usuario.id,
         "descripcion": "Observación sobre el docente",
-        "tipo_observacion": "General"
+        "tipo_observacion": "General",
     }
     response = client.post("/api/v1/principal/observations", json=payload)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -231,9 +269,15 @@ def test_create_observation_unauthorized_role(session, client):
     Verifies that a user with an unauthorized role (e.g. Docente) fails validation
     and returns a 400 Bad Request status code.
     """
-    docente = Docente(nombre="Juan Pérez", documento="123456", estado=True, asignatura="Matemáticas")
-    periodo = Periodo(periodo_electivo=datetime.now(), estado=True, fecha=datetime.now())
-    usuario = Usuario(rol="Docente", username="docente1", contrasenia="123", estado=True)
+    docente = Docente(
+        nombre="Juan Pérez", documento="123456", estado=True, asignatura="Matemáticas"
+    )
+    periodo = Periodo(
+        periodo_electivo=datetime.now(), estado=True, fecha=datetime.now()
+    )
+    usuario = Usuario(
+        rol="Docente", username="docente1", contrasenia="123", estado=True
+    )
     session.add(docente)
     session.add(periodo)
     session.add(usuario)
@@ -247,11 +291,14 @@ def test_create_observation_unauthorized_role(session, client):
         "periodo_id": periodo.id,
         "id_usuario": usuario.id,
         "descripcion": "Observación sobre el docente",
-        "tipo_observacion": "General"
+        "tipo_observacion": "General",
     }
     response = client.post("/api/v1/principal/observations", json=payload)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "El usuario no tiene permisos de Rectoría o Administrador" in response.json()["detail"]
+    assert (
+        "El usuario no tiene permisos de Rectoría o Administrador"
+        in response.json()["detail"]
+    )
 
 
 def test_create_status_success(session, client):
@@ -261,9 +308,15 @@ def test_create_status_success(session, client):
     Seeds required relations and posts a new status payload. Verifies 201 JSON status code
     and asserts that a duplicate status request is rejected with a 400 Bad Request.
     """
-    docente = Docente(nombre="Juan Pérez", documento="123456", estado=True, asignatura="Matemáticas")
-    periodo = Periodo(periodo_electivo=datetime.now(), estado=True, fecha=datetime.now())
-    usuario = Usuario(rol="Administrador", username="admin", contrasenia="123", estado=True)
+    docente = Docente(
+        nombre="Juan Pérez", documento="123456", estado=True, asignatura="Matemáticas"
+    )
+    periodo = Periodo(
+        periodo_electivo=datetime.now(), estado=True, fecha=datetime.now()
+    )
+    usuario = Usuario(
+        rol="Administrador", username="admin", contrasenia="123", estado=True
+    )
     session.add(docente)
     session.add(periodo)
     session.add(usuario)
@@ -276,7 +329,7 @@ def test_create_status_success(session, client):
         "docente_id": docente.id,
         "periodo_id": periodo.id,
         "id_usuario": usuario.id,
-        "motivo_estado": "Pendiente de paz y salvo"
+        "motivo_estado": "Pendiente de paz y salvo",
     }
     response = client.post("/api/v1/principal/status", json=payload)
     assert response.status_code == status.HTTP_200_OK
@@ -288,7 +341,10 @@ def test_create_status_success(session, client):
     # Verify duplicate creation error
     response_dup = client.post("/api/v1/principal/status", json=payload)
     assert response_dup.status_code == status.HTTP_400_BAD_REQUEST
-    assert "Ya existe un estado administrativo para ese docente y periodo" in response_dup.json()["detail"]
+    assert (
+        "Ya existe un estado administrativo para ese docente y periodo"
+        in response_dup.json()["detail"]
+    )
 
 
 def test_create_status_invalid_relations(session, client):
@@ -298,9 +354,18 @@ def test_create_status_invalid_relations(session, client):
     Verifies that requests containing non-existent docente, period, or user identifiers
     are rejected with a 400 Bad Request status code.
     """
-    docente = Docente(nombre="Juan Pérez", documento="123456", estado=True, asignatura="Matemáticas")
-    periodo = Periodo(periodo_electivo=datetime.now(), estado=True, fecha=datetime.now())
-    usuario = Usuario(rol="Administrador del Sistema", username="admin", contrasenia="123", estado=True)
+    docente = Docente(
+        nombre="Juan Pérez", documento="123456", estado=True, asignatura="Matemáticas"
+    )
+    periodo = Periodo(
+        periodo_electivo=datetime.now(), estado=True, fecha=datetime.now()
+    )
+    usuario = Usuario(
+        rol="Administrador del Sistema",
+        username="admin",
+        contrasenia="123",
+        estado=True,
+    )
     session.add(docente)
     session.add(periodo)
     session.add(usuario)
@@ -314,7 +379,7 @@ def test_create_status_invalid_relations(session, client):
         "docente_id": docente.id,
         "periodo_id": periodo.id,
         "id_usuario": 999,
-        "motivo_estado": "Pendiente"
+        "motivo_estado": "Pendiente",
     }
     response = client.post("/api/v1/principal/status", json=payload)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -325,7 +390,7 @@ def test_create_status_invalid_relations(session, client):
         "docente_id": 999,
         "periodo_id": periodo.id,
         "id_usuario": usuario.id,
-        "motivo_estado": "Pendiente"
+        "motivo_estado": "Pendiente",
     }
     response = client.post("/api/v1/principal/status", json=payload)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -336,7 +401,7 @@ def test_create_status_invalid_relations(session, client):
         "docente_id": docente.id,
         "periodo_id": 999,
         "id_usuario": usuario.id,
-        "motivo_estado": "Pendiente"
+        "motivo_estado": "Pendiente",
     }
     response = client.post("/api/v1/principal/status", json=payload)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -350,8 +415,12 @@ def test_update_status_success(session, client):
     Modifies an existing record's motivo_estado, asserts 200 OK status code,
     and verifies that the audit log registers a correct UPDATE transition.
     """
-    docente = Docente(nombre="Juan Pérez", documento="123456", estado=True, asignatura="Matemáticas")
-    periodo = Periodo(periodo_electivo=datetime.now(), estado=True, fecha=datetime.now())
+    docente = Docente(
+        nombre="Juan Pérez", documento="123456", estado=True, asignatura="Matemáticas"
+    )
+    periodo = Periodo(
+        periodo_electivo=datetime.now(), estado=True, fecha=datetime.now()
+    )
     usuario = Usuario(rol="Rectoría", username="rector", contrasenia="123", estado=True)
     session.add(docente)
     session.add(periodo)
@@ -361,15 +430,14 @@ def test_update_status_success(session, client):
     session.refresh(periodo)
     session.refresh(usuario)
 
-    status_obj = RectoriaEstado(docente_id=docente.id, periodo_id=periodo.id, motivo_estado="Pendiente")
+    status_obj = RectoriaEstado(
+        docente_id=docente.id, periodo_id=periodo.id, motivo_estado="Pendiente"
+    )
     session.add(status_obj)
     session.commit()
     session.refresh(status_obj)
 
-    payload = {
-        "id_usuario": usuario.id,
-        "motivo_estado": "Paz y salvo total"
-    }
+    payload = {"id_usuario": usuario.id, "motivo_estado": "Paz y salvo total"}
     response = client.put(f"/api/v1/principal/status/{status_obj.id}", json=payload)
     assert response.status_code == status.HTTP_200_OK
     json_data = response.json()
@@ -378,7 +446,13 @@ def test_update_status_success(session, client):
     assert json_data["data"]["motivo_estado"] == "Paz y salvo total"
 
     # Verify audit log
-    audit = session.query(Auditoria).filter(Auditoria.tabla_nombre == "RectoriaEstado", Auditoria.operacion == "UPDATE").first()
+    audit = (
+        session.query(Auditoria)
+        .filter(
+            Auditoria.tabla_nombre == "RectoriaEstado", Auditoria.operacion == "UPDATE"
+        )
+        .first()
+    )
     assert audit is not None
     assert audit.valor_anterior == "Pendiente"
     assert audit.valor_nuevo == "Paz y salvo total"
@@ -395,10 +469,7 @@ def test_update_status_not_found(session, client):
     session.commit()
     session.refresh(usuario)
 
-    payload = {
-        "id_usuario": usuario.id,
-        "motivo_estado": "Paz y salvo"
-    }
+    payload = {"id_usuario": usuario.id, "motivo_estado": "Paz y salvo"}
     response = client.put("/api/v1/principal/status/999", json=payload)
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert "Administrative status not found" in response.json()["detail"]
@@ -410,23 +481,26 @@ def test_update_status_invalid_user(session, client):
 
     Verifies that a PUT request containing a non-existent user identifier is rejected with 400 Bad Request.
     """
-    docente = Docente(nombre="Juan Pérez", documento="123456", estado=True, asignatura="Matemáticas")
-    periodo = Periodo(periodo_electivo=datetime.now(), estado=True, fecha=datetime.now())
+    docente = Docente(
+        nombre="Juan Pérez", documento="123456", estado=True, asignatura="Matemáticas"
+    )
+    periodo = Periodo(
+        periodo_electivo=datetime.now(), estado=True, fecha=datetime.now()
+    )
     session.add(docente)
     session.add(periodo)
     session.commit()
     session.refresh(docente)
     session.refresh(periodo)
 
-    status_obj = RectoriaEstado(docente_id=docente.id, periodo_id=periodo.id, motivo_estado="Pendiente")
+    status_obj = RectoriaEstado(
+        docente_id=docente.id, periodo_id=periodo.id, motivo_estado="Pendiente"
+    )
     session.add(status_obj)
     session.commit()
     session.refresh(status_obj)
 
-    payload = {
-        "id_usuario": 999,
-        "motivo_estado": "Paz y salvo"
-    }
+    payload = {"id_usuario": 999, "motivo_estado": "Paz y salvo"}
     response = client.put(f"/api/v1/principal/status/{status_obj.id}", json=payload)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "El usuario no existe" in response.json()["detail"]
@@ -438,9 +512,15 @@ def test_update_status_unauthorized_role(session, client):
 
     Verifies that a PUT request containing a user without Rectoría or Admin role is rejected with 400 Bad Request.
     """
-    docente = Docente(nombre="Juan Pérez", documento="123456", estado=True, asignatura="Matemáticas")
-    periodo = Periodo(periodo_electivo=datetime.now(), estado=True, fecha=datetime.now())
-    usuario = Usuario(rol="Docente", username="docente1", contrasenia="123", estado=True)
+    docente = Docente(
+        nombre="Juan Pérez", documento="123456", estado=True, asignatura="Matemáticas"
+    )
+    periodo = Periodo(
+        periodo_electivo=datetime.now(), estado=True, fecha=datetime.now()
+    )
+    usuario = Usuario(
+        rol="Docente", username="docente1", contrasenia="123", estado=True
+    )
     session.add(docente)
     session.add(periodo)
     session.add(usuario)
@@ -449,15 +529,17 @@ def test_update_status_unauthorized_role(session, client):
     session.refresh(periodo)
     session.refresh(usuario)
 
-    status_obj = RectoriaEstado(docente_id=docente.id, periodo_id=periodo.id, motivo_estado="Pendiente")
+    status_obj = RectoriaEstado(
+        docente_id=docente.id, periodo_id=periodo.id, motivo_estado="Pendiente"
+    )
     session.add(status_obj)
     session.commit()
     session.refresh(status_obj)
 
-    payload = {
-        "id_usuario": usuario.id,
-        "motivo_estado": "Paz y salvo"
-    }
+    payload = {"id_usuario": usuario.id, "motivo_estado": "Paz y salvo"}
     response = client.put(f"/api/v1/principal/status/{status_obj.id}", json=payload)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "El usuario no tiene permisos de Rectoría o Administrador" in response.json()["detail"]
+    assert (
+        "El usuario no tiene permisos de Rectoría o Administrador"
+        in response.json()["detail"]
+    )
