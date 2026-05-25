@@ -1,4 +1,3 @@
-import pytest
 
 def test_invalid_enum_returns_422(client):
     payload = {

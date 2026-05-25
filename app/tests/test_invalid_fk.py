@@ -1,4 +1,3 @@
-import pytest
 
 def test_invalid_fk_returns_400(client):
     payload = {

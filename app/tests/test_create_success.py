@@ -1,4 +1,3 @@
-import pytest
 
 def test_create_success_returns_201(client):
     # Asegúrate de usar IDs que existan en la DB si estás testeando contra ella, 
