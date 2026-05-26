@@ -88,6 +88,10 @@ class Auditoria(Base, table=True):
     operacion: str = Field(max_length=10)
     valor_anterior: str = Field(default="")
     valor_nuevo: str = Field(default="")
+    # TODO: Eliminar este campo cuando se limpie la base de datos de producción.
+    # Se mantiene temporalmente como opcional para evitar conflictos de restricción
+    # NOT NULL con las bases de datos locales del equipo de desarrollo.
+    fecha_accion: datetime | None = Field(default=None)
 
 
 # Alias para mantener compatibilidad con el resto del módulo actual

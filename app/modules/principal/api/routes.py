@@ -29,6 +29,10 @@ from app.modules.principal.schemas.request import (
     CreateStatusRequest,
     UpdateStatusRequest,
 )
+from app.modules.principal.schemas.response import (
+    PrincipalObservationResponse,
+    PrincipalStatusResponse,
+)
 from app.shared.utils.response import Response
 
 
@@ -116,8 +120,18 @@ async def create_observation(
             detail=str(exc),
         ) from exc
 
+    assert data.id is not None
+    response_data = PrincipalObservationResponse(
+        id=data.id,
+        docente_id=data.docente_id,
+        periodo_id=data.periodo_id,
+        descripcion=data.descripcion,
+        tipo_observacion=data.tipo_observacion,
+        fecha=data.fecha,
+    )
+
     return Response(
-        data=data,
+        data=response_data,
         message="Administrative observation created successfully",
         status_code=status.HTTP_201_CREATED,
     ).to_dict()
@@ -164,8 +178,17 @@ async def create_status(
             detail=str(exc),
         ) from exc
 
+    assert data.id is not None
+    response_data = PrincipalStatusResponse(
+        id=data.id,
+        docente_id=data.docente_id,
+        periodo_id=data.periodo_id,
+        motivo_estado=data.motivo_estado,
+        fecha_actualizacion=data.fecha_actualizacion,
+    )
+
     return Response(
-        data=data,
+        data=response_data,
         message="Administrative status created successfully",
         status_code=status.HTTP_201_CREATED,
     ).to_dict()
@@ -225,8 +248,17 @@ async def update_status(
             detail="Administrative status not found",
         )
 
+    assert data.id is not None
+    response_data = PrincipalStatusResponse(
+        id=data.id,
+        docente_id=data.docente_id,
+        periodo_id=data.periodo_id,
+        motivo_estado=data.motivo_estado,
+        fecha_actualizacion=data.fecha_actualizacion,
+    )
+
     return Response(
-        data=data,
+        data=response_data,
         message="Administrative status updated successfully",
         status_code=status.HTTP_200_OK,
     ).to_dict()
