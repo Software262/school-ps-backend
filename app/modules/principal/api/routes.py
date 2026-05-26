@@ -178,7 +178,6 @@ async def create_status(
             detail=str(exc),
         ) from exc
 
-    assert data.id is not None
     response_data = PrincipalStatusResponse(
         id=data.id,
         docente_id=data.docente_id,
