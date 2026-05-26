@@ -13,5 +13,5 @@ class UpdatePupitreState:
         return await self.service.actualizar_estado_estudiante(
             estudiante_id=estudiante_id,
             nuevo_estado=request.estado_pupitre,
-            observacion=request.observacion
+            observacion=request.observacion,
         )

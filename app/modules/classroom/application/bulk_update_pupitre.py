@@ -13,5 +13,5 @@ class BulkUpdatePupitreState:
         return await self.service.actualizar_estado_masivo(
             grado_id=grado_id,
             nuevo_estado=request.estado_pupitre,
-            observacion=request.observacion
+            observacion=request.observacion,
         )
