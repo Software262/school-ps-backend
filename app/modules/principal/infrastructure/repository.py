@@ -11,7 +11,7 @@ Role: Product Owner and developer of the rectoria module
 
 from datetime import datetime
 
-from sqlmodel import select
+from sqlmodel import col, select
 
 from app.core.db import SessionDep
 from app.modules.enrollment.infrastructure.models import Docente, Periodo
@@ -48,88 +48,34 @@ class PrincipalRepository(PrincipalRepositoryInterface):
         """
         self.session = session
 
-    async def get_teachers(self) -> list[dict]:
+    async def get_teachers(
+        self,
+    ) -> list[tuple[Docente, RectoriaEstado | None, RectoriaObservaciones | None]]:
         """
         Retrieves all teachers registered in the database, including their consolidated
         administrative peace and safe statuses and observations.
 
         Returns:
-            list[dict]: A list of dictionaries, where each dictionary represents a teacher
-                and contains nested lists for their administrative statuses and observations.
+            list[tuple[Docente, RectoriaEstado | None, RectoriaObservaciones | None]]:
+                A list of tuples, where each tuple represents a row with a Docente,
+                their RectoriaEstado (if any), and RectoriaObservaciones (if any).
         """
         statement = (
             select(Docente, RectoriaEstado, RectoriaObservaciones)
             .join(
                 RectoriaEstado,
-                RectoriaEstado.docente_id == Docente.id,  # type: ignore[arg-type]
+                col(RectoriaEstado.docente_id) == col(Docente.id),
                 isouter=True,
             )
             .join(
                 RectoriaObservaciones,
-                RectoriaObservaciones.docente_id == Docente.id,  # type: ignore[arg-type]
+                col(RectoriaObservaciones.docente_id) == col(Docente.id),
                 isouter=True,
             )
-            .order_by(Docente.id)  # type: ignore[arg-type]
+            .order_by(col(Docente.id))
         )
         results = self.session.execute(statement).all()
-
-        teachers_map = {}
-        for docente, estado, observacion in results:
-            docente_id = docente.id
-            if docente_id is None:
-                continue
-
-            if docente_id not in teachers_map:
-                teachers_map[docente_id] = {
-                    "id": docente_id,
-                    "nombre": docente.nombre,
-                    "documento": docente.documento,
-                    "estado": docente.estado,
-                    "asignatura": docente.asignatura,
-                    "estados_administrativos": {},
-                    "observaciones": {},
-                }
-
-            t_data = teachers_map[docente_id]
-            if (
-                estado
-                and estado.id is not None
-                and estado.id not in t_data["estados_administrativos"]
-            ):
-                t_data["estados_administrativos"][estado.id] = {
-                    "id": estado.id,
-                    "periodo_id": estado.periodo_id,
-                    "motivo_estado": estado.motivo_estado,
-                    "fecha_actualizacion": estado.fecha_actualizacion.isoformat()
-                    if estado.fecha_actualizacion
-                    else None,
-                }
-            if (
-                observacion
-                and observacion.id is not None
-                and observacion.id not in t_data["observaciones"]
-            ):
-                t_data["observaciones"][observacion.id] = {
-                    "id": observacion.id,
-                    "periodo_id": observacion.periodo_id,
-                    "descripcion": observacion.descripcion,
-                    "tipo_observacion": observacion.tipo_observacion,
-                    "fecha": observacion.fecha.isoformat()
-                    if observacion.fecha
-                    else None,
-                }
-
-        # Convert dict of dicts to list of lists
-        teachers_list = []
-        for t_id in sorted(teachers_map.keys()):
-            t_data = teachers_map[t_id]
-            t_data["estados_administrativos"] = list(
-                t_data["estados_administrativos"].values()
-            )
-            t_data["observaciones"] = list(t_data["observaciones"].values())
-            teachers_list.append(t_data)
-
-        return teachers_list
+        return [(r[0], r[1], r[2]) for r in results]
 
     async def create_observation(
         self,
@@ -349,7 +295,6 @@ class PrincipalRepository(PrincipalRepositoryInterface):
             operacion=operacion,
             valor_anterior=valor_anterior,
             valor_nuevo=valor_nuevo,
-            fecha_accion=datetime.utcnow(),
         )
 
         self.session.add(audit)

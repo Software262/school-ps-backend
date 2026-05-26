@@ -31,14 +31,72 @@ class PrincipalService:
         """
         self.repository = repository
 
-    async def get_teachers(self):
+    async def get_teachers(self) -> list[dict]:
         """
         Retrieves all teachers with consolidated statuses and observations.
 
         Returns:
             list[dict]: A list of teacher records containing nested statuses and observations.
         """
-        return await self.repository.get_teachers()
+        results = await self.repository.get_teachers()
+
+        teachers_map = {}
+        for docente, estado, observacion in results:
+            docente_id = docente.id
+            if docente_id is None:
+                continue
+
+            if docente_id not in teachers_map:
+                teachers_map[docente_id] = {
+                    "id": docente_id,
+                    "nombre": docente.nombre,
+                    "documento": docente.documento,
+                    "estado": docente.estado,
+                    "asignatura": docente.asignatura,
+                    "estados_administrativos": {},
+                    "observaciones": {},
+                }
+
+            t_data = teachers_map[docente_id]
+            if (
+                estado
+                and estado.id is not None
+                and estado.id not in t_data["estados_administrativos"]
+            ):
+                t_data["estados_administrativos"][estado.id] = {
+                    "id": estado.id,
+                    "periodo_id": estado.periodo_id,
+                    "motivo_estado": estado.motivo_estado,
+                    "fecha_actualizacion": estado.fecha_actualizacion.isoformat()
+                    if estado.fecha_actualizacion
+                    else None,
+                }
+            if (
+                observacion
+                and observacion.id is not None
+                and observacion.id not in t_data["observaciones"]
+            ):
+                t_data["observaciones"][observacion.id] = {
+                    "id": observacion.id,
+                    "periodo_id": observacion.periodo_id,
+                    "descripcion": observacion.descripcion,
+                    "tipo_observacion": observacion.tipo_observacion,
+                    "fecha": observacion.fecha.isoformat()
+                    if observacion.fecha
+                    else None,
+                }
+
+        # Convert dict of dicts to list of lists
+        teachers_list = []
+        for t_id in sorted(teachers_map.keys()):
+            t_data = teachers_map[t_id]
+            t_data["estados_administrativos"] = list(
+                t_data["estados_administrativos"].values()
+            )
+            t_data["observaciones"] = list(t_data["observaciones"].values())
+            teachers_list.append(t_data)
+
+        return teachers_list
 
     async def create_observation(self, observation_data: CreateObservationRequest):
         """

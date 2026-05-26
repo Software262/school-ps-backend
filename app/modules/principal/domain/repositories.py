@@ -29,12 +29,16 @@ class PrincipalRepository(ABC):
     """
 
     @abstractmethod
-    async def get_teachers(self):
+    async def get_teachers(
+        self,
+    ) -> list[tuple[Docente, PrincipalStatus | None, PrincipalObservation | None]]:
         """
         Retrieves all teachers with consolidated statuses and observations.
 
         Returns:
-            list[dict]: A list of teacher records containing nested statuses and observations.
+            list[tuple[Docente, PrincipalStatus | None, PrincipalObservation | None]]:
+                A list of tuples containing the Docente, their administrative status,
+                and observation.
         """
         pass
 

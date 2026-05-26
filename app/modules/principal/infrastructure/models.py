@@ -80,7 +80,6 @@ class Auditoria(Base, table=True):
         operacion (str): Operation type executed (e.g., INSERT, UPDATE, DELETE).
         valor_anterior (str): String representation of the record before the modification.
         valor_nuevo (str): String representation of the record after the modification.
-        fecha_accion (datetime): Timestamp when the operation took place.
     """
 
     id_usuario: int = Field(foreign_key="usuario.id")
@@ -89,7 +88,6 @@ class Auditoria(Base, table=True):
     operacion: str = Field(max_length=10)
     valor_anterior: str = Field(default="")
     valor_nuevo: str = Field(default="")
-    fecha_accion: datetime = Field(default_factory=datetime.utcnow)
 
 
 # Alias para mantener compatibilidad con el resto del módulo actual
