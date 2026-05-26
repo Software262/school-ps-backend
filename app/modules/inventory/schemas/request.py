@@ -66,3 +66,11 @@ class ReturnBorrowRequest(BaseModel):
     )
     cantidad: int = Field(ge=1, description="Cantidad del articulo a devolver")
     observacion: str = Field(description="Observación del préstamo")
+
+
+class InventoryItemRequest(BaseModel):
+    tipo_inventario_id: int = Field(gt=0)
+    nombre: str = Field(min_length=2)
+    cantidad: int = Field(gt=0)
+    estado_objeto: str = Field(min_length=2)
+    observacion: str | None = Field(default=None)

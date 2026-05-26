@@ -1,14 +1,18 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, File, Query, UploadFile, status
 
 from app.core.db import SessionDep
 from app.modules.inventory.application.create_borrowing_inventory import (
     CreateItemBorrowing,
 )
 from app.modules.inventory.application.create_item_inventory import CreateItemInventory
+from app.modules.inventory.application.create_items_inventory_from_file import (
+    CreateItemsInventoryFromFile,
+)
 from app.modules.inventory.application.create_type_inventory import CreateTypeInventory
 from app.modules.inventory.application.edit_single_item import EditSingleItem
+from app.modules.inventory.application.get_borrowings import GetBorrowings
 from app.modules.inventory.application.get_items_inventory import GetItemsInventory
 from app.modules.inventory.application.return_borrowing import ReturnBorrowing
 from app.modules.inventory.application.update_item_inventory import UpdateItemInventory
@@ -27,7 +31,11 @@ from app.modules.inventory.schemas.response import (
     ReturnItemBorrowingResponse,
     UpdateItemInventoryResponse,
 )
-from app.shared.schemas.filter_pagination import FilterPagination
+from app.modules.inventory.utils.file import validate_data, validate_file
+from app.shared.schemas.filter_pagination import (
+    FilterPagination,
+    FilterPaginationBorrowings,
+)
 from app.shared.utils.response import Response
 
 router = APIRouter()
@@ -267,4 +275,57 @@ async def edit_item(
         message="Articulo editado exitosamente",
         status_code=status.HTTP_200_OK,
         details={"message": "Articulo editado exitosamente"},
+    ).to_dict()
+
+
+@router.get("/borrow")
+async def get_borrowings(
+    session: SessionDep,
+    filter_pagination_query: Annotated[FilterPaginationBorrowings, Query()],
+):
+    get_borrowings_app = GetBorrowings(session=session)
+    data = await get_borrowings_app.execute(filter_pagination=filter_pagination_query)
+
+    return (
+        Response(
+            data=data,
+            message="Lista de préstamos obtenida exitosamente",
+            status_code=status.HTTP_200_OK,
+            details={"message": "Lista de préstamos obtenida exitosamente"},
+        )
+        .filterPagination(
+            page=filter_pagination_query.page, limit=filter_pagination_query.limit
+        )
+        .to_dict()
+    )
+
+
+@router.post("/items/import")
+async def upload_items_file(
+    session: SessionDep,
+    file: Annotated[UploadFile, File()],
+):
+    data = await validate_file(file=file)
+
+    if data is None:
+        return Response(
+            data=None,
+            message="Archivo invalido solamente se aceptan csv o excel",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={},
+        ).to_dict()
+
+    items_inventory = await validate_data(filename=file.filename, data=data)
+
+    create_items_inventory_from_file = CreateItemsInventoryFromFile(session=session)
+
+    res = await create_items_inventory_from_file.execute(
+        items_inventory=items_inventory
+    )
+
+    return Response(
+        data=res,
+        message="Archivo cargado exitosamente",
+        status_code=status.HTTP_200_OK,
+        details={"message": "Archivo cargado exitosamente"},
     ).to_dict()
