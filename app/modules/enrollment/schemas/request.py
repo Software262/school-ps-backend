@@ -13,8 +13,14 @@ class ComplementaryModification(BaseModel):
     """Modificación a un complementario existente en la matrícula."""
 
     detalle_id: int = Field(description="ID del DetalleMatricula a modificar")
-    nuevo_valor_completo: int | None = Field(default=None, ge=0, description="Sobrescribir el costo total del complementario")
-    descuento: int | None = Field(default=None, ge=0, description="Aplicar un descuento (se resta del valor completo). Debe ser mayor o igual a 0")
+    nuevo_valor_completo: int | None = Field(
+        default=None, ge=0, description="Sobrescribir el costo total del complementario"
+    )
+    descuento: int | None = Field(
+        default=None,
+        ge=0,
+        description="Aplicar un descuento (se resta del valor completo). Debe ser mayor o igual a 0",
+    )
 
 
 class ModifyEnrollmentRequest(BaseModel):
@@ -22,13 +28,18 @@ class ModifyEnrollmentRequest(BaseModel):
 
     motivo: str = Field(
         min_length=5,
-        description="Motivo obligatorio del ajuste (requerido por auditoría según MAT-RF-07)"
+        description="Motivo obligatorio del ajuste (requerido por auditoría según MAT-RF-07)",
     )
-    nuevo_costo_base: int | None = Field(default=None, ge=0, description="Sobrescribir el valor de la matrícula base")
-    descuento_base: int | None = Field(default=None, ge=0, description="Aplicar descuento a la matrícula base")
+    nuevo_costo_base: int | None = Field(
+        default=None, ge=0, description="Sobrescribir el valor de la matrícula base"
+    )
+    descuento_base: int | None = Field(
+        default=None, ge=0, description="Aplicar descuento a la matrícula base"
+    )
     complementarios: list[ComplementaryModification] | None = Field(
         default=None, description="Modificaciones a los complementarios asignados"
     )
+
 
 class ConceptoAsignacion(BaseModel):
     """Cuánto asignar a un concepto específico."""
@@ -42,9 +53,7 @@ class ConceptoAsignacion(BaseModel):
         default=None,
         description="ID del complementario (obligatorio si concepto='complementario')",
     )
-    monto: int = Field(
-        gt=0, description="Monto a aplicar a este concepto"
-    )
+    monto: int = Field(gt=0, description="Monto a aplicar a este concepto")
 
 
 class DirectedPaymentRequest(BaseModel):
@@ -67,15 +76,22 @@ class DirectedPaymentRequest(BaseModel):
 class ComplementaryCreateRequest(BaseModel):
     """Solicitud para crear un nuevo concepto complementario."""
 
-    tipo_complementario: str = Field(max_length=50, description="Nombre del concepto (ej: Banda Marcial)")
+    tipo_complementario: str = Field(
+        max_length=50, description="Nombre del concepto (ej: Banda Marcial)"
+    )
     anio: int = Field(description="Año al que aplica este cobro")
     valor: int = Field(gt=0, description="Costo total del concepto")
     estado_complemento: str = Field(max_length=50, description="Estado (ej: Activo)")
-    uso_matricula: bool = Field(default=False, description="Si es True, se asigna automáticamente a las matrículas nuevas")
+    uso_matricula: bool = Field(
+        default=False,
+        description="Si es True, se asigna automáticamente a las matrículas nuevas",
+    )
 
 
 class AssignComplementaryRequest(BaseModel):
     """Solicitud para asignar un complementario a una matrícula existente."""
 
     complementario_id: int = Field(description="ID del concepto complementario")
-    descuento: int = Field(default=0, ge=0, description="Descuento a aplicar (en pesos)")
+    descuento: int = Field(
+        default=0, ge=0, description="Descuento a aplicar (en pesos)"
+    )

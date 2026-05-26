@@ -18,4 +18,4 @@ router.include_router(musical_band, prefix="/musical-band", tags=["musical-band"
 router.include_router(enrollment, prefix="/enrollment", tags=["enrollment"])
 router.include_router(principal, prefix="/principal", tags=["principal"])
 router.include_router(tuition, prefix="/tuition", tags=["tuition"])
-router.include_router(classroom, prefix="/classroom", tags=["classroom"]) 
+router.include_router(classroom, prefix="/classroom", tags=["classroom"])
