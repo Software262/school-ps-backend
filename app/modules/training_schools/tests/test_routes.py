@@ -5,8 +5,12 @@ from sqlmodel import SQLModel, Session, create_engine
 
 from app.core.db import get_session
 from app.main import app
-from app.modules.enrollment.infrastructure.models import Acudiente, Complementario, Estudiante, Grado
-from app.modules.training_schools.infrastructure.models import DetalleEscuelaFormacion
+from app.modules.enrollment.infrastructure.models import (
+    Acudiente,
+    Complementario,
+    Estudiante,
+    Grado,
+)
 
 TEST_DATABASE_URL = "sqlite:///:memory:"
 engine = create_engine(
@@ -88,10 +92,47 @@ def test_enroll_student_endpoint_success(client: TestClient, test_data: dict):
     result = response.json()
     assert result["data"]["estudiante_id"] == test_data["student_id"]
     assert result["data"]["complementario_id"] == test_data["complementario_id"]
-    assert result["data"]["mes"] == "Mayo"
+    assert result["data"]["estudiante_nombre"] == "Estudiante Prueba"
+    assert result["data"]["estudiante_documento"] == "123456789"
+    assert result["data"]["disciplina_nombre"] == "Artes"
+    assert result["data"]["mes"] == "mayo"
     assert result["data"]["activo"] is True
     assert result["data"]["estado_escuela"] is False
     assert result["data"]["motivo_baja"] is None
+
+
+def test_list_available_programs_endpoint(client: TestClient, test_data: dict):
+    response = client.get("/api/v1/training-schools/programs")
+
+    assert response.status_code == 200
+    result = response.json()
+    assert isinstance(result["data"], list)
+    assert any(
+        program["id"] == test_data["complementario_id"] for program in result["data"]
+    )
+
+
+def test_create_program_endpoint(client: TestClient):
+    payload = {"nombre": "Teatro", "valor": 30000}
+
+    response = client.post("/api/v1/training-schools/programs", json=payload)
+
+    assert response.status_code == 201
+    result = response.json()
+    assert result["data"]["nombre"] == "Teatro"
+    assert result["data"]["valor"] == 30000
+    assert result["data"]["estado"] == "activo"
+
+
+def test_search_students_endpoint(client: TestClient, test_data: dict):
+    response = client.get(
+        "/api/v1/training-schools/students", params={"query": "123456789"}
+    )
+
+    assert response.status_code == 200
+    result = response.json()
+    assert isinstance(result["data"], list)
+    assert any(student["id"] == test_data["student_id"] for student in result["data"])
 
 
 def test_register_payment_endpoint_success(client: TestClient, test_data: dict):
@@ -106,10 +147,14 @@ def test_register_payment_endpoint_success(client: TestClient, test_data: dict):
     result = response.json()
     assert result["data"]["estado_escuela"] is True
     assert result["data"]["activo"] is True
+    assert result["data"]["estudiante_nombre"] == "Estudiante Prueba"
+    assert result["data"]["disciplina_nombre"] == "Artes"
 
 
 def test_get_student_status_endpoint_success(client: TestClient, test_data: dict):
-    response = client.get(f"/api/v1/training-schools/students/{test_data['student_id']}/status")
+    response = client.get(
+        f"/api/v1/training-schools/students/{test_data['student_id']}/status"
+    )
 
     assert response.status_code == 200
     result = response.json()
@@ -132,10 +177,59 @@ def test_unsubscribe_student_endpoint_success(client: TestClient, test_data: dic
 
 
 def test_list_student_enrollments_endpoint(client: TestClient, test_data: dict):
-    response = client.get(f"/api/v1/training-schools/students/{test_data['student_id']}/enrollments")
+    response = client.get(
+        f"/api/v1/training-schools/students/{test_data['student_id']}/enrollments"
+    )
 
     assert response.status_code == 200
     result = response.json()
     assert isinstance(result["data"], list)
     assert len(result["data"]) >= 1
-    assert any(enrollment["mes"] == "Mayo" for enrollment in result["data"])
+    assert any(enrollment["mes"] == "mayo" for enrollment in result["data"])
+
+
+def test_list_enrollments_with_filters_endpoint(client: TestClient, test_data: dict):
+    response = client.get(
+        "/api/v1/training-schools/enrollments",
+        params={
+            "student_id": test_data["student_id"],
+            "complementario_id": test_data["complementario_id"],
+            "mes": "Mayo",
+        },
+    )
+
+    assert response.status_code == 200
+    result = response.json()
+    assert isinstance(result["data"], list)
+    assert all(enrollment["mes"] == "mayo" for enrollment in result["data"])
+
+
+def test_get_monthly_status_endpoint(client: TestClient, test_data: dict):
+    response = client.get(
+        f"/api/v1/training-schools/students/{test_data['student_id']}/programs/{test_data['complementario_id']}/monthly-status"
+    )
+
+    assert response.status_code == 200
+    result = response.json()
+    assert result["data"]["estudiante_id"] == test_data["student_id"]
+    assert result["data"]["complementario_id"] == test_data["complementario_id"]
+    assert isinstance(result["data"]["meses"], list)
+
+
+def test_unmark_payment_endpoint_success(client: TestClient, test_data: dict):
+    create_payload = {
+        "estudiante_id": test_data["student_id"],
+        "complementario_id": test_data["complementario_id"],
+        "mes": "Marzo",
+    }
+    client.post("/api/v1/training-schools/enroll", json=create_payload)
+    client.post("/api/v1/training-schools/payments", json=create_payload)
+
+    response = client.patch(
+        "/api/v1/training-schools/payments/unmark", json=create_payload
+    )
+
+    assert response.status_code == 200
+    result = response.json()
+    assert result["data"]["mes"] == "marzo"
+    assert result["data"]["estado_escuela"] is False

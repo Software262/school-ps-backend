@@ -3,29 +3,39 @@ from pydantic import BaseModel, Field
 
 class CreateEnrollmentRequest(BaseModel):
     estudiante_id: int = Field(
-        ge=1, description="ID del estudiante a inscribir en la escuela de formación"
+        ge=1, description="ID del estudiante a registrar en la escuela de formacion"
     )
     complementario_id: int = Field(
-        ge=1, description="ID del programa complementario/escuela de formación"
+        ge=1, description="ID del programa complementario/escuela de formacion"
     )
     mes: str = Field(
         min_length=3,
         max_length=20,
-        description="Mes correspondiente a la inscripción (ej. Enero, Febrero, etc.)",
+        description="Mes correspondiente al registro mensual",
+    )
+
+
+class CreateProgramRequest(BaseModel):
+    nombre: str = Field(
+        min_length=3,
+        max_length=50,
+        description="Nombre de la disciplina o escuela de formacion",
+    )
+    valor: int = Field(
+        ge=0,
+        description="Valor administrativo asociado a la disciplina",
     )
 
 
 class RegisterPaymentRequest(BaseModel):
-    estudiante_id: int = Field(
-        ge=1, description="ID del estudiante que realiza el pago"
-    )
+    estudiante_id: int = Field(ge=1, description="ID del estudiante que paga el mes")
     complementario_id: int = Field(
-        ge=1, description="ID del programa complementario/escuela de formación"
+        ge=1, description="ID del programa complementario/escuela de formacion"
     )
     mes: str = Field(
         min_length=3,
         max_length=20,
-        description="Mes que se va a pagar (ej. Enero, Febrero, etc.)",
+        description="Mes que se va a marcar como pagado",
     )
 
 

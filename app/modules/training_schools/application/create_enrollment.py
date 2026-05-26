@@ -1,5 +1,7 @@
 from app.modules.training_schools.domain.service import TrainingSchoolsService
-from app.modules.training_schools.infrastructure.repository import TrainingSchoolsRepository
+from app.modules.training_schools.infrastructure.repository import (
+    TrainingSchoolsRepository,
+)
 from app.modules.training_schools.schemas.request import CreateEnrollmentRequest
 
 
