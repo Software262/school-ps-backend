@@ -146,8 +146,7 @@ async def register_enrollment(
             for c in result.complementarios
         ],
         mensaje=(
-            f"Matrícula registrada exitosamente. "
-            f"Total a pagar: ${result.valor_total:,}"
+            f"Matrícula registrada exitosamente. Total a pagar: ${result.valor_total:,}"
         ),
     )
 
@@ -195,8 +194,7 @@ async def directed_payment(
     use_case = ProcessDirectedPayment(session=session)
 
     asignaciones = [
-        (a.concepto, a.complementario_id, a.monto)
-        for a in request.asignaciones
+        (a.concepto, a.complementario_id, a.monto) for a in request.asignaciones
     ]
 
     try:
@@ -292,7 +290,10 @@ async def create_complementary(
         estado=request.estado_complemento,
         uso_matricula=request.uso_matricula,
     )
-    return {"mensaje": "Complementario creado exitosamente", "complementario_id": comp_id}
+    return {
+        "mensaje": "Complementario creado exitosamente",
+        "complementario_id": comp_id,
+    }
 
 
 @router.post(
@@ -316,4 +317,7 @@ async def assign_complementary(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
-    return {"mensaje": "Complementario asignado exitosamente a la matrícula", "detalle_id": detalle_id}
+    return {
+        "mensaje": "Complementario asignado exitosamente a la matrícula",
+        "detalle_id": detalle_id,
+    }

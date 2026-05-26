@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from app.modules.classroom.infrastructure.models import Pupitre
 
-class PupitreRepository(ABC):
 
+class PupitreRepository(ABC):
     @abstractmethod
     async def obtener_por_estudiante(self, estudiante_id: int) -> Pupitre | None:
         pass
