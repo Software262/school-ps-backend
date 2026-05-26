@@ -50,7 +50,7 @@ def seed() -> None:
         ]
         session.add_all(grados)
         session.flush()
-        
+
         for g in grados:
             assert g.id is not None
 
@@ -69,7 +69,7 @@ def seed() -> None:
         )
         session.add_all([acudiente1, acudiente2])
         session.flush()
-        
+
         assert acudiente1.id is not None
         assert acudiente2.id is not None
 
@@ -101,7 +101,7 @@ def seed() -> None:
         )
         session.add_all([estudiante1, estudiante2, estudiante3])
         session.flush()
-        
+
         assert estudiante1.id is not None
         assert estudiante2.id is not None
         assert estudiante3.id is not None
@@ -114,25 +114,33 @@ def seed() -> None:
         )
         session.add(periodo)
         session.flush()
-        
+
         assert periodo.id is not None
 
         # === PARAMETRIZAR MATRÍCULA (costo base por grado y año) ===
         param_sexto = ParametrizarMatricula(
-            grado_id=grados[5].id, anio=2026, valor=850000  # type: ignore[arg-type]
+            grado_id=grados[5].id or 1,
+            anio=2026,
+            valor=850000,  # type: ignore[arg-type]
         )
         param_decimo = ParametrizarMatricula(
-            grado_id=grados[10].id, anio=2026, valor=950000  # type: ignore[arg-type]
+            grado_id=grados[10].id or 1,
+            anio=2026,
+            valor=950000,  # type: ignore[arg-type]
         )
         param_segundo = ParametrizarMatricula(
-            grado_id=grados[2].id, anio=2026, valor=750000  # type: ignore[arg-type]
+            grado_id=grados[2].id or 1,
+            anio=2026,
+            valor=750000,  # type: ignore[arg-type]
         )
         param_sexto_2025 = ParametrizarMatricula(
-            grado_id=grados[5].id, anio=2025, valor=800000  # type: ignore[arg-type]
+            grado_id=grados[5].id or 1,
+            anio=2025,
+            valor=800000,  # type: ignore[arg-type]
         )
         session.add_all([param_sexto, param_decimo, param_segundo, param_sexto_2025])
         session.flush()
-        
+
         assert param_sexto.id is not None
         assert param_decimo.id is not None
         assert param_segundo.id is not None
@@ -140,22 +148,30 @@ def seed() -> None:
 
         # === PARAMETRIZAR PENSIÓN (costo mensual por grado y año) ===
         pension_sexto = ParametrizarPension(
-            grado_id=grados[5].id, anio=2026, valor=450000  # type: ignore[arg-type]
+            grado_id=grados[5].id or 1,
+            anio=2026,
+            valor=450000,  # type: ignore[arg-type]
         )
         pension_decimo = ParametrizarPension(
-            grado_id=grados[10].id, anio=2026, valor=520000  # type: ignore[arg-type]
+            grado_id=grados[10].id or 1,
+            anio=2026,
+            valor=520000,  # type: ignore[arg-type]
         )
         pension_segundo = ParametrizarPension(
-            grado_id=grados[2].id, anio=2026, valor=350000  # type: ignore[arg-type]
+            grado_id=grados[2].id or 1,
+            anio=2026,
+            valor=350000,  # type: ignore[arg-type]
         )
         pension_sexto_2025 = ParametrizarPension(
-            grado_id=grados[5].id, anio=2025, valor=400000  # type: ignore[arg-type]
+            grado_id=grados[5].id or 1,
+            anio=2025,
+            valor=400000,  # type: ignore[arg-type]
         )
         session.add_all(
             [pension_sexto, pension_decimo, pension_segundo, pension_sexto_2025]
         )
         session.flush()
-        
+
         assert pension_sexto.id is not None
         assert pension_decimo.id is not None
         assert pension_segundo.id is not None
@@ -192,7 +208,7 @@ def seed() -> None:
         )
         session.add_all([comp_seguro, comp_agenda, comp_carnet, comp_plataforma])
         session.flush()
-        
+
         assert comp_seguro.id is not None
         assert comp_agenda.id is not None
         assert comp_carnet.id is not None
@@ -211,7 +227,7 @@ def seed() -> None:
         )
         session.add(matricula1)
         session.flush()
-        
+
         assert matricula1.id is not None
 
         # Detalles de matrícula para Estudiante 1
@@ -267,7 +283,7 @@ def seed() -> None:
         )
         session.add(matricula2)
         session.flush()
-        
+
         assert matricula2.id is not None
 
         detalles2 = [
@@ -325,9 +341,13 @@ def seed() -> None:
         print()
         print("Nuevos endpoints:")
         print("   POST /api/v1/enrollment/register")
-        print(f"        Body: {{estudiante_id: {estudiante3.id}, periodo_id: {periodo.id}, anio: 2026}}")
+        print(
+            f"        Body: {{estudiante_id: {estudiante3.id}, periodo_id: {periodo.id}, anio: 2026}}"
+        )
         print("   POST /api/v1/enrollment/payments/auto")
-        print(f"        Body: {{matricula_id: {matricula1.id}, monto: 1000000, codigo_talonario: 'TAL-001'}}")
+        print(
+            f"        Body: {{matricula_id: {matricula1.id}, monto: 1000000, codigo_talonario: 'TAL-001'}}"
+        )
         print("   POST /api/v1/enrollment/payments/directed")
 
 
