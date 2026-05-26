@@ -1,6 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class FilterPagination(BaseModel):
-    page: int = 1
-    limit: int = 10
+    page: int = Field(default=1)
+    limit: int = Field(default=10)
