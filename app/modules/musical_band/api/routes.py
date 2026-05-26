@@ -2,14 +2,7 @@ from fastapi import APIRouter
 
 router = APIRouter()
 
-instruments = [
-    "Guitar",
-    "Bass",
-    "Drums",
-    "Vocals",
-]
 
-
-@router.get("/instruments")
+@router.get("/items")
 async def get_all_instruments():
-    return instruments
+    return []

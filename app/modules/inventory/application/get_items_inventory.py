@@ -1,6 +1,6 @@
 from app.modules.inventory.domain.service import InventoryService
 from app.modules.inventory.infrastructure.repository import InventoryRepository
-from app.shared.schemas.filter_pagination import FilterPagination
+from app.modules.inventory.schemas.request import FilterPaginationInventory
 
 
 class GetItemsInventory:
@@ -8,5 +8,5 @@ class GetItemsInventory:
         self.repository = InventoryRepository(session=session)
         self.service = InventoryService(repository=self.repository)
 
-    async def execute(self, filter_pagination: FilterPagination):
+    async def execute(self, filter_pagination: FilterPaginationInventory):
         return await self.service.get_inventory(filter_pagination=filter_pagination)

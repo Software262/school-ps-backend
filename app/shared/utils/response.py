@@ -1,6 +1,6 @@
 from fastapi import status
 
-from app.shared.schemas.filter_pagination import Pagination
+from app.shared.schemas.filter_pagination_response import Pagination
 
 
 class Response:
