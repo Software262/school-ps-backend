@@ -120,7 +120,11 @@ async def create_observation(
             detail=str(exc),
         ) from exc
 
-    assert data.id is not None
+    if data.id is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error al persistir el registro en la base de datos.",
+        )
     response_data = PrincipalObservationResponse(
         id=data.id,
         docente_id=data.docente_id,
@@ -178,6 +182,11 @@ async def create_status(
             detail=str(exc),
         ) from exc
 
+    if data.id is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error al persistir el registro en la base de datos.",
+        )
     response_data = PrincipalStatusResponse(
         id=data.id,
         docente_id=data.docente_id,
@@ -247,7 +256,11 @@ async def update_status(
             detail="Administrative status not found",
         )
 
-    assert data.id is not None
+    if data.id is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error al persistir el registro en la base de datos.",
+        )
     response_data = PrincipalStatusResponse(
         id=data.id,
         docente_id=data.docente_id,
