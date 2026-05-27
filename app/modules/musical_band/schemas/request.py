@@ -5,6 +5,7 @@ from pydantic import Field, model_validator
 from app.modules.inventory.schemas.request import (
     CreateItemRequest,
     FilterPaginationInventory,
+    UpdateSingleItemRequest,
 )
 
 
@@ -19,4 +20,8 @@ class FilterPaginationMusicalBand(FilterPaginationInventory):
 
 
 class CreateInstrumentRequest(CreateItemRequest):
+    pass
+
+
+class UpdateItemMusicalBand(UpdateSingleItemRequest):
     pass

@@ -7,9 +7,11 @@ from app.modules.musical_band.application.create_item import CreateItemMusicalBa
 from app.modules.musical_band.application.get_items import (
     GetItemsMusicalBand,
 )
+from app.modules.musical_band.application.update_item import UpdateItem
 from app.modules.musical_band.schemas.request import (
     CreateInstrumentRequest,
     FilterPaginationMusicalBand,
+    UpdateItemMusicalBand,
 )
 from app.shared.utils.response import Response
 
@@ -52,3 +54,25 @@ async def create_instrument(session: SessionDep, item_data: CreateInstrumentRequ
         data=data,
         message="obtenido los articulos de banda exitosamente",
     ).to_dict()
+
+
+@router.patch("")
+async def update_instrument(
+    session: SessionDep, id: int, item_data: UpdateItemMusicalBand
+):
+    update_item = UpdateItem(session=session)
+
+    data = await update_item._execute(item_id=id, item_data=item_data)
+
+    if not data:
+        return Response(
+            data=None,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            message="invalid información para actualizar",
+        )
+
+    return Response(
+        data=data,
+        status_code=status.HTTP_200_OK,
+        message="se actualizo correctamente",
+    )
