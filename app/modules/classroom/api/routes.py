@@ -15,6 +15,7 @@ from app.modules.classroom.schemas.response import BulkUpdateResponse
 
 router = APIRouter()
 
+
 @router.get("/pupitre/grado/{grado_id}")
 async def obtener_pupitres_por_grado(
     grado_id: int,
@@ -29,12 +30,15 @@ async def obtener_pupitres_por_grado(
             status_code=status.HTTP_404_NOT_FOUND,
         ).to_dict()
     return Response(
-        data=[PupitreOutSchema(
-            id=pupitre.id,
-            estudiante_id=pupitre.estudiante_id,
-            estado_pupitre=pupitre.estado_pupitre,
-            observacion=pupitre.observacion
-        ) for pupitre in data],
+        data=[
+            PupitreOutSchema(
+                id=pupitre.id,
+                estudiante_id=pupitre.estudiante_id,
+                estado_pupitre=pupitre.estado_pupitre,
+                observacion=pupitre.observacion,
+            )
+            for pupitre in data
+        ],
         message="Pupitres obtenidos exitosamente",
         status_code=status.HTTP_200_OK,
     ).to_dict()
@@ -81,8 +85,8 @@ async def actualizar_estado_pupitre(
             status_code=status.HTTP_404_NOT_FOUND,
             details={"message": "No se encontró el pupitre del estudiante"},
         ).to_dict()
-    
-    if not data.id:  
+
+    if not data.id:
         return Response(
             data=None,
             message="Error al actualizar el pupitre",
@@ -101,5 +105,3 @@ async def actualizar_estado_pupitre(
         status_code=status.HTTP_200_OK,
         details={"message": "Estado del pupitre actualizado exitosamente"},
     ).to_dict()
-
-

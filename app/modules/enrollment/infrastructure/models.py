@@ -103,7 +103,5 @@ class PagoDetalle(Base, table=True):
 
     pago_id: int = Field(foreign_key="pago.id")
     concepto: str = Field(max_length=50)
-    complementario_id: int | None = Field(
-        default=None, foreign_key="complementario.id"
-    )
+    complementario_id: int | None = Field(default=None, foreign_key="complementario.id")
     monto_aplicado: int = Field()
