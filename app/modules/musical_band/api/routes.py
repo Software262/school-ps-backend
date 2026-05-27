@@ -4,12 +4,14 @@ from fastapi import APIRouter, Query, status
 
 from app.core.db import SessionDep
 from app.modules.musical_band.application.create_item import CreateItemMusicalBand
+from app.modules.musical_band.application.get_borrowings import GetBorrowingsMusicalBand
 from app.modules.musical_band.application.get_items import (
     GetItemsMusicalBand,
 )
 from app.modules.musical_band.application.update_item import UpdateItem
 from app.modules.musical_band.schemas.request import (
     CreateInstrumentRequest,
+    FilterPaginationBorrowingMusicalBand,
     FilterPaginationMusicalBand,
     UpdateItemMusicalBand,
 )
@@ -75,4 +77,25 @@ async def update_instrument(
         data=data,
         status_code=status.HTTP_200_OK,
         message="se actualizo correctamente",
+    )
+
+
+@router.get("/items")
+async def get_all_borrowings(
+    session: SessionDep,
+    filter_pagination: Annotated[FilterPaginationBorrowingMusicalBand, Query()],
+):
+    get_items = GetBorrowingsMusicalBand(session=session)
+
+    filter_pagination.item_type = "banda"
+
+    data = await get_items.execute(filter_pagination=filter_pagination)
+
+    return (
+        Response(
+            data=data,
+            message="obtenido los articulos de banda exitosamente",
+        )
+        .filterPagination(page=filter_pagination.page, limit=filter_pagination.limit)
+        .to_dict()
     )

@@ -4,6 +4,7 @@ from pydantic import Field, model_validator
 
 from app.modules.inventory.schemas.request import (
     CreateItemRequest,
+    FilterPaginationBorrowings,
     FilterPaginationInventory,
     UpdateSingleItemRequest,
 )
@@ -17,6 +18,10 @@ class FilterPaginationMusicalBand(FilterPaginationInventory):
         if self.item_type != "banda":
             raise ValueError("Invalido tipo para obtener los articulos")
         return self
+
+
+class FilterPaginationBorrowingMusicalBand(FilterPaginationBorrowings):
+    active: bool | None = None
 
 
 class CreateInstrumentRequest(CreateItemRequest):
