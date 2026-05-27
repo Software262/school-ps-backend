@@ -59,7 +59,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
 
     def get_enrollment_details(
         self, student_id: int, year: int
-    ) -> tuple[int | None, str, list[ComplementaryDetail], int]:
+    ) -> tuple[int | None, str, list[ComplementaryDetail], int, int]:
         # Buscar la matrícula del estudiante para el año dado
         statement = (
             select(Matricula)
@@ -75,7 +75,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
         matricula = self._session.exec(statement).first()
 
         if matricula is None:
-            return None, "sin_abono", [], 0
+            return None, "sin_abono", [], 0, 0
 
         # Obtener detalles con complementarios
         detail_statement = (
@@ -106,6 +106,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
             matricula.estado_matricula,
             complementary_items,
             matricula.valor_pendiente_base,
+            matricula.valor_total,
         )
 
     # === Registro de matrícula ===
