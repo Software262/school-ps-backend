@@ -66,7 +66,7 @@ class IncidenciaRepository(IncidenciaRepositoryInterface):
     def has_open_incidents(self, estudiante_id: int) -> bool:
         statement = select(Observador).where(
             Observador.estudiante_id == estudiante_id,
-            Observador.esta_abierta == True
+            Observador.esta_abierta 
         )
         result = self.session.exec(statement).first()
         return result is not None
