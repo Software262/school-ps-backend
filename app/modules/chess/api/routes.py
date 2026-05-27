@@ -19,8 +19,8 @@ async def return_chess_borrowing(
     data = await service.return_chess_borrow(borrow_id, return_request)
 
     return Response(
-        data=ReturnChessResponse(**data),
-        message=data["mensaje"],
+        data=ReturnChessResponse(**data),  # type: ignore
+        message=str(data["mensaje"]),
         status_code=status.HTTP_200_OK,
-        details={"novedad_creada": data["novedad_creada"]},
+        details={"novedad_creada": bool(data["novedad_creada"])},
     ).to_dict()
