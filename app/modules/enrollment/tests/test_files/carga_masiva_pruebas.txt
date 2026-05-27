@@ -1,0 +1,3 @@
+documento,nombre,grado_id,acudiente_id
+1001234903,Estudiante Prueba TXT Uno,1,1
+1001234904,Estudiante Prueba TXT Dos,2,2
