@@ -23,7 +23,11 @@ class TuitionService:
                 f"No se encontró cuenta de pensión para el estudiante {request.estudiante_id}"
             )
 
-        self.validate_consecutive_months(account, request.mes)
+        is_consecutive = self.validate_consecutive_months(account, request.mes)
+        if not is_consecutive:
+            raise ValueError(
+                f"No puede pagar el mes {request.mes} porque el mes anterior ({request.mes - 1}) no ha sido pagado en su totalidad."
+            )
 
         previous_installments = self.repository.get_installments_by_month(
             student_id=request.estudiante_id, mes=request.mes
@@ -62,13 +66,14 @@ class TuitionService:
 
         return self.repository.save_installment(new_installment)
 
-    def validate_consecutive_months(self, account: TuitionAccount, target_month: int) -> None:
+    def validate_consecutive_months(self, account: TuitionAccount, target_month: int) -> bool:
         """
         Valida que el mes anterior haya sido pagado en su totalidad antes de permitir
         el pago del mes actual, garantizando pagos consecutivos.
+        Retorna True si es válido, False en caso contrario.
         """
         if target_month <= 1:
-            return
+            return True
 
         previous_month = target_month - 1
         prev_month_installments = [
@@ -78,10 +83,7 @@ class TuitionService:
         monthly_total = account.valor_total // 10
         total_paid_prev_month = sum(inst.valor_pagado for inst in prev_month_installments)
 
-        if total_paid_prev_month < monthly_total:
-            raise ValueError(
-                f"No puede pagar el mes {target_month} porque el mes anterior ({previous_month}) no ha sido pagado en su totalidad."
-            )
+        return total_paid_prev_month >= monthly_total
 
     def calculate_installment_status(
         self,
@@ -112,13 +114,13 @@ class TuitionService:
 
         if total_paid_so_far >= total_monthly_value:
             raise ValueError(
-                "MSG-11: El estudiante ya se encuentra en paz y salvo en este módulo para el mes seleccionado."
+                "El estudiante ya se encuentra en paz y salvo en este módulo para el mes seleccionado."
             )
 
         if total_paid_so_far + new_payment_amount > total_monthly_value:
             faltante = total_monthly_value - total_paid_so_far
             raise ValueError(
-                f"MSG-03: El abono supera el saldo permitido. El saldo faltante es de solo {faltante}."
+                f"El abono supera el saldo permitido. El saldo faltante es de solo {faltante}."
             )
 
     def get_next_cuota_number(
