@@ -9,6 +9,8 @@ class TuitionInstallmentResponse(BaseModel):
     cuota: int
     valor_total: int
     valor_pagado: int
+    total_pagado_mes: int
+    saldo_pendiente: int
     fecha_pago: datetime
     faltante: bool
 

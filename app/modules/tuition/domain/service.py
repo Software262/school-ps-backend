@@ -53,6 +53,10 @@ class TuitionService:
 
         next_cuota = self.get_next_cuota_number(previous_installments)
 
+        total_paid_so_far = sum(inst.valor_pagado for inst in previous_installments)
+        total_pagado_mes = total_paid_so_far + request.valor_pagado
+        saldo_pendiente = max(monthly_total - total_pagado_mes, 0)
+
         new_installment = TuitionInstallment(
             pension_id=account.id or 0,
             estudiante_id=request.estudiante_id,
@@ -62,6 +66,8 @@ class TuitionService:
             valor_pagado=request.valor_pagado,
             fecha_pago=request.fecha_pago,
             faltante=faltante,
+            total_pagado_mes=total_pagado_mes,
+            saldo_pendiente=saldo_pendiente,
         )
 
         return self.repository.save_installment(new_installment)
