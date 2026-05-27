@@ -7,6 +7,7 @@ from app.modules.musical_band.api.routes import router as musical_band
 from app.modules.principal.api.routes import router as principal
 from app.modules.tuition.api.routes import router as tuition
 from app.modules.classroom.api.routes import router as classroom
+from app.modules.classroom_holder.api.routes import router as classroom_holder
 
 router = APIRouter(
     prefix="/api/v1",
@@ -19,3 +20,4 @@ router.include_router(enrollment, prefix="/enrollment", tags=["enrollment"])
 router.include_router(principal, prefix="/principal", tags=["principal"])
 router.include_router(tuition, prefix="/tuition", tags=["tuition"])
 router.include_router(classroom, prefix="/classroom", tags=["classroom"])
+router.include_router(classroom_holder, prefix="/classroom-holder", tags=["classroom-holder"])
