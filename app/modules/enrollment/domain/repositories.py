@@ -24,14 +24,14 @@ class EnrollmentRepository(ABC):
     @abstractmethod
     def get_enrollment_details(
         self, student_id: int, year: int
-    ) -> tuple[int | None, str, list[ComplementaryDetail], int]:
+    ) -> tuple[int | None, str, list[ComplementaryDetail], int, int]:
         """
         Obtiene los detalles de matrícula de un estudiante para un año.
 
         Returns:
             Tuple de (matricula_id, estado_matricula, lista_complementarios,
-                       pendiente_base).
-            Si no existe matrícula, retorna (None, 'sin_abono', [], 0).
+                       pendiente_base, valor_total).
+            Si no existe matrícula, retorna (None, 'sin_abono', [], 0, 0).
         """
         ...
 

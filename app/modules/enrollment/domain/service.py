@@ -30,7 +30,7 @@ class EnrollmentService:
             msg = f"Estudiante con id {student_id} no encontrado"
             raise ValueError(msg)
 
-        # Costo base de matrícula según grado y año
+        # Costo base de matrícula según grado y año (referencia parametrizada)
         base_cost = self.repo.get_enrollment_base_cost(student.grado_id, year) or 0
 
         # Detalles de matrícula (complementarios asignados)
@@ -39,21 +39,21 @@ class EnrollmentService:
             enrollment_status,
             complementary_items,
             pending_base,
+            valor_total,
         ) = self.repo.get_enrollment_details(student_id, year)
         enrollment_exists = matricula_id is not None
 
         complementary_total = sum(item.valor_completo for item in complementary_items)
 
-        # Cálculos totales
-        total_cost = base_cost + complementary_total
-
         if enrollment_exists:
-            # Pendiente = base pendiente + complementarios pendientes + pensión pendiente
+            # Usar valor_total real de la matrícula (se actualiza con descuentos)
+            total_cost = valor_total
             total_pending = pending_base + sum(
                 item.valor_pendiente for item in complementary_items
             )
         else:
-            # Sin matrícula: todo está pendiente
+            # Sin matrícula: usar costo parametrizado
+            total_cost = base_cost + complementary_total
             total_pending = total_cost
 
         total_paid = total_cost - total_pending
@@ -178,6 +178,11 @@ class EnrollmentService:
             delta_total += request.nuevo_costo_base - pending_base
             nuevo_base = request.nuevo_costo_base
         elif request.descuento_base is not None:
+            if request.descuento_base > pending_base:
+                raise ValueError(
+                    f"El descuento de base (${request.descuento_base:,}) no puede ser mayor "
+                    f"al costo base pendiente (${pending_base:,})"
+                )
             delta_total -= request.descuento_base
             nuevo_base -= request.descuento_base
 
@@ -209,6 +214,11 @@ class EnrollmentService:
                     nuevo_comp_pending = mod.nuevo_valor_completo
                     nuevo_completo = mod.nuevo_valor_completo
                 elif mod.descuento is not None:
+                    if mod.descuento > comp_pending:
+                        raise ValueError(
+                            f"El descuento (${mod.descuento:,}) no puede ser mayor "
+                            f"al valor pendiente del complementario (${comp_pending:,})"
+                        )
                     delta_total -= mod.descuento
                     nuevo_comp_pending -= mod.descuento
                     nuevo_descuento = mod.descuento
