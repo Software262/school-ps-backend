@@ -20,13 +20,6 @@ def get_tuition_account(session: SessionDep, student_id: int):
     if not account:
         raise HTTPException(status_code=404, detail="No se encontró cuenta de pensión para el estudiante")
 
-    # Agrupar cuotas por mes para calcular acumulados
-    installments_by_month: dict[int, int] = {}
-    for inst in account.installments:
-        installments_by_month[inst.mes] = installments_by_month.get(inst.mes, 0) + inst.valor_pagado
-
-    monthly_value = account.valor_total // 10
-
     return TuitionAccountResponse(
         estudiante_id=account.estudiante_id,
         valor_total_anual=account.valor_total,
@@ -38,8 +31,8 @@ def get_tuition_account(session: SessionDep, student_id: int):
                 cuota=inst.cuota,
                 valor_total=inst.valor_total,
                 valor_pagado=inst.valor_pagado,
-                total_pagado_mes=installments_by_month.get(inst.mes, 0),
-                saldo_pendiente=max(monthly_value - installments_by_month.get(inst.mes, 0), 0),
+                total_pagado_mes=inst.total_pagado_mes,
+                saldo_pendiente=inst.saldo_pendiente,
                 fecha_pago=inst.fecha_pago,
                 faltante=inst.faltante,
             )

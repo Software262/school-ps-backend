@@ -10,8 +10,25 @@ class TuitionService:
     def get_student_account(self, student_id: int) -> TuitionAccount | None:
         """
         Obtiene la cuenta de pensión asociada a un estudiante específico.
+        Enriquece cada cuota con el total acumulado del mes y el saldo pendiente.
         """
-        return self.repository.get_account_by_student_id(student_id)
+        account = self.repository.get_account_by_student_id(student_id)
+        if not account:
+            return None
+
+        monthly_value = account.valor_total // 10
+
+        # Calcular el total pagado por mes agrupando todas las cuotas
+        totals_by_month: dict[int, int] = {}
+        for inst in account.installments:
+            totals_by_month[inst.mes] = totals_by_month.get(inst.mes, 0) + inst.valor_pagado
+
+        # Enriquecer cada cuota con los acumulados calculados
+        for inst in account.installments:
+            inst.total_pagado_mes = totals_by_month.get(inst.mes, 0)
+            inst.saldo_pendiente = max(monthly_value - inst.total_pagado_mes, 0)
+
+        return account
 
     def register_payment(self, request: PaymentCreateRequest) -> TuitionInstallment:
         """
