@@ -80,7 +80,7 @@ async def update_instrument(
     )
 
 
-@router.get("/items")
+@router.get("/borrowings")
 async def get_all_borrowings(
     session: SessionDep,
     filter_pagination: Annotated[FilterPaginationBorrowingMusicalBand, Query()],
