@@ -2,7 +2,10 @@ from typing import Literal
 
 from pydantic import Field, model_validator
 
-from app.modules.inventory.schemas.request import FilterPaginationInventory
+from app.modules.inventory.schemas.request import (
+    CreateItemRequest,
+    FilterPaginationInventory,
+)
 
 
 class FilterPaginationMusicalBand(FilterPaginationInventory):
@@ -13,3 +16,7 @@ class FilterPaginationMusicalBand(FilterPaginationInventory):
         if self.item_type != "banda":
             raise ValueError("Invalido tipo para obtener los articulos")
         return self
+
+
+class CreateInstrumentRequest(CreateItemRequest):
+    pass
