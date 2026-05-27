@@ -70,7 +70,7 @@ async def update_instrument(
         return Response(
             data=None,
             status_code=status.HTTP_400_BAD_REQUEST,
-            message="invalid información para actualizar",
+            message="invalida información para actualizar",
         )
 
     return Response(
