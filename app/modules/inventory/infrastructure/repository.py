@@ -11,6 +11,7 @@ from app.modules.inventory.infrastructure.models import (
     Inventario,
     Prestamo,
     TipoInventario,
+    Novedad,
 )
 from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
@@ -180,3 +181,12 @@ class InventoryRepository(InventoryRepositoryInterface):
             inventory.append(item)
 
         return inventory
+
+    async def create_novedad(self, prestamo_id: int, descripcion: str) -> Novedad:
+        nueva_novedad = Novedad(
+            prestamo_id=prestamo_id, descripcion=descripcion, resuelta=False
+        )
+        self.session.add(nueva_novedad)
+        self.session.commit()
+        self.session.refresh(nueva_novedad)
+        return nueva_novedad
