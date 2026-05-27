@@ -1,5 +1,4 @@
 from datetime import datetime
-from fastapi import HTTPException, status
 from app.modules.inventory.infrastructure.repository import InventoryRepository
 from app.modules.chess.schemas.request import ReturnChessRequest
 
@@ -10,35 +9,35 @@ class ChessService:
 
     async def return_chess_borrow(
         self, borrow_id: int, borrow_data: ReturnChessRequest
-    ):
+    ) -> dict:
         item = await self.repository.get_item_by_id(borrow_data.inventario_id)
         if not item or not item.id:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"El ítem de inventario con ID {borrow_data.inventario_id} no existe.",
-            )
+            return {
+                "error": "NOT_FOUND",
+                "message": f"El ítem con ID {borrow_data.inventario_id} no existe.",
+            }
 
         borrow = await self.repository.get_borrowing(borrow_id)
         if not borrow:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"El registro de préstamo con ID {borrow_id} no existe.",
-            )
+            return {
+                "error": "NOT_FOUND",
+                "message": f"El préstamo con ID {borrow_id} no existe.",
+            }
 
         if not borrow.estado_prestamo:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Este material ya fue devuelto previamente.",
-            )
+            return {
+                "error": "BAD_REQUEST",
+                "message": "Este material ya fue devuelto previamente.",
+            }
 
         if (
             borrow.inventario_id != borrow_data.inventario_id
             or borrow.estudiante_id != borrow_data.estudiante_id
         ):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Los datos del estudiante o inventario no coinciden con el registro original del préstamo.",
-            )
+            return {
+                "error": "BAD_REQUEST",
+                "message": "Los datos no coinciden con el registro original.",
+            }
 
         novedad_creada = False
         mensaje = "Material completo. Paz y Salvo liberado."
@@ -67,8 +66,11 @@ class ChessService:
         self.repository.session.refresh(borrow)
 
         return {
-            "id": borrow.id,
-            "estado_prestamo": borrow.estado_prestamo,
-            "novedad_creada": novedad_creada,
-            "mensaje": mensaje,
+            "error": None,
+            "data": {
+                "id": borrow.id,
+                "estado_prestamo": borrow.estado_prestamo,
+                "novedad_creada": novedad_creada,
+                "mensaje": mensaje,
+            },
         }

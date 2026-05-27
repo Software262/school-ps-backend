@@ -31,4 +31,3 @@ class Novedad(Base, table=True):
     prestamo_id: int = Field(foreign_key="prestamo.id")
     descripcion: str = Field(nullable=False, max_length=250)
     resuelta: bool = Field(default=False)
-    fecha_reporte: datetime = Field(default_factory=lambda: datetime.now())
