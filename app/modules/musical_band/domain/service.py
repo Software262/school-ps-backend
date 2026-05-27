@@ -2,7 +2,7 @@ from app.modules.inventory.domain.repositories import InventoryRepository
 from app.modules.musical_band.schemas.request import CreateInstrumentRequest
 
 
-class MusicalBandServie:
+class MusicalBandService:
     def __init__(self, repository: InventoryRepository):
         self.repository = repository
 
