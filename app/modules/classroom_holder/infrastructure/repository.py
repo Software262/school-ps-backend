@@ -24,6 +24,7 @@ class IncidenciaRepository(IncidenciaRepositoryInterface):
         )
 
     def save(self, domain: IncidenciaDomain) -> IncidenciaDomain:
+        model = None
         if domain.id is not None:
             model = self.session.get(Observador, domain.id)
             if model:
@@ -31,7 +32,9 @@ class IncidenciaRepository(IncidenciaRepositoryInterface):
                 model.fecha_cierre = domain.fecha_cierre
                 model.updated_at = domain.updated_at
                 model.descripcion = domain.descripcion
-        else:
+        
+        # Si no tenía ID o si el ID no existía en la base de datos, lo creamos desde cero
+        if model is None:
             model = Observador(
                 estudiante_id=domain.estudiante_id,
                 docente_id=domain.docente_id,
