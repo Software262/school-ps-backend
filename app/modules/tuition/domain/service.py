@@ -23,10 +23,10 @@ class TuitionService:
                 f"No se encontró cuenta de pensión para el estudiante {request.estudiante_id}"
             )
 
-        is_consecutive = self.validate_consecutive_months(account, request.mes)
-        if not is_consecutive:
+        if not self.validate_consecutive_months(account, request.mes):
+            previous_month = request.mes - 1
             raise ValueError(
-                f"No puede pagar el mes {request.mes} porque el mes anterior ({request.mes - 1}) no ha sido pagado en su totalidad."
+                f"No puede pagar el mes {request.mes} porque el mes anterior ({previous_month}) no ha sido pagado en su totalidad."
             )
 
         previous_installments = self.repository.get_installments_by_month(
@@ -70,7 +70,10 @@ class TuitionService:
         """
         Valida que el mes anterior haya sido pagado en su totalidad antes de permitir
         el pago del mes actual, garantizando pagos consecutivos.
-        Retorna True si es válido, False en caso contrario.
+
+        Retorna:
+            True si el pago puede proceder (mes 1 o mes anterior saldado).
+            False si el mes anterior aún tiene saldo pendiente.
         """
         if target_month <= 1:
             return True
