@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class RegisterEnrollmentRequest(BaseModel):
@@ -22,6 +22,14 @@ class ComplementaryModification(BaseModel):
         description="Aplicar un descuento (se resta del valor completo). Debe ser mayor o igual a 0",
     )
 
+    @model_validator(mode="after")
+    def validate_modification_modes(self) -> "ComplementaryModification":
+        if self.nuevo_valor_completo is not None and self.descuento is not None:
+            raise ValueError(
+                "No se puede especificar 'nuevo_valor_completo' y 'descuento' simultáneamente"
+            )
+        return self
+
 
 class ModifyEnrollmentRequest(BaseModel):
     """Solicitud para modificar los costos y descuentos de una matrícula en tiempo real."""
@@ -39,6 +47,14 @@ class ModifyEnrollmentRequest(BaseModel):
     complementarios: list[ComplementaryModification] | None = Field(
         default=None, description="Modificaciones a los complementarios asignados"
     )
+
+    @model_validator(mode="after")
+    def validate_modification_modes(self) -> "ModifyEnrollmentRequest":
+        if self.nuevo_costo_base is not None and self.descuento_base is not None:
+            raise ValueError(
+                "No se puede especificar 'nuevo_costo_base' y 'descuento_base' simultáneamente"
+            )
+        return self
 
 
 class ConceptoAsignacion(BaseModel):
