@@ -1,112 +1,123 @@
 from datetime import datetime
-from sqlmodel import Session, SQLModel, select
+from sqlmodel import Session, SQLModel, text
 from app.core.db import engine
 from app.modules.enrollment.infrastructure.models import (
     Grado,
     Acudiente,
     Estudiante,
     Periodo,
+    Complementario,
 )
 
 
 def seed_grados():
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
-        # 1. Crear Acudiente genérico si no existe
-        acudiente = session.exec(
-            select(Acudiente).where(Acudiente.nombre == "Acudiente Prueba")
-        ).first()
-        if not acudiente:
-            acudiente = Acudiente(
-                nombre="Acudiente Prueba",
-                parentesco="Padre/Madre",
-                telefono="3000000000",
-                correo="acudiente@prueba.com",
+        # Limpiar datos previos si existen
+        session.exec(
+            text(
+                "TRUNCATE TABLE estudiante, acudiente, grado, periodo, complementario, detalleprueba CASCADE"
             )
-            session.add(acudiente)
-            session.commit()
-            session.refresh(acudiente)
+        )
+        session.commit()
 
-        # 2. Crear Grados 10 y 11
-        grado_10 = session.exec(select(Grado).where(Grado.nombre == "Grado 10")).first()
-        if not grado_10:
-            grado_10 = Grado(nombre="Grado 10")
-            session.add(grado_10)
+        # 1. Crear Acudientes reales
+        acudientes = [
+            Acudiente(
+                nombre="Carlos Perez",
+                parentesco="Padre",
+                telefono="3001111001",
+                correo="carlos@mail.com",
+            ),
+            Acudiente(
+                nombre="Maria Gomez",
+                parentesco="Madre",
+                telefono="3001111002",
+                correo="maria@mail.com",
+            ),
+        ]
+        session.add_all(acudientes)
+        session.commit()
+        for a in acudientes:
+            session.refresh(a)
 
-        grado_11 = session.exec(select(Grado).where(Grado.nombre == "Grado 11")).first()
-        if not grado_11:
-            grado_11 = Grado(nombre="Grado 11")
-            session.add(grado_11)
-
+        # 2. Crear Grados 10 y 11 solamente
+        grado_10 = Grado(nombre="Décimo")
+        grado_11 = Grado(nombre="Once")
+        session.add_all([grado_10, grado_11])
         session.commit()
         session.refresh(grado_10)
         session.refresh(grado_11)
 
-        # 3. Crear 5 estudiantes para Grado 10
-        for i in range(1, 6):
-            doc = f"100000010{i}"
-            est = session.exec(
-                select(Estudiante).where(Estudiante.documento == doc)
-            ).first()
-            if not est:
-                session.add(
-                    Estudiante(
-                        grado_id=grado_10.id,
-                        acudiente_id=acudiente.id,
-                        nombre=f"Estudiante Décimo {i}",
-                        documento=doc,
-                        activo=True,
-                        fecha_activo=datetime.utcnow(),
-                    )
-                )
-
-        # 4. Crear 10 estudiantes para Grado 11
-        for i in range(1, 11):
-            doc = f"110000011{i}"
-            est = session.exec(
-                select(Estudiante).where(Estudiante.documento == doc)
-            ).first()
-            if not est:
-                session.add(
-                    Estudiante(
-                        grado_id=grado_11.id,
-                        acudiente_id=acudiente.id,
-                        nombre=f"Estudiante Once {i}",
-                        documento=doc,
-                        activo=True,
-                        fecha_activo=datetime.utcnow(),
-                    )
-                )
-
-        # 5. Crear Periodos 2026-1 y 2026-2
-        # Periodo model: periodo_electivo (datetime), estado (bool), fecha (datetime)
-        p1 = session.exec(
-            select(Periodo).where(Periodo.periodo_electivo == datetime(2026, 1, 1))
-        ).first()
-        if not p1:
+        # 3. Crear Estudiantes reales para Décimo
+        nombres_decimo = [
+            ("Juan Perez", "1001001001"),
+            ("Maria Gomez", "1001001002"),
+            ("Carlos Lopez", "1001001003"),
+            ("Ana Martinez", "1001001004"),
+            ("Luis Rodriguez", "1001001005"),
+        ]
+        for i, (nombre, doc) in enumerate(nombres_decimo):
             session.add(
-                Periodo(
-                    periodo_electivo=datetime(2026, 1, 1),
-                    estado=True,
-                    fecha=datetime.utcnow(),
+                Estudiante(
+                    grado_id=grado_10.id,
+                    acudiente_id=acudientes[i % 2].id,
+                    nombre=nombre,
+                    documento=doc,
+                    activo=True,
+                    fecha_activo=datetime.now(),
                 )
             )
 
-        p2 = session.exec(
-            select(Periodo).where(Periodo.periodo_electivo == datetime(2026, 7, 1))
-        ).first()
-        if not p2:
+        # 4. Crear Estudiantes reales para Once
+        nombres_once = [
+            ("Pedro Vargas", "1001002001"),
+            ("Laura Castro", "1001002002"),
+            ("David Jimenez", "1001002003"),
+            ("Isabella Romero", "1001002004"),
+            ("Felipe Suarez", "1001002005"),
+        ]
+        for i, (nombre, doc) in enumerate(nombres_once):
             session.add(
-                Periodo(
-                    periodo_electivo=datetime(2026, 7, 1),
-                    estado=True,
-                    fecha=datetime.utcnow(),
+                Estudiante(
+                    grado_id=grado_11.id,
+                    acudiente_id=acudientes[i % 2].id,
+                    nombre=nombre,
+                    documento=doc,
+                    activo=True,
+                    fecha_activo=datetime.now(),
                 )
             )
+
+        # 5. Crear Periodos 2026-01 y 2026-02
+        p1 = Periodo(
+            periodo_electivo=datetime(2026, 1, 1), estado=True, fecha=datetime.now()
+        )
+        p2 = Periodo(
+            periodo_electivo=datetime(2026, 7, 1), estado=True, fecha=datetime.now()
+        )
+        session.add_all([p1, p2])
+
+        # 6. Crear SOLO las 2 pruebas solicitadas: Prueba ICFES y Simulacro
+        c1 = Complementario(
+            tipo_complementario="Prueba ICFES",
+            anio=2026,
+            valor=45000,
+            estado_complemento="Activo",
+            uso_matricula=False,
+        )
+        c2 = Complementario(
+            tipo_complementario="Simulacro",
+            anio=2026,
+            valor=25000,
+            estado_complemento="Activo",
+            uso_matricula=False,
+        )
+        session.add_all([c1, c2])
 
         session.commit()
         print(
-            "[OK] Grados 10 y 11 con estudiantes, y periodos 2026 creados exitosamente."
+            "[OK] Base de datos formateada: SOLO Grados Décimo y Once, Periodos 2026-01/02 y 2 Pruebas (ICFES/Simulacro) con nombres reales."
         )
 
 

@@ -1,99 +1,70 @@
-"""
-Script temporal de seed para cargar datos de prueba del módulo Tests.
-"""
-
 from datetime import datetime
-from sqlmodel import Session, SQLModel, select
+from sqlmodel import Session, SQLModel, select, text
 from app.core.db import engine
 from app.modules.enrollment.infrastructure.models import Estudiante, Complementario
 from app.modules.tests.infrastructure.models import DetallePrueba
 
 
 def seed_tests() -> None:
-    # Asegurarse de que las tablas estén creadas
     SQLModel.metadata.create_all(engine)
 
     with Session(engine) as session:
-        existing = session.exec(select(DetallePrueba)).all()
-        for e in existing:
-            session.delete(e)
+        # Limpiar detalleprueba
+        session.exec(text("TRUNCATE TABLE detalleprueba CASCADE"))
         session.commit()
 
         estudiantes = session.exec(select(Estudiante)).all()
         if not estudiantes:
-            print("Error: No hay estudiantes. Ejecuta scripts/seed.py primero.")
+            print("Error: No hay estudiantes.")
             return
+
+        # Seleccionar las dos pruebas solicitadas
+        c1 = session.exec(
+            select(Complementario).where(
+                Complementario.tipo_complementario == "Prueba ICFES"
+            )
+        ).first()
+        c2 = session.exec(
+            select(Complementario).where(
+                Complementario.tipo_complementario == "Simulacro"
+            )
+        ).first()
 
         est1 = estudiantes[0]
         est2 = estudiantes[1] if len(estudiantes) > 1 else est1
 
-        # Crear complementarios para pruebas si no existen
-        comp_test = session.exec(
-            select(Complementario).where(
-                Complementario.tipo_complementario == "Simulacro ICFES 2024"
-            )
-        ).first()
-
-        if not comp_test:
-            comp_test = Complementario(
-                tipo_complementario="Simulacro ICFES 2024",
-                anio=2026,
-                valor=50000,
-                estado_complemento="Activo",
-                uso_matricula=False,
-            )
-            session.add(comp_test)
-            session.commit()
-            session.refresh(comp_test)
-
-        comp_test_2 = session.exec(
-            select(Complementario).where(
-                Complementario.tipo_complementario == "Prueba Saber 10"
-            )
-        ).first()
-
-        if not comp_test_2:
-            comp_test_2 = Complementario(
-                tipo_complementario="Prueba Saber 10",
-                anio=2026,
-                valor=40000,
-                estado_complemento="Activo",
-                uso_matricula=False,
-            )
-            session.add(comp_test_2)
-            session.commit()
-            session.refresh(comp_test_2)
-
         detalles = [
             DetallePrueba(
                 estudiante_id=est1.id,
-                complementario_id=comp_test.id,
+                complementario_id=c1.id,
                 tipo_prueba="icfes",
                 estado="pagada",
-                valor_pagado=50000,
-                created_at=datetime.utcnow(),
+                valor_pagado=45000,
+                created_at=datetime.now(),
             ),
             DetallePrueba(
                 estudiante_id=est2.id,
-                complementario_id=comp_test.id,
-                tipo_prueba="icfes",
+                complementario_id=c2.id,
+                tipo_prueba="simulacro",
                 estado="pendiente",
                 valor_pagado=0,
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(),
             ),
             DetallePrueba(
                 estudiante_id=est1.id,
-                complementario_id=comp_test_2.id,
-                tipo_prueba="saber",
+                complementario_id=c2.id,
+                tipo_prueba="simulacro",
                 estado="pago-parcial",
-                valor_pagado=20000,
-                created_at=datetime.utcnow(),
+                valor_pagado=10000,
+                created_at=datetime.now(),
             ),
         ]
 
         session.add_all(detalles)
         session.commit()
-        print("[OK] Seed de Tests ejecutado exitosamente.")
+        print(
+            "[OK] Asignaciones de prueba creadas: Estudiantes Juan y Maria con Prueba ICFES y Simulacro."
+        )
 
 
 if __name__ == "__main__":
