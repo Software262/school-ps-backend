@@ -2,16 +2,16 @@ from app.modules.training_schools.domain.service import TrainingSchoolsService
 from app.modules.training_schools.infrastructure.repository import (
     TrainingSchoolsRepository,
 )
-from app.modules.training_schools.schemas.request import CreateEnrollmentRequest
+from app.modules.training_schools.schemas.request import RegisterPaymentRequest
 
 
-class CreateEnrollment:
+class UnmarkPayment:
     def __init__(self, session):
         self.repository = TrainingSchoolsRepository(session=session)
         self.service = TrainingSchoolsService(repository=self.repository)
 
-    async def execute(self, data: CreateEnrollmentRequest):
-        enrollment = await self.service.enroll_student(data)
-        if not enrollment:
+    async def execute(self, data: RegisterPaymentRequest):
+        payment = await self.service.unmark_payment(data)
+        if not payment:
             return None
-        return await self.service.build_enrollment_response(enrollment)
+        return await self.service.build_payment_response(payment)

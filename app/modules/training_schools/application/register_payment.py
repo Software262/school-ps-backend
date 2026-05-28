@@ -11,7 +11,7 @@ class RegisterPayment:
         self.service = TrainingSchoolsService(repository=self.repository)
 
     async def execute(self, data: RegisterPaymentRequest):
-        return await self.service.register_payment(data)
-
-    async def execute_unmark(self, data: RegisterPaymentRequest):
-        return await self.service.unmark_payment(data)
+        payment = await self.service.register_payment(data)
+        if not payment:
+            return None
+        return await self.service.build_payment_response(payment)

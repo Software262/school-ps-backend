@@ -58,6 +58,7 @@ class MockRepo(TrainingSchoolsRepository):
             mes=enrollment_data.mes,
             activo=True,
             estado_escuela=False,
+            updated_at=None,
         )
 
     async def save_enrollment(self, enrollment: Any) -> Any:
@@ -84,12 +85,12 @@ class MockRepo(TrainingSchoolsRepository):
 async def test_enroll_student_success():
     student = SimpleNamespace(id=1)
     program = SimpleNamespace(id=2, estado_complemento="activo")
-
     repo = MockRepo(student=student, program=program, enrollment=None)
     service = TrainingSchoolsService(repository=repo)
     request = CreateEnrollmentRequest(estudiante_id=1, complementario_id=2, mes="Mayo")
 
     result = await service.enroll_student(request)
+
     assert result is not None
     assert result.estudiante_id == request.estudiante_id
 
@@ -138,12 +139,12 @@ async def test_enroll_student_duplicate():
     student = SimpleNamespace(id=1)
     program = SimpleNamespace(id=2, estado_complemento="activo")
     enrollment = SimpleNamespace(id=3)
-
     repo = MockRepo(student=student, program=program, enrollment=enrollment)
     service = TrainingSchoolsService(repository=repo)
     request = CreateEnrollmentRequest(estudiante_id=1, complementario_id=2, mes="Mayo")
 
     result = await service.enroll_student(request)
+
     assert result is None
 
 
@@ -156,13 +157,14 @@ async def test_register_payment_success():
         complementario_id=2,
         estudiante_id=1,
         mes="Mayo",
+        updated_at=None,
     )
     repo = MockRepo(enrollment=enrollment)
     service = TrainingSchoolsService(repository=repo)
-
     request = RegisterPaymentRequest(estudiante_id=1, complementario_id=2, mes="Mayo")
 
     result = await service.register_payment(request)
+
     assert result is not None
     assert result.estado_escuela is True
 
@@ -176,13 +178,14 @@ async def test_unmark_payment_success():
         complementario_id=2,
         estudiante_id=1,
         mes="Mayo",
+        updated_at=None,
     )
     repo = MockRepo(enrollment=enrollment)
     service = TrainingSchoolsService(repository=repo)
-
     request = RegisterPaymentRequest(estudiante_id=1, complementario_id=2, mes="Mayo")
 
     result = await service.unmark_payment(request)
+
     assert result is not None
     assert result.estado_escuela is False
 
@@ -191,10 +194,10 @@ async def test_unmark_payment_success():
 async def test_register_payment_no_enrollment():
     repo = MockRepo(enrollment=None)
     service = TrainingSchoolsService(repository=repo)
-
     request = RegisterPaymentRequest(estudiante_id=1, complementario_id=2, mes="Mayo")
 
     result = await service.register_payment(request)
+
     assert result is None
 
 
@@ -207,6 +210,7 @@ async def test_unsubscribe_student():
         complementario_id=2,
         estudiante_id=1,
         mes="Mayo",
+        updated_at=None,
     )
     repo = MockRepo(enrollment=enrollment)
     service = TrainingSchoolsService(repository=repo)
@@ -214,6 +218,7 @@ async def test_unsubscribe_student():
     result = await service.unsubscribe_student(
         1, 2, "Mayo", UnsubscribeRequest(motivo="Motivo")
     )
+
     assert result is not None
     assert result.activo is False
     assert result.motivo_baja == "Motivo"
@@ -225,7 +230,7 @@ async def test_get_student_status_nonexistent():
     service = TrainingSchoolsService(repository=repo)
 
     result = await service.get_student_status(999)
-    # Expect a dictionary indicating the student does not exist and paz_y_salvo False
+
     assert isinstance(result, dict)
     assert result.get("paz_y_salvo") is False
 
@@ -239,6 +244,7 @@ async def test_get_monthly_status_with_pending_month():
         complementario_id=2,
         estudiante_id=1,
         mes="febrero",
+        updated_at=None,
     )
     repo = MockRepo(enrollment=enrollment)
     service = TrainingSchoolsService(repository=repo)
@@ -258,6 +264,7 @@ async def test_unsubscribe_student_from_program_marks_active_records_inactive():
         complementario_id=2,
         estudiante_id=1,
         mes="marzo",
+        updated_at=None,
     )
     repo = MockRepo(enrollment=enrollment)
     service = TrainingSchoolsService(repository=repo)

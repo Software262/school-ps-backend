@@ -4,9 +4,9 @@ from app.modules.training_schools.domain.repositories import TrainingSchoolsRepo
 from app.modules.training_schools.infrastructure.models import DetalleEscuelaFormacion
 from app.modules.training_schools.schemas.request import (
     CreateEnrollmentRequest,
+    CreateProgramRequest,
     RegisterPaymentRequest,
     UnsubscribeRequest,
-    CreateProgramRequest,
 )
 
 
@@ -25,6 +25,59 @@ class TrainingSchoolsService:
 
     async def search_students(self, query: str):
         return await self.repository.search_students(query)
+
+    async def build_enrollment_response(
+        self, enrollment: DetalleEscuelaFormacion
+    ) -> dict:
+        student = await self.repository.get_student_by_id(enrollment.estudiante_id)
+        program = await self.repository.get_complementario_by_id(
+            enrollment.complementario_id
+        )
+
+        return {
+            "id": enrollment.id,
+            "complementario_id": enrollment.complementario_id,
+            "estudiante_id": enrollment.estudiante_id,
+            "estudiante_nombre": student.nombre if student else None,
+            "estudiante_documento": student.documento if student else None,
+            "disciplina_nombre": program.tipo_complementario if program else None,
+            "fecha_registro": enrollment.fecha_registro,
+            "mes": enrollment.mes,
+            "activo": enrollment.activo,
+            "estado_escuela": enrollment.estado_escuela,
+            "motivo_baja": getattr(enrollment, "motivo_baja", None),
+        }
+
+    async def build_payment_response(self, enrollment: DetalleEscuelaFormacion) -> dict:
+        data = await self.build_enrollment_response(enrollment)
+        return {
+            "id": data["id"],
+            "complementario_id": data["complementario_id"],
+            "estudiante_id": data["estudiante_id"],
+            "estudiante_nombre": data["estudiante_nombre"],
+            "estudiante_documento": data["estudiante_documento"],
+            "disciplina_nombre": data["disciplina_nombre"],
+            "mes": data["mes"],
+            "estado_escuela": data["estado_escuela"],
+            "activo": data["activo"],
+            "updated_at": enrollment.updated_at,
+        }
+
+    async def build_program_response(self, program) -> dict:
+        return {
+            "id": program.id,
+            "nombre": program.tipo_complementario,
+            "valor": program.valor,
+            "estado": program.estado_complemento,
+        }
+
+    async def build_student_response(self, student) -> dict:
+        return {
+            "id": student.id,
+            "nombre": student.nombre,
+            "documento": student.documento,
+            "activo": student.activo,
+        }
 
     async def enroll_student(
         self, data: CreateEnrollmentRequest

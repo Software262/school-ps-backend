@@ -5,24 +5,20 @@ from app.modules.training_schools.infrastructure.repository import (
 from app.modules.training_schools.schemas.request import UnsubscribeRequest
 
 
-class UnsubscribeStudent:
+class UnsubscribeProgram:
     def __init__(self, session):
         self.repository = TrainingSchoolsRepository(session=session)
         self.service = TrainingSchoolsService(repository=self.repository)
 
     async def execute(
-        self,
-        student_id: int,
-        complementario_id: int,
-        mes: str,
-        data: UnsubscribeRequest,
+        self, student_id: int, complementario_id: int, data: UnsubscribeRequest
     ):
-        enrollment = await self.service.unsubscribe_student(
+        enrollments = await self.service.unsubscribe_student_from_program(
             student_id=student_id,
             complementario_id=complementario_id,
-            mes=mes,
             data=data,
         )
-        if not enrollment:
-            return None
-        return await self.service.build_enrollment_response(enrollment)
+        return [
+            await self.service.build_enrollment_response(enrollment)
+            for enrollment in enrollments
+        ]

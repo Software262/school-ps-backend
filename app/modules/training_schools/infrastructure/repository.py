@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import Sequence
-from sqlalchemy import func
-from sqlmodel import col, select
+from sqlmodel import col, func, select
 
 from app.core.db import SessionDep
 from app.modules.training_schools.domain.repositories import (
@@ -25,7 +24,7 @@ class TrainingSchoolsRepository(TrainingSchoolsRepositoryInterface):
     async def search_students(self, query: str) -> Sequence[Estudiante]:
         search = f"%{query.strip()}%"
         statement = select(Estudiante).where(
-            Estudiante.activo == True,  # noqa: E712
+            col(Estudiante.activo).is_(True),
             (
                 col(Estudiante.nombre).ilike(search)
                 | col(Estudiante.documento).ilike(search)
@@ -41,14 +40,14 @@ class TrainingSchoolsRepository(TrainingSchoolsRepositoryInterface):
     async def get_available_programs(self) -> Sequence[Complementario]:
         statement = select(Complementario).where(
             func.lower(Complementario.estado_complemento) == "activo",
-            Complementario.uso_matricula == False,  # noqa: E712
+            col(Complementario.uso_matricula).is_(False),
         )
         return self.session.exec(statement).all()
 
     async def get_program_by_name(self, nombre: str) -> Complementario | None:
         statement = select(Complementario).where(
             func.lower(Complementario.tipo_complementario) == nombre.strip().lower(),
-            Complementario.uso_matricula == False,  # noqa: E712
+            col(Complementario.uso_matricula).is_(False),
         )
         return self.session.exec(statement).first()
 

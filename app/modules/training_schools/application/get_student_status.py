@@ -11,9 +11,3 @@ class GetStudentStatus:
 
     async def execute(self, student_id: int):
         return await self.service.get_student_status(student_id)
-
-    async def execute_monthly(self, student_id: int, complementario_id: int):
-        return await self.service.get_monthly_status(
-            student_id=student_id,
-            complementario_id=complementario_id,
-        )

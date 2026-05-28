@@ -2,16 +2,15 @@ from app.modules.training_schools.domain.service import TrainingSchoolsService
 from app.modules.training_schools.infrastructure.repository import (
     TrainingSchoolsRepository,
 )
-from app.modules.training_schools.schemas.request import CreateEnrollmentRequest
 
 
-class CreateEnrollment:
+class ListPrograms:
     def __init__(self, session):
         self.repository = TrainingSchoolsRepository(session=session)
         self.service = TrainingSchoolsService(repository=self.repository)
 
-    async def execute(self, data: CreateEnrollmentRequest):
-        enrollment = await self.service.enroll_student(data)
-        if not enrollment:
-            return None
-        return await self.service.build_enrollment_response(enrollment)
+    async def execute(self):
+        programs = await self.service.list_available_programs()
+        return [
+            await self.service.build_program_response(program) for program in programs
+        ]
