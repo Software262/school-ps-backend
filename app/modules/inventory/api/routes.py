@@ -34,7 +34,13 @@ from app.modules.inventory.schemas.response import (
     UpdateItemInventoryResponse,
 )
 from app.modules.inventory.utils.file import validate_data, validate_file
+from app.shared.schemas.filter_pagination import (
+    FilterPagination,
+    FilterPaginationBorrowings,
+)
+
 from app.shared.utils.response import Response
+
 
 router = APIRouter()
 
