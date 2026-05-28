@@ -60,10 +60,7 @@ class ChessService:
             item.cantidad = 32
             item.estado_objeto = "Disponible"
 
-        await self.repository.update_amount_item(item.id, item.cantidad)
-        self.repository.session.add(borrow)
-        self.repository.session.commit()
-        self.repository.session.refresh(borrow)
+        await self.repository.finalize_chess_return(borrow=borrow, item=item)
 
         return {
             "error": None,

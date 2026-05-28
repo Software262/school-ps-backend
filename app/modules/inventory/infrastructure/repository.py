@@ -190,3 +190,10 @@ class InventoryRepository(InventoryRepositoryInterface):
         self.session.commit()
         self.session.refresh(nueva_novedad)
         return nueva_novedad
+
+    async def finalize_chess_return(self, borrow: Prestamo, item: Inventario) -> None:
+        self.session.add(borrow)
+        self.session.add(item)
+        self.session.commit()
+        self.session.refresh(borrow)
+        self.session.refresh(item)

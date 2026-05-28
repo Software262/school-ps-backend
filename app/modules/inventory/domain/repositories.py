@@ -3,6 +3,7 @@ from typing import Sequence
 
 from app.modules.inventory.infrastructure.models import (
     Inventario,
+    Novedad,
     Prestamo,
     TipoInventario,
 )
@@ -79,4 +80,12 @@ class InventoryRepository(ABC):
     async def create_items_batch(
         self, create_items_data: list[InventoryItemRequest]
     ) -> list[Inventario]:
+        pass
+
+    @abstractmethod
+    async def create_novedad(self, prestamo_id: int, descripcion: str) -> Novedad:
+        pass
+
+    @abstractmethod
+    async def finalize_chess_return(self, borrow: Prestamo, item: Inventario) -> None:
         pass
