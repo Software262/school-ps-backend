@@ -22,14 +22,13 @@ import app.modules.tests.infrastructure.models  # noqa: F401
 import app.modules.training_schools.infrastructure.models  # noqa: F401
 import app.modules.tuition.infrastructure.models  # noqa: F401
 
-from sqlmodel import Session, create_engine, select
+from sqlmodel import Session, create_engine
 from app.modules.tuition.infrastructure.models import (
     ParametrizarPension,
     Pension,
 )
 
 # Importamos los modelos compartidos (grado y estudiante)
-from sqlmodel import SQLModel, Field
 
 # Definimos modelos mínimos para grado y estudiante (ya existen en el proyecto)
 # Los buscamos en los módulos del equipo
@@ -113,7 +112,7 @@ def seed():
             session.add(pension)
             session.commit()
 
-        print(f"\n✅ Seed completado!")
+        print("\n✅ Seed completado!")
         print(f"   {len(registros)} estudiantes insertados")
         print(f"   Cuota mensual: ${VALOR_ANUAL // 10:,}")
         print(f"   Usa cualquier estudiante_id del 1 al {len(registros)} en el Swagger")
