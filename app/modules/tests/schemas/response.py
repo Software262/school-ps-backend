@@ -8,7 +8,7 @@ class CreateTestDetailResponse(BaseModel):
     estudiante_id: int
     complementario_id: int
     tipo_prueba: str
-    fecha_registro: datetime
+    created_at: datetime | None
     estado: bool
 
 
@@ -17,5 +17,5 @@ class UpdateTestDetailResponse(BaseModel):
     estudiante_id: int
     complementario_id: int
     tipo_prueba: str
-    fecha_registro: datetime
+    created_at: datetime | None
     estado: bool

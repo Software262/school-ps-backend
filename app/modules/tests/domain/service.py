@@ -15,19 +15,24 @@ class InternalTestService:
         offset = calculate_offset(filter_pagination.page, filter_pagination.limit)
 
         return await self.repository.get_tests_pagination(
-            offset=offset, limit=filter_pagination.limit,
+            offset=offset,
+            limit=filter_pagination.limit,
         )
 
     async def get_test_by_id(self, test_id: int):
         return await self.repository.get_test_by_id(test_id)
 
     async def get_tests_by_student(
-        self, student_id: int, filter_pagination: FilterPagination,
+        self,
+        student_id: int,
+        filter_pagination: FilterPagination,
     ):
         offset = calculate_offset(filter_pagination.page, filter_pagination.limit)
 
         return await self.repository.get_tests_by_student(
-            student_id=student_id, offset=offset, limit=filter_pagination.limit,
+            student_id=student_id,
+            offset=offset,
+            limit=filter_pagination.limit,
         )
 
     async def create_test(self, test_data: CreateTestDetailRequest):

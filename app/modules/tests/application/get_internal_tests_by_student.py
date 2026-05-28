@@ -1,4 +1,4 @@
-from app.modules.tests.domain.repositories import InternalTestRepository
+from app.modules.tests.infrastructure.repository import InternalTestRepository
 from app.modules.tests.domain.service import InternalTestService
 from app.shared.schemas.filter_pagination import FilterPagination
 
@@ -10,5 +10,6 @@ class GetInternalTestsByStudent:
 
     async def execute(self, student_id: int, filter_pagination: FilterPagination):
         return await self.service.get_tests_by_student(
-            student_id=student_id, filter_pagination=filter_pagination,
+            student_id=student_id,
+            filter_pagination=filter_pagination,
         )

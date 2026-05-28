@@ -1,4 +1,4 @@
-from app.modules.tests.domain.repositories import InternalTestRepository
+from app.modules.tests.infrastructure.repository import InternalTestRepository
 from app.modules.tests.domain.service import InternalTestService
 
 

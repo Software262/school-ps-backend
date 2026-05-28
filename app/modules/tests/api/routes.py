@@ -27,7 +27,8 @@ router = APIRouter()
 
 @router.get("/details")
 async def get_internal_tests(
-    session: SessionDep, filter_pagination_query: Annotated[FilterPagination, Query()],
+    session: SessionDep,
+    filter_pagination_query: Annotated[FilterPagination, Query()],
 ):
     try:
         tests_app = GetInternalTests(session=session)
@@ -41,7 +42,8 @@ async def get_internal_tests(
                 details={"message": "Pruebas obtenidas exitosamente"},
             )
             .filterPagination(
-                page=filter_pagination_query.page, limit=filter_pagination_query.limit,
+                page=filter_pagination_query.page,
+                limit=filter_pagination_query.limit,
             )
             .to_dict()
         )
@@ -63,7 +65,8 @@ async def get_internal_tests_by_student(
     try:
         tests_app = GetInternalTestsByStudent(session=session)
         data = await tests_app.execute(
-            student_id=student_id, filter_pagination=filter_pagination_query,
+            student_id=student_id,
+            filter_pagination=filter_pagination_query,
         )
 
         if not data:
@@ -82,7 +85,8 @@ async def get_internal_tests_by_student(
                 details={"message": "Pruebas del estudiante obtenidas exitosamente"},
             )
             .filterPagination(
-                page=filter_pagination_query.page, limit=filter_pagination_query.limit,
+                page=filter_pagination_query.page,
+                limit=filter_pagination_query.limit,
             )
             .to_dict()
         )
@@ -126,7 +130,8 @@ async def get_internal_test_by_id(session: SessionDep, test_id: int):
 
 @router.post("/details")
 async def create_internal_test(
-    session: SessionDep, create_test_request: CreateTestDetailRequest,
+    session: SessionDep,
+    create_test_request: CreateTestDetailRequest,
 ):
     try:
         create_test_app = CreateInternalTest(session=session)
@@ -146,7 +151,7 @@ async def create_internal_test(
                 estudiante_id=data.estudiante_id,
                 complementario_id=data.complementario_id,
                 tipo_prueba=data.tipo_prueba,
-                fecha_registro=data.fecha_registro,
+                created_at=data.created_at,
                 estado=data.estado,
             ),
             message="Prueba creada exitosamente",
@@ -184,7 +189,9 @@ async def update_internal_test(
                 data=None,
                 message="Error al actualizar la prueba o prueba no encontrada",
                 status_code=status.HTTP_404_NOT_FOUND,
-                details={"message": "Error al actualizar la prueba o prueba no encontrada"},
+                details={
+                    "message": "Error al actualizar la prueba o prueba no encontrada"
+                },
             ).to_dict()
 
         if not data.id:
@@ -201,7 +208,7 @@ async def update_internal_test(
                 estudiante_id=data.estudiante_id,
                 complementario_id=data.complementario_id,
                 tipo_prueba=data.tipo_prueba,
-                fecha_registro=data.fecha_registro,
+                created_at=data.created_at,
                 estado=data.estado,
             ),
             message="Prueba actualizada exitosamente",

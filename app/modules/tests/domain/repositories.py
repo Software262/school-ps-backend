@@ -1,6 +1,6 @@
-from sqlmodel import select
+from abc import ABC, abstractmethod
+from typing import Sequence
 
-from app.core.db import SessionDep
 from app.modules.tests.infrastructure.models import DetallePrueba
 from app.modules.tests.schemas.request import (
     CreateTestDetailRequest,
@@ -8,52 +8,34 @@ from app.modules.tests.schemas.request import (
 )
 
 
-class InternalTestRepository:
-    def __init__(self, session: SessionDep):
-        self.session = session
+class InternalTestRepository(ABC):
+    @abstractmethod
+    async def get_tests_pagination(
+        self, offset: int, limit: int
+    ) -> Sequence[DetallePrueba]:
+        pass
 
-    async def get_tests_pagination(self, offset: int, limit: int):
-        return self.session.exec(
-            select(DetallePrueba).offset(offset).limit(limit)
-        ).all()
+    @abstractmethod
+    async def get_test_by_id(self, test_id: int) -> DetallePrueba | None:
+        pass
 
-    async def get_test_by_id(self, test_id: int):
-        return self.session.get(DetallePrueba, test_id)
-
+    @abstractmethod
     async def get_tests_by_student(
-        self, student_id: int, offset: int, limit: int,
-    ):
-        return self.session.exec(
-            select(DetallePrueba)
-            .where(DetallePrueba.estudiante_id == student_id)
-            .offset(offset)
-            .limit(limit)
-        ).all()
+        self,
+        student_id: int,
+        offset: int,
+        limit: int,
+    ) -> Sequence[DetallePrueba]:
+        pass
 
-    async def create_test(self, test_data: CreateTestDetailRequest):
-        new_test = DetallePrueba(
-            estudiante_id=test_data.estudiante_id,
-            complementario_id=test_data.complementario_id,
-            tipo_prueba=test_data.tipo_prueba,
-            estado=test_data.estado,
-        )
+    @abstractmethod
+    async def create_test(self, test_data: CreateTestDetailRequest) -> DetallePrueba:
+        pass
 
-        self.session.add(new_test)
-        self.session.commit()
-        self.session.refresh(new_test)
-
-        return new_test
-
+    @abstractmethod
     async def update_test(
-        self, test: DetallePrueba, test_data: UpdateTestDetailRequest,
-    ):
-        test.estudiante_id = test_data.estudiante_id
-        test.complementario_id = test_data.complementario_id
-        test.tipo_prueba = test_data.tipo_prueba
-        test.estado = test_data.estado
-
-        self.session.add(test)
-        self.session.commit()
-        self.session.refresh(test)
-
-        return test
+        self,
+        test: DetallePrueba,
+        test_data: UpdateTestDetailRequest,
+    ) -> DetallePrueba:
+        pass
