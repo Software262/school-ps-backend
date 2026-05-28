@@ -134,9 +134,12 @@ async def assign_massive_tests(session: SessionDep, request: MassiveAssignmentRe
         message = result.get("message", "")
         return Response(
             data=assigned,
-            message=message,
+            message=str(message),
             status_code=status.HTTP_201_CREATED if assigned else status.HTTP_200_OK,
-            details={"count": len(assigned), "skipped": skipped},
+            details={
+                "count": len(assigned) if isinstance(assigned, list) else 0,
+                "skipped": int(skipped) if isinstance(skipped, (int, str)) else 0,
+            },
         ).to_dict()
     except Exception as e:
         return Response(

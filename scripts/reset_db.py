@@ -26,7 +26,7 @@ from app.modules.enrollment.infrastructure.models import (
 def truncate_all(session: Session):
     """Borra todos los datos en orden seguro."""
     print("[*] Limpiando tablas...")
-    session.exec(text("SET session_replication_role = replica"))
+    session.execute(text("SET session_replication_role = replica"))
 
     tables_models = [
         DetallePrueba,
@@ -50,7 +50,7 @@ def truncate_all(session: Session):
             print(f"  ERROR en {model.__name__}: {e}")
             session.rollback()
 
-    session.exec(text("SET session_replication_role = DEFAULT"))
+    session.execute(text("SET session_replication_role = DEFAULT"))
     session.commit()
     print()
 
@@ -208,7 +208,11 @@ def seed_all(session: Session):
     print("[6] Parametrizacion de matriculas...")
     valores = [350000, 360000, 370000, 380000, 400000, 420000]
     params = [
-        ParametrizarMatricula(grado_id=grados[i].id, anio=2026, valor=valores[i])
+        ParametrizarMatricula(
+            grado_id=int(grados[i].id),  # type: ignore
+            anio=2026,
+            valor=valores[i],
+        )
         for i in range(len(grados))
     ]
     session.add_all(params)
@@ -239,10 +243,11 @@ def seed_all(session: Session):
 
     estudiantes = []
     for i, (nombre, doc) in enumerate(nombres_decimo):
+        acudiente_actual = acudientes[i % len(acudientes)]
         estudiantes.append(
             Estudiante(
-                grado_id=grado_decimo.id,
-                acudiente_id=acudientes[i % len(acudientes)].id,
+                grado_id=int(grado_decimo.id) if grado_decimo.id is not None else 0,
+                acudiente_id=int(acudiente_actual.id) if acudiente_actual.id is not None else 0,
                 nombre=nombre,
                 documento=doc,
                 activo=True,
@@ -250,10 +255,11 @@ def seed_all(session: Session):
             )
         )
     for i, (nombre, doc) in enumerate(nombres_once):
+        acudiente_actual = acudientes[i % len(acudientes)]
         estudiantes.append(
             Estudiante(
-                grado_id=grado_once.id,
-                acudiente_id=acudientes[i % len(acudientes)].id,
+                grado_id=int(grado_once.id) if grado_once.id is not None else 0,
+                acudiente_id=int(acudiente_actual.id) if acudiente_actual.id is not None else 0,
                 nombre=nombre,
                 documento=doc,
                 activo=True,

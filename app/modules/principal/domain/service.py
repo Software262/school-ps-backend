@@ -40,7 +40,8 @@ class PrincipalService:
         """
         results = await self.repository.get_teachers()
 
-        teachers_map = {}
+        from typing import Any
+        teachers_map: dict[int, dict[str, Any]] = {}
         for docente, estado, observacion in results:
             docente_id = docente.id
             if docente_id is None:

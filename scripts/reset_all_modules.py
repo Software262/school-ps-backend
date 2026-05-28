@@ -31,7 +31,7 @@ from app.modules.enrollment.infrastructure.models import (
 def truncate_all(session: Session):
     """Borra todos los datos en orden seguro."""
     print("[*] Limpiando tablas...")
-    session.exec(text("SET session_replication_role = replica"))
+    session.execute(text("SET session_replication_role = replica"))
 
     tables_models = [
         DetallePrueba,
@@ -55,7 +55,7 @@ def truncate_all(session: Session):
             print(f"  ERROR en {model.__name__}: {e}")
             session.rollback()
 
-    session.exec(text("SET session_replication_role = DEFAULT"))
+    session.execute(text("SET session_replication_role = DEFAULT"))
 
 
 def seed_data(session: Session):
@@ -92,8 +92,8 @@ def seed_data(session: Session):
     for nombre, doc in nombres_10:
         session.add(
             Estudiante(
-                grado_id=grado_10.id,
-                acudiente_id=acudiente.id,
+                grado_id=int(grado_10.id) if grado_10.id is not None else 0,
+                acudiente_id=int(acudiente.id) if acudiente.id is not None else 0,
                 nombre=nombre,
                 documento=doc,
                 activo=True,
@@ -116,8 +116,8 @@ def seed_data(session: Session):
     for nombre, doc in nombres_11:
         session.add(
             Estudiante(
-                grado_id=grado_11.id,
-                acudiente_id=acudiente.id,
+                grado_id=int(grado_11.id) if grado_11.id is not None else 0,
+                acudiente_id=int(acudiente.id) if acudiente.id is not None else 0,
                 nombre=nombre,
                 documento=doc,
                 activo=True,

@@ -60,8 +60,10 @@ def seed_grados():
         for i, (nombre, doc) in enumerate(nombres_decimo):
             session.add(
                 Estudiante(
-                    grado_id=grado_10.id,
-                    acudiente_id=acudientes[i % 2].id,
+                    grado_id=int(grado_10.id) if grado_10.id is not None else 0,
+                    acudiente_id=int(acudientes[i % 2].id)
+                    if acudientes[i % 2].id is not None
+                    else 0,
                     nombre=nombre,
                     documento=doc,
                     activo=True,
@@ -80,8 +82,10 @@ def seed_grados():
         for i, (nombre, doc) in enumerate(nombres_once):
             session.add(
                 Estudiante(
-                    grado_id=grado_11.id,
-                    acudiente_id=acudientes[i % 2].id,
+                    grado_id=int(grado_11.id) if grado_11.id is not None else 0,
+                    acudiente_id=int(acudientes[i % 2].id)
+                    if acudientes[i % 2].id is not None
+                    else 0,
                     nombre=nombre,
                     documento=doc,
                     activo=True,

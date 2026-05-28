@@ -19,4 +19,4 @@ class UpdateTestComplementary:
         self.session.add(comp)
         self.session.commit()
         self.session.refresh(comp)
-        return comp.id
+        return int(comp.id) if comp.id is not None else 0

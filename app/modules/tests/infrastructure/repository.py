@@ -21,9 +21,9 @@ class InternalTestRepository(InternalTestRepositoryInterface):
 
         stmt = (
             select(DetallePrueba, Estudiante, Complementario, Periodo)
-            .join(Estudiante, DetallePrueba.estudiante_id == Estudiante.id)
-            .join(Complementario, DetallePrueba.complementario_id == Complementario.id)
-            .outerjoin(Periodo, DetallePrueba.periodo_id == Periodo.id)
+            .join(Estudiante)
+            .join(Complementario)
+            .outerjoin(Periodo)
             .offset(offset)
             .limit(limit)
         )
@@ -66,8 +66,8 @@ class InternalTestRepository(InternalTestRepositoryInterface):
     ) -> list[dict]:
         stmt = (
             select(DetallePrueba, Estudiante, Complementario)
-            .join(Estudiante, DetallePrueba.estudiante_id == Estudiante.id)
-            .join(Complementario, DetallePrueba.complementario_id == Complementario.id)
+            .join(Estudiante)
+            .join(Complementario)
             .where(DetallePrueba.estudiante_id == student_id)
             .offset(offset)
             .limit(limit)

@@ -10,7 +10,7 @@ def seed_tests() -> None:
 
     with Session(engine) as session:
         # Limpiar detalleprueba
-        session.exec(text("TRUNCATE TABLE detalleprueba CASCADE"))
+        session.execute(text("TRUNCATE TABLE detalleprueba CASCADE"))
         session.commit()
 
         estudiantes = session.exec(select(Estudiante)).all()
@@ -33,26 +33,29 @@ def seed_tests() -> None:
         est1 = estudiantes[0]
         est2 = estudiantes[1] if len(estudiantes) > 1 else est1
 
+        assert c1 is not None, "Complementario Prueba ICFES no encontrado"
+        assert c2 is not None, "Complementario Simulacro no encontrado"
+
         detalles = [
             DetallePrueba(
-                estudiante_id=est1.id,
-                complementario_id=c1.id,
+                estudiante_id=int(est1.id) if est1.id is not None else 0,
+                complementario_id=int(c1.id),  # type: ignore
                 tipo_prueba="icfes",
                 estado="pagada",
                 valor_pagado=45000,
                 created_at=datetime.now(),
             ),
             DetallePrueba(
-                estudiante_id=est2.id,
-                complementario_id=c2.id,
+                estudiante_id=int(est2.id) if est2.id is not None else 0,
+                complementario_id=int(c2.id),  # type: ignore
                 tipo_prueba="simulacro",
                 estado="pendiente",
                 valor_pagado=0,
                 created_at=datetime.now(),
             ),
             DetallePrueba(
-                estudiante_id=est1.id,
-                complementario_id=c2.id,
+                estudiante_id=int(est1.id) if est1.id is not None else 0,
+                complementario_id=int(c2.id),  # type: ignore
                 tipo_prueba="simulacro",
                 estado="pago-parcial",
                 valor_pagado=10000,

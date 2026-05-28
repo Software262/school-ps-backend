@@ -11,5 +11,5 @@ class GetAvailableTests:
         return self.session.exec(
             select(Complementario)
             .where(Complementario.estado_complemento == "Activo")
-            .where(~Complementario.uso_matricula)
+            .where(Complementario.uso_matricula == False)  # type: ignore # noqa: E712
         ).all()

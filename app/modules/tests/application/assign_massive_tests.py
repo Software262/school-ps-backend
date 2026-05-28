@@ -43,7 +43,7 @@ class AssignMassiveTests:
 
         reqs = [
             CreateTestDetailRequest(
-                estudiante_id=s.id,
+                estudiante_id=int(s.id) if s.id is not None else 0,
                 complementario_id=request.complementario_id,
                 tipo_prueba=request.tipo_prueba,
                 estado="pendiente",
