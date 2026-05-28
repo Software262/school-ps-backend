@@ -78,9 +78,14 @@ def seed():
 
         # 3. Estudiantes y sus cuentas de pensión
         print(f"\nInsertando {len(registros)} estudiantes y cuentas de pensión...")
-        
+
         # Insertar un acudiente por defecto para todos
-        acudiente = Acudiente(nombre="Acudiente Default", parentesco="Tutor", telefono="0000000", correo="correo@colegio.edu.co")
+        acudiente = Acudiente(
+            nombre="Acudiente Default",
+            parentesco="Tutor",
+            telefono="0000000",
+            correo="correo@colegio.edu.co",
+        )
         session.add(acudiente)
         session.commit()
         session.refresh(acudiente)
@@ -91,11 +96,11 @@ def seed():
             para_id = para_map[grado_id]
 
             est = Estudiante(
-                nombre=r["nombre"], 
+                nombre=r["nombre"],
                 documento=r["documento"],
                 grado_id=grado_id,
                 acudiente_id=acudiente_id,
-                activo=True
+                activo=True,
             )
             session.add(est)
             session.commit()

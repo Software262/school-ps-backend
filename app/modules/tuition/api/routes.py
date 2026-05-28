@@ -74,15 +74,22 @@ def get_tuition_by_documento(session: SessionDep, documento: str):
         select(Estudiante).where(Estudiante.documento == documento)
     ).first()
     if not estudiante:
-        raise HTTPException(status_code=404, detail="No se encontró ningún estudiante con esa cédula.")
+        raise HTTPException(
+            status_code=404, detail="No se encontró ningún estudiante con esa cédula."
+        )
 
     if not estudiante.id:
-        raise HTTPException(status_code=500, detail="Error: El estudiante no tiene ID válido.")
+        raise HTTPException(
+            status_code=500, detail="Error: El estudiante no tiene ID válido."
+        )
 
     use_case = GetStudentTuitionUseCase(session)
     account = use_case.execute(estudiante.id)
     if not account:
-        raise HTTPException(status_code=404, detail="El estudiante no tiene cuenta de pensión registrada.")
+        raise HTTPException(
+            status_code=404,
+            detail="El estudiante no tiene cuenta de pensión registrada.",
+        )
     return _build_account_response(account)
 
 
@@ -91,7 +98,10 @@ def get_tuition_account(session: SessionDep, student_id: int):
     use_case = GetStudentTuitionUseCase(session)
     account = use_case.execute(student_id)
     if not account:
-        raise HTTPException(status_code=404, detail="No se encontró cuenta de pensión para el estudiante")
+        raise HTTPException(
+            status_code=404,
+            detail="No se encontró cuenta de pensión para el estudiante",
+        )
     return _build_account_response(account)
 
 

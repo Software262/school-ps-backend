@@ -21,7 +21,9 @@ class TuitionService:
         # Calcular el total pagado por mes agrupando todas las cuotas
         totals_by_month: dict[int, int] = {}
         for inst in account.installments:
-            totals_by_month[inst.mes] = totals_by_month.get(inst.mes, 0) + inst.valor_pagado
+            totals_by_month[inst.mes] = (
+                totals_by_month.get(inst.mes, 0) + inst.valor_pagado
+            )
 
         # Enriquecer cada cuota con los acumulados calculados
         for inst in account.installments:
@@ -89,7 +91,9 @@ class TuitionService:
 
         return self.repository.save_installment(new_installment)
 
-    def validate_consecutive_months(self, account: TuitionAccount, target_month: int) -> bool:
+    def validate_consecutive_months(
+        self, account: TuitionAccount, target_month: int
+    ) -> bool:
         """
         Valida que el mes anterior haya sido pagado en su totalidad antes de permitir
         el pago del mes actual, garantizando pagos consecutivos.
@@ -107,7 +111,9 @@ class TuitionService:
         ]
 
         monthly_total = account.valor_total
-        total_paid_prev_month = sum(inst.valor_pagado for inst in prev_month_installments)
+        total_paid_prev_month = sum(
+            inst.valor_pagado for inst in prev_month_installments
+        )
 
         return total_paid_prev_month >= monthly_total
 
