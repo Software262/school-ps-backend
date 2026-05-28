@@ -14,7 +14,7 @@ def seed_grados():
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         # Limpiar datos previos si existen
-        session.exec(
+        session.execute(
             text(
                 "TRUNCATE TABLE estudiante, acudiente, grado, periodo, complementario, detalleprueba CASCADE"
             )
