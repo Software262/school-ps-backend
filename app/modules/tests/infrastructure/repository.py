@@ -1,4 +1,3 @@
-from typing import Sequence
 from sqlmodel import select
 
 from app.core.db import SessionDep
@@ -10,18 +9,51 @@ from app.modules.tests.schemas.request import (
     CreateTestDetailRequest,
     UpdateTestDetailRequest,
 )
+from app.modules.enrollment.infrastructure.models import Estudiante, Complementario
 
 
 class InternalTestRepository(InternalTestRepositoryInterface):
     def __init__(self, session: SessionDep):
         self.session = session
 
-    async def get_tests_pagination(
-        self, offset: int, limit: int
-    ) -> Sequence[DetallePrueba]:
-        return self.session.exec(
-            select(DetallePrueba).offset(offset).limit(limit)
-        ).all()
+    async def get_tests_pagination(self, offset: int, limit: int) -> list[dict]:
+        from app.modules.enrollment.infrastructure.models import Periodo
+
+        stmt = (
+            select(DetallePrueba, Estudiante, Complementario, Periodo)
+            .join(Estudiante, DetallePrueba.estudiante_id == Estudiante.id)
+            .join(Complementario, DetallePrueba.complementario_id == Complementario.id)
+            .outerjoin(Periodo, DetallePrueba.periodo_id == Periodo.id)
+            .offset(offset)
+            .limit(limit)
+        )
+        results = self.session.exec(stmt).all()
+        return [
+            {
+                "id": d.id,
+                "estudiante_id": d.estudiante_id,
+                "complementario_id": d.complementario_id,
+                "tipo_prueba": d.tipo_prueba,
+                "estado": d.estado,
+                "valor_pagado": d.valor_pagado,
+                "periodo_id": d.periodo_id,
+                "created_at": d.created_at,
+                "estudiante": {"nombre": e.nombre, "documento": e.documento},
+                "complementario": {
+                    "tipo_complementario": c.tipo_complementario,
+                    "valor": c.valor,
+                },
+                "periodo": {
+                    "id": p.id,
+                    "nombre": str(p.periodo_electivo.year)
+                    + "-"
+                    + str(p.periodo_electivo.month).zfill(2),
+                }
+                if p
+                else None,
+            }
+            for d, e, c, p in results
+        ]
 
     async def get_test_by_id(self, test_id: int) -> DetallePrueba | None:
         return self.session.get(DetallePrueba, test_id)
@@ -31,13 +63,33 @@ class InternalTestRepository(InternalTestRepositoryInterface):
         student_id: int,
         offset: int,
         limit: int,
-    ) -> Sequence[DetallePrueba]:
-        return self.session.exec(
-            select(DetallePrueba)
+    ) -> list[dict]:
+        stmt = (
+            select(DetallePrueba, Estudiante, Complementario)
+            .join(Estudiante, DetallePrueba.estudiante_id == Estudiante.id)
+            .join(Complementario, DetallePrueba.complementario_id == Complementario.id)
             .where(DetallePrueba.estudiante_id == student_id)
             .offset(offset)
             .limit(limit)
-        ).all()
+        )
+        results = self.session.exec(stmt).all()
+        return [
+            {
+                "id": d.id,
+                "estudiante_id": d.estudiante_id,
+                "complementario_id": d.complementario_id,
+                "tipo_prueba": d.tipo_prueba,
+                "estado": d.estado,
+                "valor_pagado": d.valor_pagado,
+                "created_at": d.created_at,
+                "estudiante": {"nombre": e.nombre, "documento": e.documento},
+                "complementario": {
+                    "tipo_complementario": c.tipo_complementario,
+                    "valor": c.valor,
+                },
+            }
+            for d, e, c in results
+        ]
 
     async def create_test(self, test_data: CreateTestDetailRequest) -> DetallePrueba:
         new_test = DetallePrueba(
@@ -45,6 +97,8 @@ class InternalTestRepository(InternalTestRepositoryInterface):
             complementario_id=test_data.complementario_id,
             tipo_prueba=test_data.tipo_prueba,
             estado=test_data.estado,
+            valor_pagado=test_data.valor_pagado,
+            periodo_id=test_data.periodo_id,
         )
 
         self.session.add(new_test)
@@ -62,9 +116,39 @@ class InternalTestRepository(InternalTestRepositoryInterface):
         test.complementario_id = test_data.complementario_id
         test.tipo_prueba = test_data.tipo_prueba
         test.estado = test_data.estado
+        test.valor_pagado = test_data.valor_pagado
+        test.periodo_id = test_data.periodo_id
 
         self.session.add(test)
         self.session.commit()
         self.session.refresh(test)
 
         return test
+
+    async def assign_massive(
+        self, requests: list[CreateTestDetailRequest]
+    ) -> list[DetallePrueba]:
+        tests = []
+        for req in requests:
+            tests.append(
+                DetallePrueba(
+                    estudiante_id=req.estudiante_id,
+                    complementario_id=req.complementario_id,
+                    tipo_prueba=req.tipo_prueba,
+                    estado=req.estado,
+                    valor_pagado=req.valor_pagado,
+                    periodo_id=req.periodo_id,
+                )
+            )
+        self.session.add_all(tests)
+        self.session.commit()
+        for t in tests:
+            self.session.refresh(t)
+        return tests
+
+    async def get_active_students_by_grade(self, grado_id: int):
+        return self.session.exec(
+            select(Estudiante)
+            .where(Estudiante.grado_id == grado_id)
+            .where(Estudiante.activo)
+        ).all()

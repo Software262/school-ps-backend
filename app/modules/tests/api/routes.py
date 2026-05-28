@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Query, status
+from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
 
 from app.core.db import SessionDep
@@ -11,9 +12,23 @@ from app.modules.tests.application.get_internal_tests_by_student import (
     GetInternalTestsByStudent,
 )
 from app.modules.tests.application.update_internal_test import UpdateInternalTest
+from app.modules.tests.application.assign_massive_tests import AssignMassiveTests
+from app.modules.tests.application.register_test_payment import RegisterTestPayment
+from app.modules.tests.application.get_student_test_status import GetStudentTestStatus
+from app.modules.tests.application.get_available_tests import GetAvailableTests
+from app.modules.tests.application.delete_internal_test import DeleteInternalTest
+from app.modules.tests.application.delete_test_complementary import (
+    DeleteTestComplementary,
+)
+from app.modules.tests.application.update_test_complementary import (
+    UpdateTestComplementary,
+)
+
 from app.modules.tests.schemas.request import (
     CreateTestDetailRequest,
     UpdateTestDetailRequest,
+    MassiveAssignmentRequest,
+    PaymentRequest,
 )
 from app.modules.tests.schemas.response import (
     CreateTestDetailResponse,
@@ -22,7 +37,209 @@ from app.modules.tests.schemas.response import (
 from app.shared.schemas.filter_pagination_request import FilterPagination
 from app.shared.utils.response import Response
 
+from app.modules.enrollment.infrastructure.models import (
+    Grado,
+    Estudiante as EstudianteModel,
+)
+from sqlmodel import select
+
 router = APIRouter()
+
+
+@router.get("/available-tests")
+async def get_available_tests(session: SessionDep):
+    try:
+        app_service = GetAvailableTests(session=session)
+        data = await app_service.execute()
+        return Response(
+            data=[
+                {
+                    "id": d.id,
+                    "nombre": d.tipo_complementario,
+                    "valor": d.valor,
+                    "anio": d.anio,
+                }
+                for d in data
+            ],
+            message="Pruebas disponibles obtenidas",
+            status_code=status.HTTP_200_OK,
+            details={"count": len(data)},
+        ).to_dict()
+    except Exception as e:
+        return Response(
+            data=None,
+            message="Error al obtener pruebas disponibles",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error": str(e)},
+        ).to_dict()
+
+
+@router.get("/grados")
+async def get_grados(session: SessionDep):
+    grados = session.exec(select(Grado)).all()
+    return Response(
+        data=[{"id": g.id, "nombre": g.nombre} for g in grados],
+        message="Grados obtenidos",
+        status_code=200,
+        details={"count": len(grados)},
+    ).to_dict()
+
+
+@router.get("/periodos")
+async def get_periodos(session: SessionDep):
+    from app.modules.enrollment.infrastructure.models import Periodo
+
+    periodos = session.exec(select(Periodo).where(Periodo.estado)).all()
+    return Response(
+        data=[
+            {
+                "id": p.id,
+                "nombre": f"{p.periodo_electivo.year}-{str(p.periodo_electivo.month).zfill(2)}",
+                "fecha": str(p.fecha.date()),
+            }
+            for p in periodos
+        ],
+        message="Periodos obtenidos",
+        status_code=200,
+        details={"count": len(periodos)},
+    ).to_dict()
+
+
+@router.get("/estudiantes")
+async def get_estudiantes(session: SessionDep):
+    students = session.exec(
+        select(EstudianteModel).where(EstudianteModel.activo)
+    ).all()
+    return Response(
+        data=[
+            {
+                "id": s.id,
+                "nombre": s.nombre,
+                "documento": s.documento,
+                "grado_id": s.grado_id,
+            }
+            for s in students
+        ],
+        message="Estudiantes obtenidos",
+        status_code=200,
+        details={"count": len(students)},
+    ).to_dict()
+
+
+@router.post("/assign-massive")
+async def assign_massive_tests(session: SessionDep, request: MassiveAssignmentRequest):
+    try:
+        app_service = AssignMassiveTests(session=session)
+        result = await app_service.execute(request)
+        assigned = result.get("assigned", [])
+        skipped = result.get("skipped", 0)
+        message = result.get("message", "")
+        return Response(
+            data=assigned,
+            message=message,
+            status_code=status.HTTP_201_CREATED if assigned else status.HTTP_200_OK,
+            details={"count": len(assigned), "skipped": skipped},
+        ).to_dict()
+    except Exception as e:
+        return Response(
+            data=None,
+            message="Error al asignar masivamente",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error": str(e)},
+        ).to_dict()
+
+
+@router.post("/assign-individual")
+async def assign_individual_test(session: SessionDep, request: CreateTestDetailRequest):
+    try:
+        # Verificar duplicado: mismo estudiante + mismo complementario
+        from sqlmodel import select as sql_select
+        from app.modules.tests.infrastructure.models import DetallePrueba as DP
+
+        existing = session.exec(
+            sql_select(DP).where(
+                DP.estudiante_id == request.estudiante_id,
+                DP.complementario_id == request.complementario_id,
+            )
+        ).first()
+        if existing:
+            return Response(
+                data=None,
+                message="Este estudiante ya tiene esta prueba asignada",
+                status_code=status.HTTP_200_OK,
+                details={"duplicate": True},
+            ).to_dict()
+
+        from app.modules.tests.application.create_internal_test import (
+            CreateInternalTest,
+        )
+
+        app_service = CreateInternalTest(session=session)
+        data = await app_service.execute(request)
+        return Response(
+            data={"id": data.id},
+            message="Prueba asignada exitosamente al estudiante",
+            status_code=status.HTTP_201_CREATED,
+            details={"id": data.id},
+        ).to_dict()
+    except IntegrityError as e:
+        return Response(
+            data=None,
+            message="Error: Verifique que el estudiante y la prueba existan",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error": str(e.orig)},
+        ).to_dict()
+    except Exception as e:
+        return Response(
+            data=None,
+            message="Error al asignar prueba individual",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error": str(e)},
+        ).to_dict()
+
+
+@router.post("/{test_id}/pay")
+async def register_payment(session: SessionDep, test_id: int, request: PaymentRequest):
+    try:
+        app_service = RegisterTestPayment(session=session)
+        data = await app_service.execute(test_id, request)
+        return Response(
+            data={
+                "id": data.id,
+                "estado": data.estado,
+                "valor_pagado": data.valor_pagado,
+            },
+            message="Abono registrado exitosamente",
+            status_code=status.HTTP_200_OK,
+            details={"estado_actual": data.estado},
+        ).to_dict()
+    except Exception as e:
+        return Response(
+            data=None,
+            message="Error al procesar pago",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error": str(e)},
+        ).to_dict()
+
+
+@router.get("/student/{student_id}/status")
+async def get_student_status(session: SessionDep, student_id: int):
+    try:
+        app_service = GetStudentTestStatus(session=session)
+        data = await app_service.execute(student_id)
+        return Response(
+            data=data,
+            message="Estado de pruebas consultado",
+            status_code=status.HTTP_200_OK,
+            details=data,
+        ).to_dict()
+    except Exception as e:
+        return Response(
+            data=None,
+            message="Error al consultar estado",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error": str(e)},
+        ).to_dict()
 
 
 @router.get("/details")
@@ -226,6 +443,98 @@ async def update_internal_test(
         return Response(
             data=None,
             message="Error inesperado al actualizar la prueba",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error": str(e)},
+        ).to_dict()
+
+
+@router.delete("/details/{test_id}")
+async def delete_internal_test(session: SessionDep, test_id: int):
+    try:
+        delete_app = DeleteInternalTest(session=session)
+        await delete_app.execute(test_id)
+        return Response(
+            data={"id": test_id},
+            message="Prueba eliminada exitosamente",
+            status_code=status.HTTP_200_OK,
+            details={"id": test_id},
+        ).to_dict()
+    except ValueError as e:
+        return Response(
+            data=None,
+            message=str(e),
+            status_code=status.HTTP_404_NOT_FOUND,
+            details={"error": str(e)},
+        ).to_dict()
+    except Exception as e:
+        return Response(
+            data=None,
+            message="Error al eliminar la prueba",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error": str(e)},
+        ).to_dict()
+
+
+class _ComplementaryUpdateBody(BaseModel):
+    nombre: str
+    valor: int
+
+
+@router.put("/complementary/{comp_id}")
+async def update_test_complementary(
+    session: SessionDep,
+    comp_id: int,
+    body: _ComplementaryUpdateBody,
+):
+    try:
+        use_case = UpdateTestComplementary(session=session)
+        use_case.execute(
+            comp_id=comp_id, tipo_complementario=body.nombre, valor=body.valor
+        )
+        return Response(
+            data={"id": comp_id},
+            message="Prueba actualizada exitosamente",
+            status_code=status.HTTP_200_OK,
+            details={"id": comp_id},
+        ).to_dict()
+    except ValueError as e:
+        return Response(
+            data=None,
+            message=str(e),
+            status_code=status.HTTP_404_NOT_FOUND,
+            details={"error": str(e)},
+        ).to_dict()
+    except Exception as e:
+        return Response(
+            data=None,
+            message="Error al actualizar la prueba",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error": str(e)},
+        ).to_dict()
+
+
+@router.delete("/complementary/{comp_id}")
+async def delete_test_complementary(session: SessionDep, comp_id: int):
+    try:
+        use_case = DeleteTestComplementary(session=session)
+        use_case.execute(comp_id=comp_id)
+        return Response(
+            data={"id": comp_id},
+            message="Prueba eliminada exitosamente",
+            status_code=status.HTTP_200_OK,
+            details={"id": comp_id},
+        ).to_dict()
+    except ValueError as e:
+        return Response(
+            data=None,
+            message=str(e),
+            status_code=status.HTTP_404_NOT_FOUND,
+            details={"error": str(e)},
+        ).to_dict()
+    except Exception as e:
+        return Response(
+            data=None,
+            message="Error al eliminar la prueba",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error": str(e)},
         ).to_dict()

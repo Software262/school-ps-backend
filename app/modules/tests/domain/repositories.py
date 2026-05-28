@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Sequence
 
 from app.modules.tests.infrastructure.models import DetallePrueba
 from app.modules.tests.schemas.request import (
@@ -10,9 +9,7 @@ from app.modules.tests.schemas.request import (
 
 class InternalTestRepository(ABC):
     @abstractmethod
-    async def get_tests_pagination(
-        self, offset: int, limit: int
-    ) -> Sequence[DetallePrueba]:
+    async def get_tests_pagination(self, offset: int, limit: int) -> list[dict]:
         pass
 
     @abstractmethod
@@ -25,7 +22,7 @@ class InternalTestRepository(ABC):
         student_id: int,
         offset: int,
         limit: int,
-    ) -> Sequence[DetallePrueba]:
+    ) -> list[dict]:
         pass
 
     @abstractmethod
@@ -38,4 +35,14 @@ class InternalTestRepository(ABC):
         test: DetallePrueba,
         test_data: UpdateTestDetailRequest,
     ) -> DetallePrueba:
+        pass
+
+    @abstractmethod
+    async def assign_massive(
+        self, requests: list[CreateTestDetailRequest]
+    ) -> list[DetallePrueba]:
+        pass
+
+    @abstractmethod
+    async def get_active_students_by_grade(self, grado_id: int):
         pass
