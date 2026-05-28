@@ -76,6 +76,9 @@ def get_tuition_by_documento(session: SessionDep, documento: str):
     if not estudiante:
         raise HTTPException(status_code=404, detail="No se encontró ningún estudiante con esa cédula.")
 
+    if not estudiante.id:
+        raise HTTPException(status_code=500, detail="Error: El estudiante no tiene ID válido.")
+
     use_case = GetStudentTuitionUseCase(session)
     account = use_case.execute(estudiante.id)
     if not account:
