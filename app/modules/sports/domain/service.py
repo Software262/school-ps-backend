@@ -5,15 +5,13 @@ from app.modules.inventory.domain.service import InventoryService
 from app.modules.inventory.infrastructure.models import Inventario, Prestamo
 from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
+    FilterPagination,
+    FilterPaginationBorrowings,
     ReturnBorrowRequest,
     UpdateCompleteItemRequest,
     UpdateSingleItemRequest,
 )
 from app.modules.sports.schemas.request import CreateSportItemRequest
-from app.shared.schemas.filter_pagination import (
-    FilterPagination,
-    FilterPaginationBorrowings,
-)
 from app.shared.utils.filter_pagination import calculate_offset
 
 SPORT_TYPE_NAME = "deporte"

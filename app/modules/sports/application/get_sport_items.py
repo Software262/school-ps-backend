@@ -1,6 +1,6 @@
 from app.modules.inventory.infrastructure.repository import InventoryRepository
 from app.modules.sports.domain.service import SportsService
-from app.shared.schemas.filter_pagination import FilterPagination
+from app.shared.schemas.filter_pagination_request import FilterPagination
 
 
 class GetSportItems:

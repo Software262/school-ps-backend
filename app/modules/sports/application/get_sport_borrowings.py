@@ -1,6 +1,6 @@
 from app.modules.inventory.infrastructure.repository import InventoryRepository
+from app.modules.inventory.schemas.request import FilterPaginationBorrowings
 from app.modules.sports.domain.service import SportsService
-from app.shared.schemas.filter_pagination import FilterPaginationBorrowings
 
 
 class GetSportBorrowings:
