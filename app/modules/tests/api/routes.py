@@ -107,9 +107,7 @@ async def get_periodos(session: SessionDep):
 
 @router.get("/estudiantes")
 async def get_estudiantes(session: SessionDep):
-    students = session.exec(
-        select(EstudianteModel).where(EstudianteModel.activo)
-    ).all()
+    students = session.exec(select(EstudianteModel).where(EstudianteModel.activo)).all()
     return Response(
         data=[
             {
