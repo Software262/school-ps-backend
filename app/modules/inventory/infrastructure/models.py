@@ -25,3 +25,9 @@ class Prestamo(Base, table=True):
     estado_prestamo: bool = Field(nullable=False)
     cantidad: int = Field(ge=1, nullable=False)
     observacion: str | None = Field(max_length=400)
+
+
+class Novedad(Base, table=True):
+    prestamo_id: int = Field(foreign_key="prestamo.id")
+    descripcion: str = Field(nullable=False, max_length=250)
+    resuelta: bool = Field(default=False)
