@@ -16,7 +16,7 @@ class TuitionService:
         if not account:
             return None
 
-        monthly_value = account.valor_total // 10
+        monthly_value = account.valor_total
 
         # Calcular el total pagado por mes agrupando todas las cuotas
         totals_by_month: dict[int, int] = {}
@@ -54,7 +54,7 @@ class TuitionService:
         if previous_installments:
             monthly_total = previous_installments[0].valor_total
         else:
-            monthly_total = account.valor_total // 10
+            monthly_total = account.valor_total
 
         self.validate_payment_amount(
             previous_installments=previous_installments,
@@ -106,7 +106,7 @@ class TuitionService:
             inst for inst in account.installments if inst.mes == previous_month
         ]
 
-        monthly_total = account.valor_total // 10
+        monthly_total = account.valor_total
         total_paid_prev_month = sum(inst.valor_pagado for inst in prev_month_installments)
 
         return total_paid_prev_month >= monthly_total
