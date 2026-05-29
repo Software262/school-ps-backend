@@ -4,13 +4,13 @@ from fastapi import APIRouter, Query, status
 from sqlalchemy.exc import IntegrityError
 
 from app.core.db import SessionDep
-from app.modules.tests.application.create_internal_test import CreateInternalTest
-from app.modules.tests.application.get_internal_test_by_id import GetInternalTestById
-from app.modules.tests.application.get_internal_tests import GetInternalTests
-from app.modules.tests.application.get_internal_tests_by_student import (
+from app.modules.tests.application.create_internal import CreateInternalTest
+from app.modules.tests.application.get_internal import GetInternalTests
+from app.modules.tests.application.get_internal_by_id import GetInternalTestById
+from app.modules.tests.application.get_internal_by_student import (
     GetInternalTestsByStudent,
 )
-from app.modules.tests.application.update_internal_test import UpdateInternalTest
+from app.modules.tests.application.update_internal import UpdateInternalTest
 from app.modules.tests.schemas.request import (
     CreateTestDetailRequest,
     UpdateTestDetailRequest,
