@@ -8,4 +8,6 @@ class GetSportBorrowings:
         self.service = SportsService(repository=self.repository)
 
     async def execute(self, page: int, limit: int, active: bool | None):
-        return await self.service.get_sport_borrowings(page=page, limit=limit, active=active)
+        return await self.service.get_sport_borrowings(
+            page=page, limit=limit, active=active
+        )

@@ -45,6 +45,7 @@ router = APIRouter()
 # ITEMS
 # =========================================================
 
+
 @router.get("/items")
 async def get_sport_items(
     session: SessionDep,
@@ -110,7 +111,9 @@ async def update_sport_item(
     if data is None:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
-            content={"message": "Implemento no encontrado o no pertenece al módulo de Deportes"},
+            content={
+                "message": "Implemento no encontrado o no pertenece al módulo de Deportes"
+            },
         )
 
     return Response(
@@ -139,7 +142,9 @@ async def edit_sport_item(
     if data is None:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
-            content={"message": "Implemento no encontrado o no pertenece al módulo de Deportes"},
+            content={
+                "message": "Implemento no encontrado o no pertenece al módulo de Deportes"
+            },
         )
 
     return Response(
@@ -187,6 +192,7 @@ async def import_sport_items(
 # =========================================================
 # PRÉSTAMOS
 # =========================================================
+
 
 @router.post("/borrow", status_code=status.HTTP_201_CREATED)
 async def create_sport_borrow(
@@ -288,6 +294,7 @@ async def return_sport_borrow(
 # NOVEDADES
 # =========================================================
 
+
 @router.post("/novedades", status_code=status.HTTP_201_CREATED)
 async def create_sport_novedad(
     session: SessionDep, novedad_data: CreateSportNovedadRequest
@@ -331,7 +338,9 @@ async def resolve_sport_novedad(
     if data is None:
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            content={"message": "Novedad no encontrada o ya fue resuelta anteriormente."},
+            content={
+                "message": "Novedad no encontrada o ya fue resuelta anteriormente."
+            },
         )
 
     return Response(
@@ -350,6 +359,7 @@ async def resolve_sport_novedad(
 # =========================================================
 # PAZ Y SALVO
 # =========================================================
+
 
 @router.get("/paz-y-salvo/{estudiante_id}")
 async def get_sport_paz_y_salvo(session: SessionDep, estudiante_id: int):

@@ -26,11 +26,11 @@ class SportsService:
 
     async def get_sport_items(self, page: int, limit: int) -> Sequence[Inventario]:
         offset = calculate_offset(page, limit)
-        return await self.repository.get_sport_items_paginated(offset=offset, limit=limit)
+        return await self.repository.get_sport_items_paginated(
+            offset=offset, limit=limit
+        )
 
-    async def create_sport_item(
-        self, item_data: CreateSportItemRequest
-    ) -> Inventario:
+    async def create_sport_item(self, item_data: CreateSportItemRequest) -> Inventario:
         tipo_id = await self.repository.ensure_sport_type_exists()
         return await self.repository.create_sport_item(
             item_data=item_data, tipo_inventario_id=tipo_id

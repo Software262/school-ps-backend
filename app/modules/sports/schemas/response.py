@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 
 class SportItemResponse(BaseModel):
-    id: int
+    id: int | None
     nombre: str
     cantidad: int
     estado_objeto: str
@@ -12,7 +12,7 @@ class SportItemResponse(BaseModel):
 
 
 class SportBorrowResponse(BaseModel):
-    id: int
+    id: int | None
     inventario_id: int
     estudiante_id: int
     cantidad: int
@@ -23,17 +23,17 @@ class SportBorrowResponse(BaseModel):
 
 
 class ReturnSportBorrowResponse(BaseModel):
-    id: int
+    id: int | None
     inventario_id: int
     estudiante_id: int
     cantidad: int
     estado_prestamo: bool
     fecha_devolucion: datetime | None
-    observacion: str
+    observacion: str | None
 
 
 class SportNovedadResponse(BaseModel):
-    id: int
+    id: int | None
     prestamo_id: int
     descripcion: str
     resuelta: bool
@@ -41,6 +41,7 @@ class SportNovedadResponse(BaseModel):
 
 class PazYSalvoStatusResponse(BaseModel):
     """Estado de paz y salvo del módulo de deportes para un estudiante."""
+
     estudiante_id: int
     tiene_prestamos_activos: bool
     tiene_novedades_abiertas: bool

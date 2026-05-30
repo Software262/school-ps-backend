@@ -230,9 +230,7 @@ class SportsRepositoryImpl(SportsRepository):
     # Novedades
     # =========================================================
 
-    async def create_sport_novedad(
-        self, prestamo_id: int, descripcion: str
-    ) -> Novedad:
+    async def create_sport_novedad(self, prestamo_id: int, descripcion: str) -> Novedad:
         novedad = Novedad(
             prestamo_id=prestamo_id,
             descripcion=descripcion,

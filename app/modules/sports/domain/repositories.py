@@ -14,7 +14,6 @@ from app.modules.sports.schemas.request import (
 
 
 class SportsRepository(ABC):
-
     # ---------- Tipo inventario ----------
 
     @abstractmethod
@@ -96,9 +95,7 @@ class SportsRepository(ABC):
     # ---------- Novedades ----------
 
     @abstractmethod
-    async def create_sport_novedad(
-        self, prestamo_id: int, descripcion: str
-    ) -> Novedad:
+    async def create_sport_novedad(self, prestamo_id: int, descripcion: str) -> Novedad:
         pass
 
     @abstractmethod

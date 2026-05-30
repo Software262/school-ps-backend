@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 from app.shared.schemas.filter_pagination_request import FilterPagination
 
@@ -11,6 +11,7 @@ TIPO_DEPORTE = "deporte"
 
 class FilterPaginationSports(FilterPagination):
     """Paginación con filtro de tipo bloqueado a 'deporte'."""
+
     item_type: Literal["deporte"] = "deporte"
 
 
@@ -20,17 +21,25 @@ class FilterPaginationSportsBorrowings(FilterPaginationSports):
 
 # ---------- Items ----------
 
+
 class CreateSportItemRequest(BaseModel):
-    nombre: str = Field(min_length=2, max_length=100, description="Nombre del implemento deportivo")
+    nombre: str = Field(
+        min_length=2, max_length=100, description="Nombre del implemento deportivo"
+    )
     cantidad: int = Field(ge=1, description="Cantidad disponible")
-    estado_objeto: str = Field(min_length=2, max_length=100, description="Estado del implemento")
-    observacion: str | None = Field(None, max_length=400, description="Observación opcional")
+    estado_objeto: str = Field(
+        min_length=2, max_length=100, description="Estado del implemento"
+    )
+    observacion: str | None = Field(
+        None, max_length=400, description="Observación opcional"
+    )
 
     # tipo_inventario_id se inyecta internamente desde el servicio; no lo expone el cliente
 
 
 class UpdateSportItemRequest(BaseModel):
     """PATCH parcial — todos los campos opcionales."""
+
     nombre: str | None = Field(None, min_length=2, max_length=100)
     cantidad: int | None = Field(None, ge=0)
     estado_objeto: str | None = Field(None, min_length=2, max_length=100)
@@ -39,6 +48,7 @@ class UpdateSportItemRequest(BaseModel):
 
 class UpdateCompleteSportItemRequest(BaseModel):
     """PUT completo."""
+
     nombre: str = Field(min_length=2, max_length=100)
     cantidad: int = Field(ge=0)
     estado_objeto: str = Field(min_length=2, max_length=100)
@@ -47,12 +57,19 @@ class UpdateCompleteSportItemRequest(BaseModel):
 
 # ---------- Préstamos ----------
 
+
 class CreateSportBorrowRequest(BaseModel):
     inventario_id: int = Field(ge=1, description="ID del implemento a prestar")
-    estudiante_id: int = Field(ge=1, description="ID del estudiante que recibe el préstamo")
-    fecha_salida: datetime = Field(description="Fecha de préstamo", examples=[datetime.now()])
+    estudiante_id: int = Field(
+        ge=1, description="ID del estudiante que recibe el préstamo"
+    )
+    fecha_salida: datetime = Field(
+        description="Fecha de préstamo", examples=[datetime.now()]
+    )
     cantidad: int = Field(ge=1, description="Cantidad a prestar")
-    observacion: str | None = Field(None, max_length=400, description="Observación del préstamo")
+    observacion: str | None = Field(
+        None, max_length=400, description="Observación del préstamo"
+    )
 
 
 class ReturnSportBorrowRequest(BaseModel):
@@ -67,6 +84,7 @@ class ReturnSportBorrowRequest(BaseModel):
 
 
 # ---------- Novedades ----------
+
 
 class CreateSportNovedadRequest(BaseModel):
     prestamo_id: int = Field(ge=1, description="ID del préstamo con novedad")
@@ -87,8 +105,10 @@ class ResolveSportNovedadRequest(BaseModel):
 
 # ---------- Carga masiva ----------
 
+
 class SportItemFileRequest(BaseModel):
     """Fila del archivo CSV/Excel — sin tipo_inventario_id (se inyecta internamente)."""
+
     nombre: str = Field(min_length=2)
     cantidad: int = Field(gt=0)
     estado_objeto: str = Field(min_length=2)
