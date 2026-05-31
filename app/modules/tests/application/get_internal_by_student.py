@@ -1,6 +1,6 @@
-from app.modules.tests.infrastructure.repository import InternalTestRepository
 from app.modules.tests.domain.service import InternalTestService
-from app.shared.schemas.filter_pagination import FilterPagination
+from app.modules.tests.infrastructure.repository import InternalTestRepository
+from app.shared.schemas.filter_pagination_request import FilterPagination
 
 
 class GetInternalTestsByStudent:

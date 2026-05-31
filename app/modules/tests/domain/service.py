@@ -3,7 +3,7 @@ from app.modules.tests.schemas.request import (
     CreateTestDetailRequest,
     UpdateTestDetailRequest,
 )
-from app.shared.schemas.filter_pagination import FilterPagination
+from app.shared.schemas.filter_pagination_request import FilterPagination
 from app.shared.utils.filter_pagination import calculate_offset
 
 

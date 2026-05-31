@@ -20,6 +20,8 @@ from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     CreateItemRequest,
     CreateTypeInventoryRequest,
+    FilterPaginationBorrowings,
+    FilterPaginationInventory,
     ReturnBorrowRequest,
     UpdateCompleteItemRequest,
     UpdateSingleItemRequest,
@@ -32,20 +34,15 @@ from app.modules.inventory.schemas.response import (
     UpdateItemInventoryResponse,
 )
 from app.modules.inventory.utils.file import validate_data, validate_file
-from app.shared.schemas.filter_pagination import (
-    FilterPagination,
-    FilterPaginationBorrowings,
-)
-
 from app.shared.utils.response import Response
-
 
 router = APIRouter()
 
 
 @router.get("/items")
 async def get_inventory(
-    session: SessionDep, filter_pagination_query: Annotated[FilterPagination, Query()]
+    session: SessionDep,
+    filter_pagination_query: Annotated[FilterPaginationInventory, Query()],
 ):
     inventory_app = GetItemsInventory(session=session)
     data = await inventory_app.execute(filter_pagination=filter_pagination_query)
