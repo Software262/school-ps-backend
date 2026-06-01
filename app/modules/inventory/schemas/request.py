@@ -1,6 +1,17 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
+
+from app.shared.schemas.filter_pagination_request import FilterPagination
+
+
+class FilterPaginationInventory(FilterPagination):
+    item_type: Literal["banda", "deporte", "ajedrez"] | None = None
+
+
+class FilterPaginationBorrowings(FilterPaginationInventory):
+    active: bool | None = None
 
 
 class CreateTypeInventoryRequest(BaseModel):

@@ -30,7 +30,7 @@ class EnrollmentService:
             msg = f"Estudiante con id {student_id} no encontrado"
             raise ValueError(msg)
 
-        # Costo base de matrícula según grado y año
+        # Costo base de matrícula según grado y año (referencia parametrizada)
         base_cost = self.repo.get_enrollment_base_cost(student.grado_id, year) or 0
 
         # Detalles de matrícula (complementarios asignados)
@@ -39,22 +39,21 @@ class EnrollmentService:
             enrollment_status,
             complementary_items,
             pending_base,
+            valor_total,
         ) = self.repo.get_enrollment_details(student_id, year)
         enrollment_exists = matricula_id is not None
 
         complementary_total = sum(item.valor_completo for item in complementary_items)
 
-        # Cálculos totales
-        total_cost = base_cost + complementary_total
-
         if enrollment_exists:
-            # Pendiente = base pendiente + complementarios pendientes + pensión pendiente
-            total_pending = (
-                pending_base
-                + sum(item.valor_pendiente for item in complementary_items)
+            # Usar valor_total real de la matrícula (se actualiza con descuentos)
+            total_cost = valor_total
+            total_pending = pending_base + sum(
+                item.valor_pendiente for item in complementary_items
             )
         else:
-            # Sin matrícula: todo está pendiente
+            # Sin matrícula: usar costo parametrizado
+            total_cost = base_cost + complementary_total
             total_pending = total_cost
 
         total_paid = total_cost - total_pending
@@ -89,7 +88,9 @@ class EnrollmentService:
             raise ValueError(msg)
 
         if self.repo.student_has_enrollment(student_id, year):
-            msg = f"El estudiante {student_id} ya tiene matrícula registrada para {year}"
+            msg = (
+                f"El estudiante {student_id} ya tiene matrícula registrada para {year}"
+            )
             raise ValueError(msg)
 
         # Costo base
@@ -174,9 +175,14 @@ class EnrollmentService:
 
         nuevo_base = pending_base
         if request.nuevo_costo_base is not None:
-            delta_total += (request.nuevo_costo_base - pending_base)
+            delta_total += request.nuevo_costo_base - pending_base
             nuevo_base = request.nuevo_costo_base
         elif request.descuento_base is not None:
+            if request.descuento_base > pending_base:
+                raise ValueError(
+                    f"El descuento de base (${request.descuento_base:,}) no puede ser mayor "
+                    f"al costo base pendiente (${pending_base:,})"
+                )
             delta_total -= request.descuento_base
             nuevo_base -= request.descuento_base
 
@@ -184,7 +190,9 @@ class EnrollmentService:
         comp_updates = []
         if request.complementarios:
             for mod in request.complementarios:
-                detalle = next((d for d in comp_details if d[0] == mod.detalle_id), None)
+                detalle = next(
+                    (d for d in comp_details if d[0] == mod.detalle_id), None
+                )
                 if not detalle:
                     msg = (
                         f"El detalle_id {mod.detalle_id} no pertenece a esta matrícula. "
@@ -192,11 +200,13 @@ class EnrollmentService:
                     )
                     raise ValueError(msg)
 
-                det_id, comp_id, tipo, comp_pending, comp_completo, comp_descuento = detalle
-                
+                det_id, comp_id, tipo, comp_pending, comp_completo, comp_descuento = (
+                    detalle
+                )
+
                 nuevo_comp_pending = comp_pending
                 nuevo_descuento = comp_descuento
-                nuevo_completo = comp_completo 
+                nuevo_completo = comp_completo
 
                 if mod.nuevo_valor_completo is not None:
                     delta = mod.nuevo_valor_completo - comp_pending
@@ -204,19 +214,23 @@ class EnrollmentService:
                     nuevo_comp_pending = mod.nuevo_valor_completo
                     nuevo_completo = mod.nuevo_valor_completo
                 elif mod.descuento is not None:
+                    if mod.descuento > comp_pending:
+                        raise ValueError(
+                            f"El descuento (${mod.descuento:,}) no puede ser mayor "
+                            f"al valor pendiente del complementario (${comp_pending:,})"
+                        )
                     delta_total -= mod.descuento
                     nuevo_comp_pending -= mod.descuento
                     nuevo_descuento = mod.descuento
-                
-                comp_updates.append((det_id, nuevo_completo, nuevo_descuento, nuevo_comp_pending))
+
+                comp_updates.append(
+                    (det_id, nuevo_completo, nuevo_descuento, nuevo_comp_pending)
+                )
 
         nuevo_valor_total = valor_total_actual + delta_total
 
         self.repo.update_enrollment_details(
-            matricula_id,
-            nuevo_valor_total,
-            nuevo_base,
-            comp_updates
+            matricula_id, nuevo_valor_total, nuevo_base, comp_updates
         )
 
         self._update_enrollment_state(matricula_id)
@@ -366,11 +380,13 @@ class EnrollmentService:
         comp_data = self.repo.get_complementary_by_id(complementary_id)
         if comp_data is None:
             raise ValueError(f"Complementario con id {complementary_id} no encontrado")
-        
+
         _, valor_completo = comp_data
 
         if descuento > valor_completo:
-            raise ValueError("El descuento no puede ser mayor al valor del complementario")
+            raise ValueError(
+                "El descuento no puede ser mayor al valor del complementario"
+            )
 
         detalle_id = self.repo.assign_complementary_to_enrollment(
             matricula_id, complementary_id, valor_completo, descuento
