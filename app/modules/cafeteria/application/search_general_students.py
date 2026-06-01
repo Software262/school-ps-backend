@@ -1,6 +1,4 @@
 """
-Cafeteria Module Update Status (Bulk) Use Case.
-
 Author: Danilo Castillejo
 Role: Developer of the cafeteria module
 """
@@ -10,10 +8,13 @@ from app.modules.cafeteria.domain.service import CafeteriaService
 from app.modules.cafeteria.infrastructure.repository import CafeteriaRepository
 
 
-class UpdateStatus:
+class SearchGeneralStudents:
     def __init__(self, session: SessionDep):
         self.repository = CafeteriaRepository(session=session)
         self.service = CafeteriaService(repository=self.repository)
 
-    async def execute(self, registro_ids: list[int], usuario_id: int):
-        return await self.service.clear_debts_bulk(registro_ids, usuario_id)
+    async def execute(self, query: str | None = None, grado_id: int | None = None):
+        """
+        Executes the search logic via the domain service.
+        """
+        return await self.service.search_general_students_flat(query, grado_id)

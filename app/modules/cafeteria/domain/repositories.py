@@ -10,13 +10,14 @@ from app.modules.cafeteria.infrastructure.models import Cafeteria
 
 
 class CafeteriaRepositoryInterface(ABC):
-    """
-    Abstract interface that defines the data access rules.
-    To comply with decoupling rules, it only handles Cafeteria entities.
-    """
+    @abstractmethod
+    async def get_all_debtors(self, periodo_id: int) -> list:
+        pass
 
     @abstractmethod
-    async def get_all_by_period(self, periodo_id: int) -> list[Cafeteria]:
+    async def search_general_students(
+        self, query: str = "", grado_id: int | None = None
+    ) -> list:
         pass
 
     @abstractmethod
@@ -35,4 +36,12 @@ class CafeteriaRepositoryInterface(ABC):
 
     @abstractmethod
     async def get_multiple_by_ids(self, registro_ids: list[int]) -> list[Cafeteria]:
+        pass
+
+    @abstractmethod
+    async def get_report_data(self, periodo_id: int) -> list:
+        pass
+
+    @abstractmethod
+    async def get_all_grades(self) -> list:
         pass

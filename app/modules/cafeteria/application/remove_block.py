@@ -17,5 +17,6 @@ class RemoveBlock:
         self.repository = CafeteriaRepository(session=session)
         self.service = CafeteriaService(repository=self.repository)
 
-    async def execute(self, registro_ids: list[int], usuario_id: int):
+    async def execute(self, registro_ids: list[int], usuario_id: int) -> int:
+        """Executes bulk debt clearing via service alias."""
         return await self.service.bulk_remove_manual_blocks(usuario_id, registro_ids)

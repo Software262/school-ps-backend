@@ -11,9 +11,19 @@ class ExportReport:
         self.service = CafeteriaService(repository=self.repository)
 
     async def execute(self, periodo_id: int) -> str:
-        data_rows = await self.service.format_report_data(periodo_id)
-        output = io.StringIO()  # type: ignore[abstract]
+        results = await self.repository.get_report_data(periodo_id)
+        output = io.StringIO()  # type: ignore
         writer = csv.writer(output)
-        writer.writerow(["ID_ESTUDIANTE", "ESTADO", "OBSERVACIONES"])
-        writer.writerows(data_rows)
+        writer.writerow(["DOCUMENTO", "ESTUDIANTE", "CURSO", "ESTADO", "OBSERVACIONES"])
+
+        for caf, est, grado in results:
+            writer.writerow(
+                [
+                    est.documento,
+                    est.nombre,
+                    grado.nombre,
+                    "PAZ Y SALVO" if caf.estado_cafeteria else "DEUDA",
+                    caf.observaciones,
+                ]
+            )
         return output.getvalue()

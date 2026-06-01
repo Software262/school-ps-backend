@@ -11,11 +11,13 @@ from app.modules.cafeteria.infrastructure.repository import CafeteriaRepository
 
 
 class CreateObservation:
-    """Use case to handle manual debt blocking with mandatory observations."""
-
     def __init__(self, session: SessionDep):
         self.repository = CafeteriaRepository(session=session)
         self.service = CafeteriaService(repository=self.repository)
 
-    async def execute(self, registro_id: int, usuario_id: int, obs: str):
-        return await self.service.create_manual_block(registro_id, usuario_id, obs)
+    async def execute(
+        self, estudiante_id: int, periodo_id: int, usuario_id: int, obs: str
+    ):
+        return await self.service.create_manual_block(
+            estudiante_id, periodo_id, usuario_id, obs
+        )

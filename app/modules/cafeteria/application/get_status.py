@@ -11,12 +11,10 @@ from app.modules.cafeteria.infrastructure.repository import CafeteriaRepository
 
 
 class GetStatus:
-    """Use case to retrieve the full list of students and their cafeteria status."""
-
     def __init__(self, session: SessionDep):
         self.repository = CafeteriaRepository(session=session)
         self.service = CafeteriaService(repository=self.repository)
 
     async def execute(self, periodo_id: int):
-        # The service handles the synchronization logic before returning the list
+        # USAR EL SERVICIO PARA OBTENER LOS DATOS YA FORMATEADOS
         return await self.service.get_status_list(periodo_id)
