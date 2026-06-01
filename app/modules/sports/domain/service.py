@@ -1,125 +1,144 @@
 from typing import Sequence
 
+from app.modules.inventory.domain.repositories import InventoryRepository
 from app.modules.inventory.infrastructure.models import Inventario, Novedad, Prestamo
-from app.modules.sports.domain.repositories import SportsRepository
 from app.modules.sports.schemas.request import (
     CreateSportBorrowRequest,
     CreateSportItemRequest,
     CreateSportNovedadRequest,
     ResolveSportNovedadRequest,
     ReturnSportBorrowRequest,
-    SportItemFileRequest,
     UpdateCompleteSportItemRequest,
     UpdateSportItemRequest,
 )
 from app.modules.sports.schemas.response import PazYSalvoStatusResponse
-from app.shared.utils.filter_pagination import calculate_offset
+
+TIPO_DEPORTE = "deporte"
 
 
 class SportsService:
-    def __init__(self, repository: SportsRepository):
+    def __init__(self, repository: InventoryRepository):
         self.repository = repository
 
     # =========================================================
-    # ITEMS
+    # Helpers internos
     # =========================================================
 
-    async def get_sport_items(self, page: int, limit: int) -> Sequence[Inventario]:
-        offset = calculate_offset(page, limit)
-        return await self.repository.get_sport_items_paginated(
-            offset=offset, limit=limit
-        )
+    async def _get_sport_type_id(self) -> int | None:
+        return await self.repository.get_type_id_by_name(TIPO_DEPORTE)
 
-    async def create_sport_item(self, item_data: CreateSportItemRequest) -> Inventario:
-        tipo_id = await self.repository.ensure_sport_type_exists()
-        return await self.repository.create_sport_item(
-            item_data=item_data, tipo_inventario_id=tipo_id
-        )
+    async def _ensure_sport_type_exists(self) -> int:
+        tipo_id = await self._get_sport_type_id()
+        if tipo_id is None:
+            tipo = await self.repository.create_type_inventory(TIPO_DEPORTE)
+            return tipo.id
+        return tipo_id
 
-    async def update_sport_item_complete(
+    async def _get_sport_item(self, item_id: int) -> Inventario | None:
+        """Devuelve el item solo si pertenece al tipo deporte."""
+        item = await self.repository.get_item_by_id(item_id=item_id)
+        if not item:
+            return None
+        tipo_id = await self._get_sport_type_id()
+        if item.tipo_inventario_id != tipo_id:
+            return None
+        return item
+
+    async def _get_sport_borrow(self, borrow_id: int) -> Prestamo | None:
+        """Devuelve el préstamo solo si su item pertenece al tipo deporte."""
+        borrow = await self.repository.get_borrowing(borrow_id=borrow_id)
+        if not borrow:
+            return None
+        item = await self._get_sport_item(borrow.inventario_id)
+        if not item:
+            return None
+        return borrow
+
+    async def _get_open_novedades_by_student(
+        self, estudiante_id: int
+    ) -> Sequence[Novedad]:
+        tipo_id = await self._get_sport_type_id()
+        if tipo_id is None:
+            return []
+        # Filtramos desde los préstamos activos del estudiante en deportes
+        active_borrows = await self.repository.get_borrowings_pagination(
+            offset=0, limit=1000, active=True, type_id=tipo_id
+        )
+        sport_borrow_ids = {
+            b.id for b in active_borrows if b.estudiante_id == estudiante_id
+        }
+        # Buscamos novedades abiertas cuyo prestamo_id esté en ese conjunto
+        # Usamos create_novedad no existe get — filtramos en memoria con lo disponible
+        all_borrows = await self.repository.get_borrowings_pagination(
+            offset=0, limit=1000, active=None, type_id=tipo_id
+        )
+        student_borrow_ids = {
+            b.id for b in all_borrows if b.estudiante_id == estudiante_id
+        }
+        open_novedades = []
+        for borrow in all_borrows:
+            if borrow.estudiante_id != estudiante_id:
+                continue
+            for novedad in getattr(borrow, "novedades", []):
+                if not novedad.resuelta:
+                    open_novedades.append(novedad)
+        return open_novedades
+
+    # =========================================================
+    # Items
+    # =========================================================
+
+    async def create_item(self, item_data: CreateSportItemRequest) -> Inventario:
+        tipo_id = await self._ensure_sport_type_exists()
+        item_data.tipo_inventario_id = tipo_id
+        return await self.repository.create_item(item_data=item_data)
+
+    async def update_item(
         self, item_id: int, item_data: UpdateCompleteSportItemRequest
     ) -> Inventario | None:
-        """PUT — reemplaza el item completo. Valida que sea de tipo deporte."""
-        item = await self.repository.get_sport_item_by_id(item_id)
+        item = await self._get_sport_item(item_id)
         if not item:
             return None
-        return await self.repository.update_sport_item_complete(
-            item=item, item_data=item_data
-        )
-
-    async def update_sport_item_partial(
-        self, item_id: int, item_data: UpdateSportItemRequest
-    ) -> Inventario | None:
-        """PATCH — actualiza solo los campos enviados. Valida que sea de tipo deporte."""
-        item = await self.repository.get_sport_item_by_id(item_id)
-        if not item:
-            return None
-        return await self.repository.update_sport_item_partial(
-            item_id=item_id, item_data=item_data
-        )
-
-    async def create_sport_items_from_file(
-        self, items_data: list[SportItemFileRequest]
-    ) -> list[Inventario]:
-        tipo_id = await self.repository.ensure_sport_type_exists()
-        return await self.repository.create_sport_items_batch(
-            items_data=items_data, tipo_inventario_id=tipo_id
-        )
+        item_data.tipo_inventario_id = item.tipo_inventario_id
+        return await self.repository.edit_item(id=item_id, item_data=item_data)
 
     # =========================================================
-    # PRÉSTAMOS
+    # Préstamos
     # =========================================================
 
     async def create_sport_borrow(
         self, borrow_data: CreateSportBorrowRequest
     ) -> Prestamo | None:
-        """
-        Reglas de negocio (BRD DEP-RF-01 / DEP-RF-02):
-        - El item debe existir y ser de tipo deporte.
-        - El estudiante no debe tener novedades abiertas en deportes.
-        - Debe haber stock suficiente.
-        """
-        item = await self.repository.get_sport_item_by_id(borrow_data.inventario_id)
-        if not item:
-            return None  # item no encontrado o no es de tipo deporte
+        item = await self._get_sport_item(borrow_data.inventario_id)
+        if not item or not item.id:
+            return None
 
-        # DEP-RF-01: verificar restricciones previas del estudiante
-        open_novedades = await self.repository.get_open_novedades_by_student(
+        if borrow_data.cantidad > item.cantidad:
+            return None
+
+        open_novedades = await self._get_open_novedades_by_student(
             borrow_data.estudiante_id
         )
         if open_novedades:
-            return None  # estudiante tiene novedades deportivas sin resolver
-
-        if borrow_data.cantidad > item.cantidad:
-            return None  # stock insuficiente
-
-        if not item.id:
             return None
 
-        borrow = await self.repository.create_sport_borrow(borrow_data)
+        borrow = await self.repository.create_borrow(borrow_data=borrow_data)
         if not borrow:
             return None
 
-        item.cantidad -= borrow_data.cantidad
-        await self.repository.update_sport_item_amount(item.id, item.cantidad)
-
+        await self.repository.update_amount_item(
+            id=item.id, amount=item.cantidad - borrow_data.cantidad
+        )
         return borrow
 
     async def return_sport_borrow(
         self, borrow_id: int, borrow_data: ReturnSportBorrowRequest
     ) -> Prestamo | None:
-        """
-        Reglas de negocio (BRD DEP-RF-03):
-        - El préstamo debe existir y pertenecer a un item de tipo deporte.
-        - El préstamo debe estar activo.
-        - Los datos de item, estudiante y cantidad deben coincidir.
-        - La observación (estado en que regresa el implemento) es obligatoria.
-        """
-        item = await self.repository.get_sport_item_by_id(borrow_data.inventario_id)
+        item = await self._get_sport_item(borrow_data.inventario_id)
         if not item or not item.id:
             return None
 
-        borrow = await self.repository.get_sport_borrow_by_id(borrow_id)
+        borrow = await self._get_sport_borrow(borrow_id)
         if not borrow:
             return None
 
@@ -130,43 +149,28 @@ class SportsService:
         if borrow.cantidad != borrow_data.cantidad:
             return None
         if not borrow.estado_prestamo:
-            return None  # préstamo ya fue devuelto
+            return None
 
-        item.cantidad += borrow_data.cantidad
-        await self.repository.update_sport_item_amount(item.id, item.cantidad)
-
-        return await self.repository.return_sport_borrow(
+        await self.repository.update_amount_item(
+            id=item.id, amount=item.cantidad + borrow_data.cantidad
+        )
+        return await self.repository.return_borrow(
             borrow_id=borrow_id, borrow_data=borrow_data
         )
 
-    async def get_sport_borrowings(
-        self, page: int, limit: int, active: bool | None
-    ) -> Sequence[Prestamo]:
-        offset = calculate_offset(page, limit)
-        return await self.repository.get_sport_borrowings_paginated(
-            offset=offset, limit=limit, active=active
-        )
-
     # =========================================================
-    # NOVEDADES
+    # Novedades
     # =========================================================
 
     async def create_sport_novedad(
         self, novedad_data: CreateSportNovedadRequest
     ) -> Novedad | None:
-        """
-        Reglas de negocio (BRD DEP-RF-04):
-        - El préstamo debe existir y ser de tipo deporte.
-        - Solo se puede crear novedad sobre préstamos activos.
-        """
-        borrow = await self.repository.get_sport_borrow_by_id(novedad_data.prestamo_id)
+        borrow = await self._get_sport_borrow(novedad_data.prestamo_id)
         if not borrow:
-            return None  # préstamo no encontrado o no es deportivo
-
+            return None
         if not borrow.estado_prestamo:
-            return None  # no se crea novedad sobre un préstamo ya cerrado
-
-        return await self.repository.create_sport_novedad(
+            return None
+        return await self.repository.create_novedad(
             prestamo_id=novedad_data.prestamo_id,
             descripcion=novedad_data.descripcion,
         )
@@ -174,42 +178,35 @@ class SportsService:
     async def resolve_sport_novedad(
         self, novedad_id: int, resolve_data: ResolveSportNovedadRequest
     ) -> Novedad | None:
-        """
-        Reglas de negocio (BRD DEP-RF-05):
-        - La novedad debe existir.
-        - Solo se puede resolver si está abierta (resuelta=False).
-        - Se requiere descripción de resolución.
-        """
         novedad = await self.repository.get_novedad_by_id(novedad_id)
-        if not novedad:
+        if not novedad or novedad.resuelta:
             return None
-
-        if novedad.resuelta:
-            return None  # ya fue resuelta anteriormente
-
-        return await self.repository.resolve_sport_novedad(
-            novedad_id=novedad_id, resolve_data=resolve_data
-        )
+        novedad.resuelta = True
+        novedad.descripcion = resolve_data.descripcion
+        self.repository.session.add(novedad)
+        self.repository.session.commit()
+        self.repository.session.refresh(novedad)
+        return novedad
 
     # =========================================================
-    # PAZ Y SALVO
+    # Paz y salvo
     # =========================================================
 
     async def get_paz_y_salvo_status(
         self, estudiante_id: int
     ) -> PazYSalvoStatusResponse:
-        """
-        Reglas de negocio (BRD DEP-RF-04 / RN-12 / RN-10):
-        - Préstamos activos sin devolver → bloquea paz y salvo (ROJO).
-        - Novedades abiertas sin resolver → bloquea paz y salvo (ROJO).
-        - Sin pendientes → paz y salvo habilitado (VERDE).
-        """
-        active_borrows = await self.repository.get_active_borrows_by_student(
-            estudiante_id
-        )
-        open_novedades = await self.repository.get_open_novedades_by_student(
-            estudiante_id
-        )
+        tipo_id = await self._get_sport_type_id()
+
+        active_borrows = []
+        if tipo_id:
+            all_borrows = await self.repository.get_borrowings_pagination(
+                offset=0, limit=1000, active=True, type_id=tipo_id
+            )
+            active_borrows = [
+                b for b in all_borrows if b.estudiante_id == estudiante_id
+            ]
+
+        open_novedades = await self._get_open_novedades_by_student(estudiante_id)
 
         tiene_prestamos_activos = len(active_borrows) > 0
         tiene_novedades_abiertas = len(open_novedades) > 0

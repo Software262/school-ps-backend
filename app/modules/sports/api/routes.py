@@ -52,10 +52,8 @@ async def get_sport_items(
     filter_pagination_query: Annotated[FilterPaginationSports, Query()],
 ):
     use_case = GetSportItems(session=session)
-    data = await use_case.execute(
-        page=filter_pagination_query.page,
-        limit=filter_pagination_query.limit,
-    )
+    filter_pagination_query.item_type = "deporte"
+    data = await use_case.execute(filter_pagination=filter_pagination_query)
     return (
         Response(
             data=data,
@@ -235,11 +233,8 @@ async def get_sport_borrowings(
     filter_pagination_query: Annotated[FilterPaginationSportsBorrowings, Query()],
 ):
     use_case = GetSportBorrowings(session=session)
-    data = await use_case.execute(
-        page=filter_pagination_query.page,
-        limit=filter_pagination_query.limit,
-        active=filter_pagination_query.active,
-    )
+    filter_pagination_query.item_type = "deporte"
+    data = await use_case.execute(filter_pagination=filter_pagination_query)
     return (
         Response(
             data=data,

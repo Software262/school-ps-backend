@@ -1,11 +1,7 @@
-from app.modules.sports.domain.service import SportsService
-from app.modules.sports.infrastructure.repository import SportsRepositoryImpl
+from app.core.db import SessionDep
+from app.modules.inventory.application.get_items_inventory import GetItemsInventory
 
 
-class GetSportItems:
-    def __init__(self, session):
-        self.repository = SportsRepositoryImpl(session=session)
-        self.service = SportsService(repository=self.repository)
-
-    async def execute(self, page: int, limit: int):
-        return await self.service.get_sport_items(page=page, limit=limit)
+class GetSportItems(GetItemsInventory):
+    def __init__(self, session: SessionDep):
+        super().__init__(session=session)
