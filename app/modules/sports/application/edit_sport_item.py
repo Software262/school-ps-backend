@@ -10,4 +10,4 @@ class EditSportItem(EditSingleItem):
         self._service = SportsService(repository=self.repository)
 
     async def _execute(self, item_id: int, item_data: UpdateSportItemRequest):
-        return await self._service.update_item(item_id=item_id, item_data=item_data)
+        return await self._service.edit_item(item_id=item_id, item_data=item_data)

@@ -1,19 +1,21 @@
 from pydantic import BaseModel, Field
 from typing import Literal
-from datetime import datetime
 
 from pydantic import model_validator
 
 from app.modules.inventory.schemas.request import (
     CreateItemRequest,
+    CreateBorrowRequest,
     FilterPaginationInventory,
     FilterPaginationBorrowings,
     UpdateSingleItemRequest,
     InventoryItemRequest,
+    ReturnBorrowRequest,
 )
 
 
 # ---------- Filtros ----------
+
 
 class FilterPaginationSports(FilterPaginationInventory):
     item_type: Literal["deporte"] | None = Field(default="deporte")
@@ -38,6 +40,7 @@ class FilterPaginationSportsBorrowings(FilterPaginationBorrowings):
 
 # ---------- Items ----------
 
+
 class CreateSportItemRequest(CreateItemRequest):
     tipo_inventario_id: int = Field(default=0, exclude=True)
 
@@ -56,22 +59,17 @@ class SportItemFileRequest(InventoryItemRequest):
 
 # ---------- Préstamos ----------
 
-class CreateSportBorrowRequest(BaseModel):
-    inventario_id: int = Field(ge=1)
-    estudiante_id: int = Field(ge=1)
-    fecha_salida: datetime = Field(examples=[datetime.now()])
-    cantidad: int = Field(ge=1)
-    observacion: str | None = Field(default=None)
+
+class CreateSportBorrowRequest(CreateBorrowRequest):
+    pass
 
 
-class ReturnSportBorrowRequest(BaseModel):
-    inventario_id: int = Field(ge=1)
-    estudiante_id: int = Field(ge=1)
-    cantidad: int = Field(ge=1)
+class ReturnSportBorrowRequest(ReturnBorrowRequest):
     observacion: str = Field(min_length=5, max_length=400)
 
 
 # ---------- Novedades ----------
+
 
 class CreateSportNovedadRequest(BaseModel):
     prestamo_id: int = Field(ge=1)

@@ -1,6 +1,7 @@
 from typing import Sequence
 
 from app.modules.inventory.domain.repositories import InventoryRepository
+from app.modules.sports.infrastructure.repository import SportsRepository
 from app.modules.inventory.infrastructure.models import Inventario, Novedad, Prestamo
 from app.modules.sports.schemas.request import (
     CreateSportBorrowRequest,
@@ -17,7 +18,7 @@ TIPO_DEPORTE = "deporte"
 
 
 class SportsService:
-    def __init__(self, repository: InventoryRepository):
+    def __init__(self, repository: InventoryRepository | SportsRepository):
         self.repository = repository
 
     # =========================================================
@@ -31,8 +32,17 @@ class SportsService:
         tipo_id = await self._get_sport_type_id()
         if tipo_id is None:
             tipo = await self.repository.create_type_inventory(TIPO_DEPORTE)
-            return tipo.id
+            return tipo.id or 0
         return tipo_id
+
+    async def edit_item(
+        self, item_id: int, item_data: UpdateSportItemRequest
+    ) -> Inventario | None:
+        item = await self._get_sport_item(item_id)
+        if not item:
+            return None
+        item_data.tipo_inventario_id = None
+        return await self.repository.edit_item(id=item_id, item_data=item_data)
 
     async def _get_sport_item(self, item_id: int) -> Inventario | None:
         """Devuelve el item solo si pertenece al tipo deporte."""
@@ -61,20 +71,13 @@ class SportsService:
         if tipo_id is None:
             return []
         # Filtramos desde los préstamos activos del estudiante en deportes
-        active_borrows = await self.repository.get_borrowings_pagination(
-            offset=0, limit=1000, active=True, type_id=tipo_id
-        )
-        sport_borrow_ids = {
-            b.id for b in active_borrows if b.estudiante_id == estudiante_id
-        }
+
         # Buscamos novedades abiertas cuyo prestamo_id esté en ese conjunto
         # Usamos create_novedad no existe get — filtramos en memoria con lo disponible
         all_borrows = await self.repository.get_borrowings_pagination(
             offset=0, limit=1000, active=None, type_id=tipo_id
         )
-        student_borrow_ids = {
-            b.id for b in all_borrows if b.estudiante_id == estudiante_id
-        }
+
         open_novedades = []
         for borrow in all_borrows:
             if borrow.estudiante_id != estudiante_id:
@@ -178,6 +181,7 @@ class SportsService:
     async def resolve_sport_novedad(
         self, novedad_id: int, resolve_data: ResolveSportNovedadRequest
     ) -> Novedad | None:
+        assert isinstance(self.repository, SportsRepository)
         novedad = await self.repository.get_novedad_by_id(novedad_id)
         if not novedad or novedad.resuelta:
             return None
@@ -187,6 +191,12 @@ class SportsService:
         self.repository.session.commit()
         self.repository.session.refresh(novedad)
         return novedad
+
+    async def create_sport_items_from_file(self, items_data: list) -> list:
+        tipo_id = await self._ensure_sport_type_exists()
+        for item in items_data:
+            item.tipo_inventario_id = tipo_id
+        return await self.repository.create_items_batch(create_items_data=items_data)
 
     # =========================================================
     # Paz y salvo

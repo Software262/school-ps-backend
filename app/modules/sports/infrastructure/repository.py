@@ -1,6 +1,3 @@
-from datetime import datetime
-from typing import Sequence
-
 from sqlmodel import select
 
 from app.core.db import SessionDep
