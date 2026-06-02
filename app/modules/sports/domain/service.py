@@ -1,4 +1,7 @@
 from app.modules.inventory.domain.repositories import InventoryRepository
+from app.modules.sports.schemas.request import (
+    CreateSportItemRequest,
+)
 
 
 class InvalidSportItem(Exception):
@@ -29,7 +32,7 @@ class SportsService:
 
         return sport_type
 
-    async def create_item(self, item_data):
+    async def create_item(self, item_data: CreateSportItemRequest):
 
         await self.validate_sport_type(item_data.tipo_inventario_id)
 
