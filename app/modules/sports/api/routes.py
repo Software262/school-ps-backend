@@ -7,12 +7,15 @@ from app.modules.sports.application.create_item import CreateItemDeportes
 from app.modules.sports.application.update_item import UpdateItemDeportes
 from app.modules.sports.application.edit_single import EditItemDeportes
 from app.modules.sports.application.return_borrowing import ReturnBorrowingDeportes
+from app.modules.sports.application.get_borrowing import GetBorrowingsDeportes
+
 from app.modules.sports.application.get_items import (
     GetItemsDeportes,
 )
 from app.modules.sports.schemas.request import (
     CreateSportItemRequest,
     FilterPaginationDeportes,
+    FilterPaginationBorrowingDeportes,
     UpdateItemDeportesComplete,
     UpdateItemDeportesSingle,
     ReturnSportBorrowRequest,
@@ -116,6 +119,25 @@ async def edit_sport_item(
         message="Articulo deportivo editado exitosamente",
         status_code=status.HTTP_200_OK,
     ).to_dict()
+
+
+@router.get("/borrow")
+async def get_sport_borrowings(
+    session: SessionDep,
+    filter_pagination: Annotated[FilterPaginationBorrowingDeportes, Query()],
+):
+    get_borrowings = GetBorrowingsDeportes(session=session)
+    data = await get_borrowings.execute(filter_pagination=filter_pagination)
+
+    return (
+        Response(
+            data=data,
+            message="Prestamos deportivos obtenidos exitosamente",
+            status_code=status.HTTP_200_OK,
+        )
+        .filterPagination(page=filter_pagination.page, limit=filter_pagination.limit)
+        .to_dict()
+    )
 
 
 @router.patch("/borrow/{borrow_id}")

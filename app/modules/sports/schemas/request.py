@@ -23,6 +23,7 @@ class FilterPaginationDeportes(FilterPaginationInventory):
 
 
 class FilterPaginationBorrowingDeportes(FilterPaginationBorrowings):
+    item_type: Literal["deporte"] | None = Field(default="deporte")
     active: bool | None = None
 
 
