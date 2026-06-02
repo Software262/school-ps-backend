@@ -247,7 +247,9 @@ def seed_all(session: Session):
         estudiantes.append(
             Estudiante(
                 grado_id=int(grado_decimo.id) if grado_decimo.id is not None else 0,
-                acudiente_id=int(acudiente_actual.id) if acudiente_actual.id is not None else 0,
+                acudiente_id=int(acudiente_actual.id)
+                if acudiente_actual.id is not None
+                else 0,
                 nombre=nombre,
                 documento=doc,
                 activo=True,
@@ -259,7 +261,9 @@ def seed_all(session: Session):
         estudiantes.append(
             Estudiante(
                 grado_id=int(grado_once.id) if grado_once.id is not None else 0,
-                acudiente_id=int(acudiente_actual.id) if acudiente_actual.id is not None else 0,
+                acudiente_id=int(acudiente_actual.id)
+                if acudiente_actual.id is not None
+                else 0,
                 nombre=nombre,
                 documento=doc,
                 activo=True,

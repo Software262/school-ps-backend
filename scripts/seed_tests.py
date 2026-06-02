@@ -21,44 +21,52 @@ def seed_tests() -> None:
         # Seleccionar las dos pruebas solicitadas
         c1 = session.exec(
             select(Complementario).where(
-                Complementario.tipo_complementario == "Prueba ICFES"
+                Complementario.tipo_complementario == "Prueba Saber 10"
             )
         ).first()
         c2 = session.exec(
             select(Complementario).where(
-                Complementario.tipo_complementario == "Simulacro"
+                Complementario.tipo_complementario == "Simulacro ICFES 2024"
             )
         ).first()
 
         est1 = estudiantes[0]
         est2 = estudiantes[1] if len(estudiantes) > 1 else est1
 
-        assert c1 is not None, "Complementario Prueba ICFES no encontrado"
-        assert c2 is not None, "Complementario Simulacro no encontrado"
+        assert c1 is not None, "Complementario Prueba Saber 10 no encontrado"
+        assert c2 is not None, "Complementario Simulacro ICFES 2024 no encontrado"
+
+        from app.modules.enrollment.infrastructure.models import Periodo
+
+        periodo = session.exec(select(Periodo).where(Periodo.estado.is_(True))).first()
+        assert periodo is not None, "Periodo activo no encontrado"
 
         detalles = [
             DetallePrueba(
                 estudiante_id=int(est1.id) if est1.id is not None else 0,
-                complementario_id=int(c1.id),  # type: ignore
+                complementario_id=int(c1.id) if c1.id is not None else 0,
                 tipo_prueba="icfes",
                 estado="pagada",
-                valor_pagado=45000,
+                valor_pagado=40000,
+                periodo_id=int(periodo.id) if periodo.id is not None else 0,
                 created_at=datetime.now(),
             ),
             DetallePrueba(
                 estudiante_id=int(est2.id) if est2.id is not None else 0,
-                complementario_id=int(c2.id),  # type: ignore
+                complementario_id=int(c2.id) if c2.id is not None else 0,
                 tipo_prueba="simulacro",
                 estado="pendiente",
                 valor_pagado=0,
+                periodo_id=int(periodo.id) if periodo.id is not None else 0,
                 created_at=datetime.now(),
             ),
             DetallePrueba(
                 estudiante_id=int(est1.id) if est1.id is not None else 0,
-                complementario_id=int(c2.id),  # type: ignore
+                complementario_id=int(c2.id) if c2.id is not None else 0,
                 tipo_prueba="simulacro",
                 estado="pago-parcial",
                 valor_pagado=10000,
+                periodo_id=int(periodo.id) if periodo.id is not None else 0,
                 created_at=datetime.now(),
             ),
         ]

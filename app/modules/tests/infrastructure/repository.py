@@ -9,7 +9,11 @@ from app.modules.tests.schemas.request import (
     CreateTestDetailRequest,
     UpdateTestDetailRequest,
 )
-from app.modules.enrollment.infrastructure.models import Estudiante, Complementario
+from app.modules.enrollment.infrastructure.models import (
+    Estudiante,
+    Complementario,
+    Periodo,
+)
 
 
 class InternalTestRepository(InternalTestRepositoryInterface):
@@ -17,8 +21,6 @@ class InternalTestRepository(InternalTestRepositoryInterface):
         self.session = session
 
     async def get_tests_pagination(self, offset: int, limit: int) -> list[dict]:
-        from app.modules.enrollment.infrastructure.models import Periodo
-
         stmt = (
             select(DetallePrueba, Estudiante, Complementario, Periodo)
             .join(Estudiante)
@@ -152,3 +154,57 @@ class InternalTestRepository(InternalTestRepositoryInterface):
             .where(Estudiante.grado_id == grado_id)
             .where(Estudiante.activo)
         ).all()
+
+    async def get_available_tests(self) -> list[Complementario]:
+        return self.session.exec(
+            select(Complementario)
+            .where(Complementario.estado_complemento == "Activo")
+            .where(Complementario.uso_matricula.is_(False))
+        ).all()
+
+    async def get_existing_assignments(
+        self, complementario_id: int, periodo_id: int
+    ) -> list[int]:
+        results = self.session.exec(
+            select(DetallePrueba.estudiante_id).where(
+                DetallePrueba.complementario_id == complementario_id,
+                DetallePrueba.periodo_id == periodo_id,
+            )
+        ).all()
+        # Handle cases where estudiante_id could be None, though typically it's an int
+        return [r for r in results if r is not None]
+
+    async def get_complementary_by_id(self, comp_id: int) -> Complementario | None:
+        return self.session.get(Complementario, comp_id)
+
+    async def delete_test_complementary(self, comp_id: int) -> bool:
+        comp = self.session.get(Complementario, comp_id)
+        if not comp:
+            return False
+
+        detalles = self.session.exec(
+            select(DetallePrueba).where(DetallePrueba.complementario_id == comp_id)
+        ).all()
+        for d in detalles:
+            self.session.delete(d)
+
+        self.session.delete(comp)
+        self.session.commit()
+        return True
+
+    async def save_complementary(self, comp: Complementario) -> Complementario:
+        self.session.add(comp)
+        self.session.commit()
+        self.session.refresh(comp)
+        return comp
+
+    async def delete_test(self, test: DetallePrueba) -> bool:
+        self.session.delete(test)
+        self.session.commit()
+        return True
+
+    async def save_test(self, test: DetallePrueba) -> DetallePrueba:
+        self.session.add(test)
+        self.session.commit()
+        self.session.refresh(test)
+        return test

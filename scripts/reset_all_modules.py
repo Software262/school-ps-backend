@@ -126,12 +126,12 @@ def seed_data(session: Session):
 
     # === PERIODOS ===
     periodo_1 = Periodo(
-        periodo_electivo=datetime.now(),
+        periodo_electivo=datetime(2026, 1, 1),
         estado=True,
         fecha=datetime.now(),
     )
     periodo_2 = Periodo(
-        periodo_electivo=datetime.now(),
+        periodo_electivo=datetime(2026, 2, 1),
         estado=True,
         fecha=datetime.now(),
     )

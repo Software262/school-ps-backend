@@ -11,9 +11,7 @@ from app.modules.inventory.schemas.request import (
 
 
 class FilterPaginationDeportes(FilterPaginationInventory):
-    item_type: Literal["banda", "deporte", "ajedrez"] | None = Field(
-        default="deporte"
-    )
+    item_type: Literal["banda", "deporte", "ajedrez"] | None = Field(default="deporte")
 
     @model_validator(mode="after")
     def validate_modification_modes(self) -> "FilterPaginationDeportes":

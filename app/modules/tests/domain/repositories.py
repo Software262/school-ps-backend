@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+from app.modules.enrollment.infrastructure.models import Complementario
 from app.modules.tests.infrastructure.models import DetallePrueba
 from app.modules.tests.schemas.request import (
     CreateTestDetailRequest,
@@ -45,4 +46,32 @@ class InternalTestRepository(ABC):
 
     @abstractmethod
     async def get_active_students_by_grade(self, grado_id: int):
+        pass
+
+    @abstractmethod
+    async def get_available_tests(self) -> list[Complementario]:
+        pass
+
+    @abstractmethod
+    async def get_existing_assignments(self, complementario_id: int) -> list[int]:
+        pass
+
+    @abstractmethod
+    async def get_complementary_by_id(self, comp_id: int) -> Complementario | None:
+        pass
+
+    @abstractmethod
+    async def delete_test_complementary(self, comp_id: int) -> bool:
+        pass
+
+    @abstractmethod
+    async def save_complementary(self, comp: Complementario) -> Complementario:
+        pass
+
+    @abstractmethod
+    async def delete_test(self, test: DetallePrueba) -> bool:
+        pass
+
+    @abstractmethod
+    async def save_test(self, test: DetallePrueba) -> DetallePrueba:
         pass

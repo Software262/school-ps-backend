@@ -1,16 +1,12 @@
 from app.core.db import SessionDep
 from app.modules.tests.infrastructure.repository import InternalTestRepository
+from app.modules.tests.domain.service import InternalTestService
 
 
 class DeleteInternalTest:
     def __init__(self, session: SessionDep):
         self.repository = InternalTestRepository(session)
+        self.service = InternalTestService(self.repository)
 
     async def execute(self, test_id: int):
-        test = await self.repository.get_test_by_id(test_id)
-        if not test:
-            raise ValueError("Test not found")
-
-        self.repository.session.delete(test)
-        self.repository.session.commit()
-        return True
+        return await self.service.delete_test(test_id)

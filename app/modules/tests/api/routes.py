@@ -3,6 +3,10 @@ from typing import Annotated
 from fastapi import APIRouter, Query, status
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
+from sqlmodel import select as sql_select, select
+
+from app.modules.enrollment.infrastructure.models import Periodo
+from app.modules.tests.infrastructure.models import DetallePrueba as DP
 
 from app.core.db import SessionDep
 from app.modules.tests.application.create_internal import CreateInternalTest
@@ -12,15 +16,15 @@ from app.modules.tests.application.get_internal_by_student import (
     GetInternalTestsByStudent,
 )
 from app.modules.tests.application.update_internal import UpdateInternalTest
-from app.modules.tests.application.assign_massive_tests import AssignMassiveTests
-from app.modules.tests.application.register_test_payment import RegisterTestPayment
-from app.modules.tests.application.get_student_test_status import GetStudentTestStatus
-from app.modules.tests.application.get_available_tests import GetAvailableTests
-from app.modules.tests.application.delete_internal_test import DeleteInternalTest
-from app.modules.tests.application.delete_test_complementary import (
+from app.modules.tests.application.assign_massive import AssignMassiveTests
+from app.modules.tests.application.register_payment import RegisterTestPayment
+from app.modules.tests.application.get_student_status import GetStudentTestStatus
+from app.modules.tests.application.get_available import GetAvailableTests
+from app.modules.tests.application.delete_internal import DeleteInternalTest
+from app.modules.tests.application.delete_complementary import (
     DeleteTestComplementary,
 )
-from app.modules.tests.application.update_test_complementary import (
+from app.modules.tests.application.update_complementary import (
     UpdateTestComplementary,
 )
 from app.modules.tests.schemas.request import (
@@ -40,7 +44,6 @@ from app.modules.enrollment.infrastructure.models import (
     Grado,
     Estudiante as EstudianteModel,
 )
-from sqlmodel import select
 
 router = APIRouter()
 
@@ -86,8 +89,6 @@ async def get_grados(session: SessionDep):
 
 @router.get("/periodos")
 async def get_periodos(session: SessionDep):
-    from app.modules.enrollment.infrastructure.models import Periodo
-
     periodos = session.exec(select(Periodo).where(Periodo.estado)).all()
     return Response(
         data=[
@@ -152,14 +153,11 @@ async def assign_massive_tests(session: SessionDep, request: MassiveAssignmentRe
 @router.post("/assign-individual")
 async def assign_individual_test(session: SessionDep, request: CreateTestDetailRequest):
     try:
-        # Verificar duplicado: mismo estudiante + mismo complementario
-        from sqlmodel import select as sql_select
-        from app.modules.tests.infrastructure.models import DetallePrueba as DP
-
         existing = session.exec(
             sql_select(DP).where(
                 DP.estudiante_id == request.estudiante_id,
                 DP.complementario_id == request.complementario_id,
+                DP.periodo_id == request.periodo_id,
             )
         ).first()
         if existing:
@@ -169,8 +167,6 @@ async def assign_individual_test(session: SessionDep, request: CreateTestDetailR
                 status_code=status.HTTP_200_OK,
                 details={"duplicate": True},
             ).to_dict()
-
-
 
         app_service = CreateInternalTest(session=session)
         data = await app_service.execute(request)

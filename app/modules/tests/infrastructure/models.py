@@ -9,4 +9,4 @@ class DetallePrueba(Base, table=True):
     tipo_prueba: str = Field(max_length=50)
     estado: str = Field(default="pendiente", max_length=20)
     valor_pagado: int = Field(default=0)
-    periodo_id: int | None = Field(default=None, foreign_key="periodo.id")
+    periodo_id: int = Field(foreign_key="periodo.id")
