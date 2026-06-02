@@ -6,12 +6,12 @@ from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     CreateItemRequest,
     CreateTypeInventoryRequest,
+    FilterPaginationInventory,
     InventoryItemRequest,
     ReturnBorrowRequest,
     UpdateCompleteItemRequest,
     UpdateSingleItemRequest,
 )
-from app.shared.schemas.filter_pagination import FilterPagination
 from app.shared.utils.filter_pagination import calculate_offset
 
 
@@ -19,7 +19,7 @@ class InventoryService:
     def __init__(self, repository: InventoryRepository):
         self.repository = repository
 
-    async def get_inventory(self, filter_pagination: FilterPagination):
+    async def get_inventory(self, filter_pagination: FilterPaginationInventory):
         offset = calculate_offset(filter_pagination.page, filter_pagination.limit)
 
         if not filter_pagination.item_type:
@@ -106,7 +106,7 @@ class InventoryService:
         )
 
     async def get_borrowings(
-        self, filter_pagination: FilterPagination, active: bool | None
+        self, filter_pagination: FilterPaginationInventory, active: bool | None
     ) -> Sequence[Prestamo]:
         offset = calculate_offset(filter_pagination.page, filter_pagination.limit)
 

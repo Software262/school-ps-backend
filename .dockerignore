@@ -1,0 +1,76 @@
+# Virtual environment and cache directories
+**/__pycache__/
+**/*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.env
+.env.*
+
+# Development and testing files
+tests/
+test/
+**/test_*.py
+**/*_test.py
+pytest.ini
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+conftest.py
+
+# IDE configuration files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# System files
+.DS_Store
+Thumbs.db
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Documentation and development files
+*.md
+!README.md
+docs/
+.ropeproject/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Docker
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+docker-compose*.yaml
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Temporary and backup files
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
+
+# Project-specific files not needed at runtime
+alembic.ini
+migrations/
+scripts/
+*.sh
+
+# Keep only the essentials
+!app/
+!pyproject.toml
+!uv.lock
