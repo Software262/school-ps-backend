@@ -44,7 +44,7 @@ class InternalTestRepository(InternalTestRepositoryInterface):
         results = self.session.exec(stmt).all()
         return [
             TestDetailEntity(
-                id=d.id,
+                id=d.id or 0,
                 estudiante_id=d.estudiante_id,
                 complementario_id=d.complementario_id,
                 tipo_prueba=d.tipo_prueba,
@@ -58,7 +58,7 @@ class InternalTestRepository(InternalTestRepositoryInterface):
                     valor=c.valor,
                 ),
                 periodo=PeriodSummary(
-                    id=p.id,
+                    id=p.id or 0,
                     nombre=str(p.periodo_electivo.year)
                     + "-"
                     + str(p.periodo_electivo.month).zfill(2),
@@ -89,7 +89,7 @@ class InternalTestRepository(InternalTestRepositoryInterface):
         results = self.session.exec(stmt).all()
         return [
             TestDetailEntity(
-                id=d.id,
+                id=d.id or 0,
                 estudiante_id=d.estudiante_id,
                 complementario_id=d.complementario_id,
                 tipo_prueba=d.tipo_prueba,
@@ -225,13 +225,13 @@ class InternalTestRepository(InternalTestRepositoryInterface):
 
     async def get_all_grados(self) -> list[GradoEntity]:
         grados = self.session.exec(select(Grado)).all()
-        return [GradoEntity(id=g.id, nombre=g.nombre) for g in grados]
+        return [GradoEntity(id=g.id or 0, nombre=g.nombre) for g in grados]
 
     async def get_all_periodos(self) -> list[PeriodoEntity]:
         periodos = self.session.exec(select(Periodo).where(Periodo.estado)).all()
         return [
             PeriodoEntity(
-                id=p.id,
+                id=p.id or 0,
                 nombre=f"{p.periodo_electivo.year}-{str(p.periodo_electivo.month).zfill(2)}",
                 fecha=str(p.fecha.date()),
             )
@@ -242,7 +242,10 @@ class InternalTestRepository(InternalTestRepositoryInterface):
         students = self.session.exec(select(Estudiante).where(Estudiante.activo)).all()
         return [
             EstudianteEntity(
-                id=s.id, nombre=s.nombre, documento=s.documento, grado_id=s.grado_id
+                id=s.id or 0,
+                nombre=s.nombre,
+                documento=s.documento,
+                grado_id=s.grado_id,
             )
             for s in students
         ]
