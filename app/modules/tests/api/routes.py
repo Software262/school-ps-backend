@@ -482,7 +482,7 @@ async def update_test_complementary(
 ):
     try:
         use_case = UpdateTestComplementary(session=session)
-        use_case.execute(
+        await use_case.execute(
             comp_id=comp_id, tipo_complementario=body.nombre, valor=body.valor
         )
         return Response(
@@ -511,7 +511,7 @@ async def update_test_complementary(
 async def delete_test_complementary(session: SessionDep, comp_id: int):
     try:
         use_case = DeleteTestComplementary(session=session)
-        use_case.execute(comp_id=comp_id)
+        await use_case.execute(comp_id=comp_id)
         return Response(
             data={"id": comp_id},
             message="Prueba eliminada exitosamente",

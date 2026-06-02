@@ -1,7 +1,11 @@
 from datetime import datetime
-from sqlmodel import Session, SQLModel, select, text
+from sqlmodel import Session, SQLModel, select, text, col
 from app.core.db import engine
-from app.modules.enrollment.infrastructure.models import Estudiante, Complementario
+from app.modules.enrollment.infrastructure.models import (
+    Estudiante,
+    Complementario,
+    Periodo,
+)
 from app.modules.tests.infrastructure.models import DetallePrueba
 
 
@@ -36,9 +40,9 @@ def seed_tests() -> None:
         assert c1 is not None, "Complementario Prueba Saber 10 no encontrado"
         assert c2 is not None, "Complementario Simulacro ICFES 2024 no encontrado"
 
-        from app.modules.enrollment.infrastructure.models import Periodo
-
-        periodo = session.exec(select(Periodo).where(Periodo.estado.is_(True))).first()
+        periodo = session.exec(
+            select(Periodo).where(col(Periodo.estado).is_(True))
+        ).first()
         assert periodo is not None, "Periodo activo no encontrado"
 
         detalles = [

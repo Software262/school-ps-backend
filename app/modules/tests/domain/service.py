@@ -50,7 +50,7 @@ class InternalTestService:
     async def get_available_tests(self):
         return await self.repository.get_available_tests()
 
-    async def assign_massive(self, request: MassiveAssignmentRequest):
+    async def assign_massive(self, request: MassiveAssignmentRequest) -> dict:
         students = await self.repository.get_active_students_by_grade(request.grado_id)
         if not students:
             return {

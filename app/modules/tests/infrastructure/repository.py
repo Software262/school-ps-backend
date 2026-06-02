@@ -1,4 +1,4 @@
-from sqlmodel import select
+from sqlmodel import select, col
 
 from app.core.db import SessionDep
 from app.modules.tests.domain.repositories import (
@@ -148,19 +148,21 @@ class InternalTestRepository(InternalTestRepositoryInterface):
             self.session.refresh(t)
         return tests
 
-    async def get_active_students_by_grade(self, grado_id: int):
-        return self.session.exec(
+    async def get_active_students_by_grade(self, grado_id: int) -> list[Estudiante]:
+        results = self.session.exec(
             select(Estudiante)
             .where(Estudiante.grado_id == grado_id)
             .where(Estudiante.activo)
         ).all()
+        return list(results)
 
     async def get_available_tests(self) -> list[Complementario]:
-        return self.session.exec(
+        results = self.session.exec(
             select(Complementario)
             .where(Complementario.estado_complemento == "Activo")
-            .where(Complementario.uso_matricula.is_(False))
+            .where(col(Complementario.uso_matricula).is_(False))
         ).all()
+        return list(results)
 
     async def get_existing_assignments(
         self, complementario_id: int, periodo_id: int
@@ -172,7 +174,7 @@ class InternalTestRepository(InternalTestRepositoryInterface):
             )
         ).all()
         # Handle cases where estudiante_id could be None, though typically it's an int
-        return [r for r in results if r is not None]
+        return [int(r) for r in results if r is not None]
 
     async def get_complementary_by_id(self, comp_id: int) -> Complementario | None:
         return self.session.get(Complementario, comp_id)
