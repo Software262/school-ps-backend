@@ -8,7 +8,9 @@ class CreateTestDetailRequest(BaseModel):
     )
     tipo_prueba: str = Field(description="Tipo de prueba")
     estado: str = Field(default="pendiente", description="Estado del pago de la prueba")
-    valor_pagado: int = Field(default=0, description="Valor pagado hasta el momento")
+    valor_pagado: int = Field(
+        default=0, ge=0, description="Valor pagado hasta el momento"
+    )
     periodo_id: int = Field(description="ID del periodo")
 
 
@@ -19,7 +21,9 @@ class UpdateTestDetailRequest(BaseModel):
     )
     tipo_prueba: str = Field(description="Tipo de prueba")
     estado: str = Field(description="Estado del pago de la prueba")
-    valor_pagado: int = Field(default=0, description="Valor pagado hasta el momento")
+    valor_pagado: int = Field(
+        default=0, ge=0, description="Valor pagado hasta el momento"
+    )
     periodo_id: int = Field(description="ID del periodo")
 
 

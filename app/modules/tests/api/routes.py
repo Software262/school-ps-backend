@@ -3,10 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query, status
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import select as sql_select, select
 
-from app.modules.enrollment.infrastructure.models import Periodo
-from app.modules.tests.infrastructure.models import DetallePrueba as DP
 
 from app.core.db import SessionDep
 from app.modules.tests.application.create_internal import CreateInternalTest
@@ -20,6 +17,9 @@ from app.modules.tests.application.assign_massive import AssignMassiveTests
 from app.modules.tests.application.register_payment import RegisterTestPayment
 from app.modules.tests.application.get_student_status import GetStudentTestStatus
 from app.modules.tests.application.get_available import GetAvailableTests
+from app.modules.tests.application.get_grados import GetGrados
+from app.modules.tests.application.get_periodos import GetPeriodos
+from app.modules.tests.application.get_estudiantes import GetEstudiantes
 from app.modules.tests.application.delete_internal import DeleteInternalTest
 from app.modules.tests.application.delete_complementary import (
     DeleteTestComplementary,
@@ -39,11 +39,6 @@ from app.modules.tests.schemas.response import (
 )
 from app.shared.schemas.filter_pagination_request import FilterPagination
 from app.shared.utils.response import Response
-
-from app.modules.enrollment.infrastructure.models import (
-    Grado,
-    Estudiante as EstudianteModel,
-)
 
 router = APIRouter()
 
@@ -78,50 +73,77 @@ async def get_available_tests(session: SessionDep):
 
 @router.get("/grados")
 async def get_grados(session: SessionDep):
-    grados = session.exec(select(Grado)).all()
-    return Response(
-        data=[{"id": g.id, "nombre": g.nombre} for g in grados],
-        message="Grados obtenidos",
-        status_code=200,
-        details={"count": len(grados)},
-    ).to_dict()
+    try:
+        app_service = GetGrados(session=session)
+        grados = await app_service.execute()
+        return Response(
+            data=[{"id": g.id, "nombre": g.nombre} for g in grados],
+            message="Grados obtenidos",
+            status_code=200,
+            details={"count": len(grados)},
+        ).to_dict()
+    except Exception as e:
+        return Response(
+            data=None,
+            message="Error al obtener grados",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error": str(e)},
+        ).to_dict()
 
 
 @router.get("/periodos")
 async def get_periodos(session: SessionDep):
-    periodos = session.exec(select(Periodo).where(Periodo.estado)).all()
-    return Response(
-        data=[
-            {
-                "id": p.id,
-                "nombre": f"{p.periodo_electivo.year}-{str(p.periodo_electivo.month).zfill(2)}",
-                "fecha": str(p.fecha.date()),
-            }
-            for p in periodos
-        ],
-        message="Periodos obtenidos",
-        status_code=200,
-        details={"count": len(periodos)},
-    ).to_dict()
+    try:
+        app_service = GetPeriodos(session=session)
+        periodos = await app_service.execute()
+        return Response(
+            data=[
+                {
+                    "id": p.id,
+                    "nombre": p.nombre,
+                    "fecha": p.fecha,
+                }
+                for p in periodos
+            ],
+            message="Periodos obtenidos",
+            status_code=200,
+            details={"count": len(periodos)},
+        ).to_dict()
+    except Exception as e:
+        return Response(
+            data=None,
+            message="Error al obtener periodos",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error": str(e)},
+        ).to_dict()
 
 
 @router.get("/estudiantes")
 async def get_estudiantes(session: SessionDep):
-    students = session.exec(select(EstudianteModel).where(EstudianteModel.activo)).all()
-    return Response(
-        data=[
-            {
-                "id": s.id,
-                "nombre": s.nombre,
-                "documento": s.documento,
-                "grado_id": s.grado_id,
-            }
-            for s in students
-        ],
-        message="Estudiantes obtenidos",
-        status_code=200,
-        details={"count": len(students)},
-    ).to_dict()
+    try:
+        app_service = GetEstudiantes(session=session)
+        students = await app_service.execute()
+        return Response(
+            data=[
+                {
+                    "id": s.id,
+                    "nombre": s.nombre,
+                    "documento": s.documento,
+                    "grado_id": s.grado_id,
+                }
+                for s in students
+            ],
+            message="Estudiantes obtenidos",
+            status_code=200,
+            details={"count": len(students)},
+        ).to_dict()
+    except Exception as e:
+        return Response(
+            data=None,
+            message="Error al obtener estudiantes",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error": str(e)},
+        ).to_dict()
 
 
 @router.post("/assign-massive")
@@ -153,21 +175,6 @@ async def assign_massive_tests(session: SessionDep, request: MassiveAssignmentRe
 @router.post("/assign-individual")
 async def assign_individual_test(session: SessionDep, request: CreateTestDetailRequest):
     try:
-        existing = session.exec(
-            sql_select(DP).where(
-                DP.estudiante_id == request.estudiante_id,
-                DP.complementario_id == request.complementario_id,
-                DP.periodo_id == request.periodo_id,
-            )
-        ).first()
-        if existing:
-            return Response(
-                data=None,
-                message="Este estudiante ya tiene esta prueba asignada",
-                status_code=status.HTTP_200_OK,
-                details={"duplicate": True},
-            ).to_dict()
-
         app_service = CreateInternalTest(session=session)
         data = await app_service.execute(request)
         return Response(
@@ -176,6 +183,15 @@ async def assign_individual_test(session: SessionDep, request: CreateTestDetailR
             status_code=status.HTTP_201_CREATED,
             details={"id": data.id},
         ).to_dict()
+    except ValueError as e:
+        if str(e) == "duplicate_assignment":
+            return Response(
+                data=None,
+                message="Este estudiante ya tiene esta prueba asignada",
+                status_code=status.HTTP_200_OK,
+                details={"duplicate": True},
+            ).to_dict()
+        raise e
     except IntegrityError as e:
         return Response(
             data=None,

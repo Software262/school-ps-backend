@@ -6,11 +6,19 @@ from app.modules.tests.schemas.request import (
     CreateTestDetailRequest,
     UpdateTestDetailRequest,
 )
+from app.modules.tests.domain.entities import (
+    TestDetailEntity,
+    GradoEntity,
+    PeriodoEntity,
+    EstudianteEntity,
+)
 
 
 class InternalTestRepository(ABC):
     @abstractmethod
-    async def get_tests_pagination(self, offset: int, limit: int) -> list[dict]:
+    async def get_tests_pagination(
+        self, offset: int, limit: int
+    ) -> list[TestDetailEntity]:
         pass
 
     @abstractmethod
@@ -23,7 +31,7 @@ class InternalTestRepository(ABC):
         student_id: int,
         offset: int,
         limit: int,
-    ) -> list[dict]:
+    ) -> list[TestDetailEntity]:
         pass
 
     @abstractmethod
@@ -76,4 +84,16 @@ class InternalTestRepository(ABC):
 
     @abstractmethod
     async def save_test(self, test: DetallePrueba) -> DetallePrueba:
+        pass
+
+    @abstractmethod
+    async def get_all_grados(self) -> list[GradoEntity]:
+        pass
+
+    @abstractmethod
+    async def get_all_periodos(self) -> list[PeriodoEntity]:
+        pass
+
+    @abstractmethod
+    async def get_all_estudiantes(self) -> list[EstudianteEntity]:
         pass

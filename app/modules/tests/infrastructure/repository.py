@@ -13,6 +13,16 @@ from app.modules.enrollment.infrastructure.models import (
     Estudiante,
     Complementario,
     Periodo,
+    Grado,
+)
+from app.modules.tests.domain.entities import (
+    TestDetailEntity,
+    StudentSummary,
+    ComplementarySummary,
+    PeriodSummary,
+    GradoEntity,
+    PeriodoEntity,
+    EstudianteEntity,
 )
 
 
@@ -20,7 +30,9 @@ class InternalTestRepository(InternalTestRepositoryInterface):
     def __init__(self, session: SessionDep):
         self.session = session
 
-    async def get_tests_pagination(self, offset: int, limit: int) -> list[dict]:
+    async def get_tests_pagination(
+        self, offset: int, limit: int
+    ) -> list[TestDetailEntity]:
         stmt = (
             select(DetallePrueba, Estudiante, Complementario, Periodo)
             .join(Estudiante)
@@ -31,29 +43,29 @@ class InternalTestRepository(InternalTestRepositoryInterface):
         )
         results = self.session.exec(stmt).all()
         return [
-            {
-                "id": d.id,
-                "estudiante_id": d.estudiante_id,
-                "complementario_id": d.complementario_id,
-                "tipo_prueba": d.tipo_prueba,
-                "estado": d.estado,
-                "valor_pagado": d.valor_pagado,
-                "periodo_id": d.periodo_id,
-                "created_at": d.created_at,
-                "estudiante": {"nombre": e.nombre, "documento": e.documento},
-                "complementario": {
-                    "tipo_complementario": c.tipo_complementario,
-                    "valor": c.valor,
-                },
-                "periodo": {
-                    "id": p.id,
-                    "nombre": str(p.periodo_electivo.year)
+            TestDetailEntity(
+                id=d.id,
+                estudiante_id=d.estudiante_id,
+                complementario_id=d.complementario_id,
+                tipo_prueba=d.tipo_prueba,
+                estado=d.estado,
+                valor_pagado=d.valor_pagado,
+                periodo_id=d.periodo_id,
+                created_at=d.created_at,
+                estudiante=StudentSummary(nombre=e.nombre, documento=e.documento),
+                complementario=ComplementarySummary(
+                    tipo_complementario=c.tipo_complementario,
+                    valor=c.valor,
+                ),
+                periodo=PeriodSummary(
+                    id=p.id,
+                    nombre=str(p.periodo_electivo.year)
                     + "-"
                     + str(p.periodo_electivo.month).zfill(2),
-                }
+                )
                 if p
                 else None,
-            }
+            )
             for d, e, c, p in results
         ]
 
@@ -65,7 +77,7 @@ class InternalTestRepository(InternalTestRepositoryInterface):
         student_id: int,
         offset: int,
         limit: int,
-    ) -> list[dict]:
+    ) -> list[TestDetailEntity]:
         stmt = (
             select(DetallePrueba, Estudiante, Complementario)
             .join(Estudiante)
@@ -76,20 +88,20 @@ class InternalTestRepository(InternalTestRepositoryInterface):
         )
         results = self.session.exec(stmt).all()
         return [
-            {
-                "id": d.id,
-                "estudiante_id": d.estudiante_id,
-                "complementario_id": d.complementario_id,
-                "tipo_prueba": d.tipo_prueba,
-                "estado": d.estado,
-                "valor_pagado": d.valor_pagado,
-                "created_at": d.created_at,
-                "estudiante": {"nombre": e.nombre, "documento": e.documento},
-                "complementario": {
-                    "tipo_complementario": c.tipo_complementario,
-                    "valor": c.valor,
-                },
-            }
+            TestDetailEntity(
+                id=d.id,
+                estudiante_id=d.estudiante_id,
+                complementario_id=d.complementario_id,
+                tipo_prueba=d.tipo_prueba,
+                estado=d.estado,
+                valor_pagado=d.valor_pagado,
+                created_at=d.created_at,
+                estudiante=StudentSummary(nombre=e.nombre, documento=e.documento),
+                complementario=ComplementarySummary(
+                    tipo_complementario=c.tipo_complementario,
+                    valor=c.valor,
+                ),
+            )
             for d, e, c in results
         ]
 
@@ -210,3 +222,27 @@ class InternalTestRepository(InternalTestRepositoryInterface):
         self.session.commit()
         self.session.refresh(test)
         return test
+
+    async def get_all_grados(self) -> list[GradoEntity]:
+        grados = self.session.exec(select(Grado)).all()
+        return [GradoEntity(id=g.id, nombre=g.nombre) for g in grados]
+
+    async def get_all_periodos(self) -> list[PeriodoEntity]:
+        periodos = self.session.exec(select(Periodo).where(Periodo.estado)).all()
+        return [
+            PeriodoEntity(
+                id=p.id,
+                nombre=f"{p.periodo_electivo.year}-{str(p.periodo_electivo.month).zfill(2)}",
+                fecha=str(p.fecha.date()),
+            )
+            for p in periodos
+        ]
+
+    async def get_all_estudiantes(self) -> list[EstudianteEntity]:
+        students = self.session.exec(select(Estudiante).where(Estudiante.activo)).all()
+        return [
+            EstudianteEntity(
+                id=s.id, nombre=s.nombre, documento=s.documento, grado_id=s.grado_id
+            )
+            for s in students
+        ]

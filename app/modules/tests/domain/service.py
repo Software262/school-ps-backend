@@ -38,6 +38,12 @@ class InternalTestService:
         )
 
     async def create_test(self, test_data: CreateTestDetailRequest):
+        existing_assignments = await self.repository.get_existing_assignments(
+            test_data.complementario_id, test_data.periodo_id
+        )
+        if test_data.estudiante_id in existing_assignments:
+            raise ValueError("duplicate_assignment")
+
         return await self.repository.create_test(test_data)
 
     async def update_test(self, test_id: int, test_data: UpdateTestDetailRequest):
@@ -49,6 +55,15 @@ class InternalTestService:
 
     async def get_available_tests(self):
         return await self.repository.get_available_tests()
+
+    async def get_all_grados(self):
+        return await self.repository.get_all_grados()
+
+    async def get_all_periodos(self):
+        return await self.repository.get_all_periodos()
+
+    async def get_all_estudiantes(self):
+        return await self.repository.get_all_estudiantes()
 
     async def assign_massive(self, request: MassiveAssignmentRequest) -> dict:
         students = await self.repository.get_active_students_by_grade(request.grado_id)
@@ -151,5 +166,5 @@ class InternalTestService:
             student_id=student_id, offset=0, limit=1000
         )
 
-        has_pending = any(t["estado"] in ["pendiente", "pago-parcial"] for t in tests)
+        has_pending = any(t.estado in ["pendiente", "pago-parcial"] for t in tests)
         return {"has_debt": has_pending, "tests": tests}
