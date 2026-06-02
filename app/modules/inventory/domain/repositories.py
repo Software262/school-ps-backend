@@ -37,6 +37,16 @@ class InventoryRepository(ABC):
         pass
 
     @abstractmethod
+    async def get_types_inventory_filter_pagination(
+        self, offset: int, limit: int
+    ) -> Sequence[TipoInventario]:
+        pass
+
+    @abstractmethod
+    async def get_type_by_name(self, name: str) -> TipoInventario | None:
+        pass
+
+    @abstractmethod
     async def get_item_by_id(self, item_id: int) -> Inventario | None:
         pass
 
