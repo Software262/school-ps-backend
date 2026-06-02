@@ -6,6 +6,10 @@ from pydantic import BaseModel, Field
 from app.shared.schemas.filter_pagination_request import FilterPagination
 
 
+class FilterPaginationTypesInventory(FilterPagination):
+    pass
+
+
 class FilterPaginationInventory(FilterPagination):
     item_type: Literal["banda", "deporte", "ajedrez"] | None = None
 
@@ -15,7 +19,7 @@ class FilterPaginationBorrowings(FilterPaginationInventory):
 
 
 class CreateTypeInventoryRequest(BaseModel):
-    nombre: str = Field(
+    nombre: Literal["banda", "ajedrez", "deporte"] = Field(
         min_length=2, max_length=80, description="Nombre del tipo de inventario"
     )
 
