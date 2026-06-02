@@ -170,9 +170,7 @@ async def assign_individual_test(session: SessionDep, request: CreateTestDetailR
                 details={"duplicate": True},
             ).to_dict()
 
-        from app.modules.tests.application.create_internal_test import (
-            CreateInternalTest,
-        )
+
 
         app_service = CreateInternalTest(session=session)
         data = await app_service.execute(request)
