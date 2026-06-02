@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     secret_key: str = ""
     algorithm: str = ""
     access_token_expire_minutes: int = 30
+    allow_origin: str = "http://localhost:5173"
 
     model_config = SettingsConfigDict(env_file=get_env_file())
 

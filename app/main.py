@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.modules import router
 
-get_settings()
+setttings = get_settings()
 
 app = FastAPI()
 
@@ -14,6 +14,7 @@ app.add_middleware(
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:3000",
+        setttings.allow_origin,
     ],
     allow_credentials=True,
     allow_methods=["*"],

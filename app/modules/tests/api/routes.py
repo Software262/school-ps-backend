@@ -5,13 +5,13 @@ from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
 
 from app.core.db import SessionDep
-from app.modules.tests.application.create_internal_test import CreateInternalTest
-from app.modules.tests.application.get_internal_test_by_id import GetInternalTestById
-from app.modules.tests.application.get_internal_tests import GetInternalTests
-from app.modules.tests.application.get_internal_tests_by_student import (
+from app.modules.tests.application.create_internal import CreateInternalTest
+from app.modules.tests.application.get_internal import GetInternalTests
+from app.modules.tests.application.get_internal_by_id import GetInternalTestById
+from app.modules.tests.application.get_internal_by_student import (
     GetInternalTestsByStudent,
 )
-from app.modules.tests.application.update_internal_test import UpdateInternalTest
+from app.modules.tests.application.update_internal import UpdateInternalTest
 from app.modules.tests.application.assign_massive_tests import AssignMassiveTests
 from app.modules.tests.application.register_test_payment import RegisterTestPayment
 from app.modules.tests.application.get_student_test_status import GetStudentTestStatus
@@ -23,7 +23,6 @@ from app.modules.tests.application.delete_test_complementary import (
 from app.modules.tests.application.update_test_complementary import (
     UpdateTestComplementary,
 )
-
 from app.modules.tests.schemas.request import (
     CreateTestDetailRequest,
     UpdateTestDetailRequest,
