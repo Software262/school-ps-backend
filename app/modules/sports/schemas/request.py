@@ -11,7 +11,7 @@ from app.modules.inventory.schemas.request import (
 
 
 class FilterPaginationDeportes(FilterPaginationInventory):
-    item_type: Literal["deporte", "deporte", "ajedrez"] | None = Field(
+    item_type: Literal["banda", "deporte", "ajedrez"] | None = Field(
         default="deporte"
     )
 
