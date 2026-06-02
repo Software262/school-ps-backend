@@ -8,6 +8,7 @@ from app.modules.inventory.schemas.request import (
     FilterPaginationInventory,
     UpdateCompleteItemRequest,
     UpdateSingleItemRequest,
+    ReturnBorrowRequest,
 )
 
 
@@ -34,4 +35,8 @@ class UpdateItemDeportesSingle(UpdateSingleItemRequest):
 
 
 class UpdateItemDeportesComplete(UpdateCompleteItemRequest):
+    pass
+
+
+class ReturnSportBorrowRequest(ReturnBorrowRequest):
     pass

@@ -6,6 +6,7 @@ from app.core.db import SessionDep
 from app.modules.sports.application.create_item import CreateItemDeportes
 from app.modules.sports.application.update_item import UpdateItemDeportes
 from app.modules.sports.application.edit_single import EditItemDeportes
+from app.modules.sports.application.return_borrowing import ReturnBorrowingDeportes
 from app.modules.sports.application.get_items import (
     GetItemsDeportes,
 )
@@ -14,9 +15,11 @@ from app.modules.sports.schemas.request import (
     FilterPaginationDeportes,
     UpdateItemDeportesComplete,
     UpdateItemDeportesSingle,
+    ReturnSportBorrowRequest,
 )
 from app.modules.inventory.schemas.response import (
     UpdateItemInventoryResponse,
+    ReturnItemBorrowingResponse,
 )
 from app.shared.utils.response import Response
 
@@ -111,5 +114,33 @@ async def edit_sport_item(
             observacion=data.observacion,
         ),
         message="Articulo deportivo editado exitosamente",
+        status_code=status.HTTP_200_OK,
+    ).to_dict()
+
+
+@router.patch("/borrow/{borrow_id}")
+async def return_sport_borrowing(
+    session: SessionDep, borrow_id: int, return_data: ReturnSportBorrowRequest
+):
+    return_borrow = ReturnBorrowingDeportes(session=session)
+    data = await return_borrow.execute(borrow_id, return_data)
+
+    if not data or not data.id:
+        return Response(
+            data=None,
+            message="Error al devolver el prestamo deportivo",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        ).to_dict()
+
+    return Response(
+        data=ReturnItemBorrowingResponse(
+            id=data.id,
+            inventario_id=data.inventario_id,
+            estudiante_id=data.estudiante_id,
+            cantidad=data.cantidad,
+            estado_prestamo=data.estado_prestamo,
+            observacion=data.observacion or "",
+        ),
+        message="Prestamo deportivo devuelto exitosamente",
         status_code=status.HTTP_200_OK,
     ).to_dict()

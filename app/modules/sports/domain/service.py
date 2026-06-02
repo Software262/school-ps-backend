@@ -4,6 +4,7 @@ from app.modules.inventory.domain.service import InventoryService
 
 from app.modules.inventory.schemas.request import (
     CreateItemRequest,
+    ReturnBorrowRequest,
     UpdateCompleteItemRequest,
     UpdateSingleItemRequest,
 )
@@ -51,3 +52,7 @@ class SportsService(InventoryService):
         if item_data.tipo_inventario_id is not None:
             await self.validate_sport_type(item_data.tipo_inventario_id)
         return await super().edit_item(item_id=item_id, item_data=item_data)
+
+    async def return_borrow(self, borrow_id: int, borrow_data: ReturnBorrowRequest):
+        await self.validate_sport_type(borrow_data.inventario_id)
+        return await super().return_borrow(borrow_id=borrow_id, borrow_data=borrow_data)
