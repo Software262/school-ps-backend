@@ -6,7 +6,9 @@ from app.modules.inventory.schemas.request import (
     CreateItemRequest,
     FilterPaginationBorrowings,
     FilterPaginationInventory,
+    UpdateCompleteItemRequest,
     UpdateSingleItemRequest,
+    ReturnBorrowRequest,
 )
 
 
@@ -21,6 +23,7 @@ class FilterPaginationDeportes(FilterPaginationInventory):
 
 
 class FilterPaginationBorrowingDeportes(FilterPaginationBorrowings):
+    item_type: Literal["deporte"] | None = Field(default="deporte")
     active: bool | None = None
 
 
@@ -28,5 +31,13 @@ class CreateSportItemRequest(CreateItemRequest):
     pass
 
 
-class UpdateItemDeportes(UpdateSingleItemRequest):
+class UpdateItemDeportesSingle(UpdateSingleItemRequest):
+    pass
+
+
+class UpdateItemDeportesComplete(UpdateCompleteItemRequest):
+    pass
+
+
+class ReturnSportBorrowRequest(ReturnBorrowRequest):
     pass

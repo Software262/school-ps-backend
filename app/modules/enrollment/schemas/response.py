@@ -38,6 +38,8 @@ class EnrollmentBalanceResponse(BaseModel):
     estado_matricula: str  # sin_abono | parcial | paz_y_salvo
     matricula_registrada: bool
     pendiente_base: int
+    pagos_realizados: int
+    matricula_id: int | None = None
 
 
 class EnrollmentCreatedResponse(BaseModel):
@@ -71,3 +73,27 @@ class PaymentResultResponse(BaseModel):
     saldo_restante: int
     matricula_pagada: bool
     mensaje: str
+
+
+class StudentSearchItemResponse(BaseModel):
+    """DTO de respuesta individual para la búsqueda de estudiantes."""
+
+    estudiante_id: int
+    documento: str
+    nombre: str
+    grado_id: int
+    grado_nombre: str
+    anio: int
+    matricula_registrada: bool
+    estado_matricula: str  # sin_abono | parcial | paz_y_salvo | sin_matricula
+    pagos_realizados: int
+    saldo_pendiente: int
+    costo_total: int
+    total_pagado: int
+
+
+class StudentSearchListResponse(BaseModel):
+    """DTO de respuesta de listado para la búsqueda de estudiantes."""
+
+    estudiantes: list[StudentSearchItemResponse]
+    total_resultados: int
