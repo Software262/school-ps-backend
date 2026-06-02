@@ -4,12 +4,17 @@ from fastapi import APIRouter, Query, status
 
 from app.core.db import SessionDep
 from app.modules.sports.application.create_item import CreateItemDeportes
+from app.modules.sports.application.update_item import UpdateItemDeportes
 from app.modules.sports.application.get_items import (
     GetItemsDeportes,
 )
 from app.modules.sports.schemas.request import (
     CreateSportItemRequest,
     FilterPaginationDeportes,
+    UpdateItemDeportesComplete,
+)
+from app.modules.inventory.schemas.response import (
+    UpdateItemInventoryResponse,
 )
 from app.shared.utils.response import Response
 
@@ -51,4 +56,31 @@ async def create_sport_item(session: SessionDep, item_data: CreateSportItemReque
     return Response(
         data=data,
         message="obtenido los articulos de deporte exitosamente",
+    ).to_dict()
+
+
+@router.put("/items/{item_id}")
+async def update_sport_item(
+    session: SessionDep, item_id: int, item_data: UpdateItemDeportesComplete
+):
+    update_item = UpdateItemDeportes(session=session)
+    data = await update_item.execute(item_id, item_data)
+
+    if not data or not data.id:
+        return Response(
+            data=None,
+            message="Error al actualizar el articulo deportivo",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        ).to_dict()
+
+    return Response(
+        data=UpdateItemInventoryResponse(
+            id=data.id,
+            nombre=data.nombre,
+            cantidad=data.cantidad,
+            estado_objeto=data.estado_objeto,
+            observacion=data.observacion,
+        ),
+        message="Articulo deportivo actualizado exitosamente",
+        status_code=status.HTTP_200_OK,
     ).to_dict()

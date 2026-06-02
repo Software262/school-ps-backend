@@ -6,14 +6,13 @@ from app.modules.inventory.schemas.request import (
     CreateItemRequest,
     FilterPaginationBorrowings,
     FilterPaginationInventory,
+    UpdateCompleteItemRequest,
     UpdateSingleItemRequest,
 )
 
 
 class FilterPaginationDeportes(FilterPaginationInventory):
-    item_type: Literal["banda", "deporte", "ajedrez"] | None = Field(
-        default="deporte"
-    )
+    item_type: Literal["banda", "deporte", "ajedrez"] | None = Field(default="deporte")
 
     @model_validator(mode="after")
     def validate_modification_modes(self) -> "FilterPaginationDeportes":
@@ -31,4 +30,8 @@ class CreateSportItemRequest(CreateItemRequest):
 
 
 class UpdateItemDeportes(UpdateSingleItemRequest):
+    pass
+
+
+class UpdateItemDeportesComplete(UpdateCompleteItemRequest):
     pass
