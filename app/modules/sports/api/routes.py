@@ -5,6 +5,7 @@ from fastapi import APIRouter, Query, status
 from app.core.db import SessionDep
 from app.modules.sports.application.create_item import CreateItemDeportes
 from app.modules.sports.application.update_item import UpdateItemDeportes
+from app.modules.sports.application.edit_single import EditItemDeportes
 from app.modules.sports.application.get_items import (
     GetItemsDeportes,
 )
@@ -12,6 +13,7 @@ from app.modules.sports.schemas.request import (
     CreateSportItemRequest,
     FilterPaginationDeportes,
     UpdateItemDeportesComplete,
+    UpdateItemDeportesSingle,
 )
 from app.modules.inventory.schemas.response import (
     UpdateItemInventoryResponse,
@@ -82,5 +84,32 @@ async def update_sport_item(
             observacion=data.observacion,
         ),
         message="Articulo deportivo actualizado exitosamente",
+        status_code=status.HTTP_200_OK,
+    ).to_dict()
+
+
+@router.patch("/items/{item_id}")
+async def edit_sport_item(
+    session: SessionDep, item_id: int, item_data: UpdateItemDeportesSingle
+):
+    edit_item = EditItemDeportes(session=session)
+    data = await edit_item.execute(item_id, item_data)
+
+    if not data or not data.id:
+        return Response(
+            data=None,
+            message="Error al editar el articulo deportivo",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        ).to_dict()
+
+    return Response(
+        data=UpdateItemInventoryResponse(
+            id=data.id,
+            nombre=data.nombre,
+            cantidad=data.cantidad,
+            estado_objeto=data.estado_objeto,
+            observacion=data.observacion,
+        ),
+        message="Articulo deportivo editado exitosamente",
         status_code=status.HTTP_200_OK,
     ).to_dict()

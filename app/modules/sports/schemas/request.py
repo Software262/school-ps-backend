@@ -29,7 +29,7 @@ class CreateSportItemRequest(CreateItemRequest):
     pass
 
 
-class UpdateItemDeportes(UpdateSingleItemRequest):
+class UpdateItemDeportesSingle(UpdateSingleItemRequest):
     pass
 
 
