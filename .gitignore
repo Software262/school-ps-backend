@@ -1,5 +1,6 @@
 .DS_Store
 .env
+.env.test
 __pycache__/
 *.py[cod]
 .venv/
