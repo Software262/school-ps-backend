@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class PaymentCreateRequest(BaseModel):
@@ -9,3 +9,10 @@ class PaymentCreateRequest(BaseModel):
     fecha_pago: datetime = Field(
         default_factory=datetime.now, description="Fecha de realización del pago"
     )
+
+    @field_validator("valor_pagado")
+    @classmethod
+    def validate_valor_pagado(cls, v: int) -> int:
+        if v <= 0:
+            raise ValueError("El valor del abono debe ser mayor a cero.")
+        return v

@@ -18,6 +18,7 @@ from app.modules.enrollment.application.process_payment import ProcessDirectedPa
 from app.modules.enrollment.application.register_enrollment import (
     RegisterEnrollment,
 )
+from app.modules.enrollment.application.search_students import SearchStudents
 from app.modules.enrollment.schemas.request import (
     DirectedPaymentRequest,
     RegisterEnrollmentRequest,
@@ -32,6 +33,8 @@ from app.modules.enrollment.schemas.response import (
     PaymentDistributionResponse,
     PaymentResultResponse,
     StudentInfoResponse,
+    StudentSearchItemResponse,
+    StudentSearchListResponse,
 )
 
 router = APIRouter(
@@ -100,6 +103,62 @@ async def get_enrollment_balance(
         estado_matricula=balance.enrollment_status,
         matricula_registrada=balance.enrollment_exists,
         pendiente_base=balance.pending_base,
+        pagos_realizados=balance.payments_count,
+        matricula_id=balance.matricula_id,
+    )
+
+
+@router.get(
+    "/students",
+    response_model=StudentSearchListResponse,
+    summary="Buscar estudiantes con su estado de matrícula y balance",
+    description="Retorna una lista de estudiantes que coinciden con los filtros, con su balance consolidado.",
+)
+async def search_students(
+    session: SessionDep,
+    documento: str | None = Query(
+        default=None,
+        description="Coincidencia parcial del documento/código",
+    ),
+    nombre: str | None = Query(
+        default=None,
+        description="Coincidencia parcial del nombre",
+    ),
+    year: int | None = Query(
+        default=None,
+        description="Año a consultar. Si no se envía, se usa el año actual.",
+    ),
+) -> StudentSearchListResponse:
+    if year is None:
+        year = datetime.now().year
+
+    use_case = SearchStudents(session=session)
+    balances = use_case.execute(documento, nombre, year)
+
+    items = []
+    for b in balances:
+        items.append(
+            StudentSearchItemResponse(
+                estudiante_id=b.student.id,
+                documento=b.student.documento,
+                nombre=b.student.nombre,
+                grado_id=b.student.grado_id,
+                grado_nombre=b.student.grado_nombre,
+                anio=b.year,
+                matricula_registrada=b.enrollment_exists,
+                estado_matricula=(
+                    b.enrollment_status if b.enrollment_exists else "sin_matricula"
+                ),
+                pagos_realizados=b.payments_count,
+                saldo_pendiente=b.total_pending,
+                costo_total=b.total_cost,
+                total_pagado=b.total_paid,
+            )
+        )
+
+    return StudentSearchListResponse(
+        estudiantes=items,
+        total_resultados=len(items),
     )
 
 
