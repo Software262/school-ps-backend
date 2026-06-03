@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlmodel import Session, select
+from sqlmodel import col, Session, select
 
 from app.modules.enrollment.domain.entities import (
     ComplementaryDetail,
@@ -420,3 +420,30 @@ class SQLEnrollmentRepository(EnrollmentRepository):
 
         assert estudiante.id is not None
         return estudiante.id
+
+    def get_payments_count(self, matricula_id: int) -> int:
+        statement = select(Pago).where(Pago.matricula_id == matricula_id)
+        results = self._session.exec(statement).all()
+        return len(results)
+
+    def get_payments(self, matricula_id: int) -> list[Pago]:
+        statement = select(Pago).where(Pago.matricula_id == matricula_id)
+        return list(self._session.exec(statement).all())
+
+    def search_students(
+        self, documento: str | None, nombre: str | None
+    ) -> list[tuple[Estudiante, Grado]]:
+        statement = select(Estudiante, Grado).join(
+            Grado,
+            col(Estudiante.grado_id) == col(Grado.id),
+        )
+        if documento:
+            doc_norm = documento.strip().lower()
+            statement = statement.where(
+                col(Estudiante.documento).ilike(f"%{doc_norm}%")
+            )
+        if nombre:
+            nom_norm = nombre.strip().lower()
+            statement = statement.where(col(Estudiante.nombre).ilike(f"%{nom_norm}%"))
+
+        return list(self._session.exec(statement).all())
