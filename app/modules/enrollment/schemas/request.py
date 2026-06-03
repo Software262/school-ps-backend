@@ -47,6 +47,10 @@ class ModifyEnrollmentRequest(BaseModel):
     complementarios: list[ComplementaryModification] | None = Field(
         default=None, description="Modificaciones a los complementarios asignados"
     )
+    observaciones: str | None = Field(
+        default=None,
+        description="Observaciones adicionales opcionales para la modificación",
+    )
 
     @model_validator(mode="after")
     def validate_modification_modes(self) -> "ModifyEnrollmentRequest":
