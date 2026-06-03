@@ -12,6 +12,8 @@ class TuitionInstallment:
     valor_pagado: int
     fecha_pago: datetime
     faltante: bool
+    total_pagado_mes: int = 0
+    saldo_pendiente: int = 0
     id: int | None = None
 
 
