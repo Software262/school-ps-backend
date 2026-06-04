@@ -30,6 +30,9 @@ class InventoryService:
 
         type_id = await self.repository.get_type_id_by_name(filter_pagination.item_type)
 
+        if type_id is None:  
+            return []
+        
         return await self.repository.get_items_filter_pagination(
             offset=offset,
             limit=filter_pagination.limit,
