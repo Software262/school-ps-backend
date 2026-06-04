@@ -12,11 +12,13 @@ class Response:
         message: str = "Success",
         status_code: int = status.HTTP_200_OK,
         details: dict | None = None,
+        success: bool = True,
     ):
         self.data = data
         self.status_code = status_code
         self.message = message
         self.details = details
+        self.success = success
 
     def filterPagination(self, page: int, limit: int):
         if isinstance(self.data, list):
@@ -54,6 +56,7 @@ class Response:
 
         content = {
             "statusCode": self.status_code,
+            "success": self.success,
             "data": encoded,
             "message": self.message,
             "details": self.details,
