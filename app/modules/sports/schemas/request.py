@@ -43,5 +43,6 @@ class UpdateItemDeportesComplete(UpdateCompleteItemRequest):
 class ReturnSportBorrowRequest(ReturnBorrowRequest):
     pass
 
+
 class CreateSportBorrowRequest(CreateBorrowRequest):
     pass

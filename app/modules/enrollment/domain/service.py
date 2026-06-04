@@ -50,7 +50,9 @@ class EnrollmentService:
 
         if enrollment_exists:
             if matricula_id is None:
-                raise ValueError("El id de la matrícula no puede ser nulo cuando existe")
+                raise ValueError(
+                    "El id de la matrícula no puede ser nulo cuando existe"
+                )
             total_pending = pending_base + sum(
                 item.valor_pendiente for item in complementary_items
             )
