@@ -3,9 +3,11 @@ from typing import Literal
 from pydantic import Field, model_validator
 
 from app.modules.inventory.schemas.request import (
+    CreateBorrowRequest,
     CreateItemRequest,
     FilterPaginationBorrowings,
     FilterPaginationInventory,
+    ReturnBorrowRequest,
     UpdateSingleItemRequest,
 )
 
@@ -35,4 +37,12 @@ class CreateInstrumentRequest(CreateItemRequest):
 
 
 class UpdateItemMusicalBand(UpdateSingleItemRequest):
+    pass
+
+
+class CreateInstrumentBorrowingMusicalBand(CreateBorrowRequest):
+    pass
+
+
+class ReturnInstrumentBorrowingMusicalBand(ReturnBorrowRequest):
     pass

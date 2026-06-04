@@ -103,6 +103,9 @@ class InventoryService:
         if not borrow:
             return None
 
+        if not borrow.estado_prestamo:
+            return None
+
         if borrow.inventario_id != borrow_data.inventario_id:
             return None
 
@@ -110,9 +113,6 @@ class InventoryService:
             return None
 
         if borrow.cantidad != borrow_data.cantidad:
-            return None
-
-        if not borrow.estado_prestamo:
             return None
 
         item.cantidad += borrow_data.cantidad
