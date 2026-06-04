@@ -2,8 +2,9 @@ from fastapi import APIRouter, HTTPException, Query, status
 
 from app.core.db import SessionDep
 from app.modules.training_schools.application.enroll_student import EnrollStudent
-from app.modules.training_schools.application.get_enrollments import GetEnrollments
-from app.modules.training_schools.application.get_enrollments_detail import GetEnrollmentsDetail
+from app.modules.training_schools.application.get_enrollments_detail import (
+    GetEnrollmentsDetail,
+)
 from app.modules.training_schools.application.get_paz_y_salvo import GetPazYSalvo
 from app.modules.training_schools.application.get_periods import GetPeriods
 from app.modules.training_schools.application.get_programs import GetPrograms

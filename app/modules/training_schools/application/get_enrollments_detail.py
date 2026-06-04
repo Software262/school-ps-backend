@@ -18,9 +18,9 @@ class GetEnrollmentsDetail:
                 id=enr.id,
                 complementario_id=enr.complementario_id,
                 estudiante_id=enr.estudiante_id,
-                estudiante_nombre=est.nombre,
-                estudiante_documento=est.documento,
-                estudiante_grado=grado.nombre,
+                estudiante_nombre=student.nombre,
+                estudiante_documento=student.documento,
+                estudiante_grado=student.grado_nombre,
                 periodo_id=enr.periodo_id,
                 usuario_id=enr.usuario_id,
                 fecha_registro=enr.fecha_registro,
@@ -35,5 +35,5 @@ class GetEnrollmentsDetail:
                 created_at=enr.created_at,
                 updated_at=enr.updated_at,
             )
-            for enr, est, grado in pairs
+            for enr, student in pairs
         ]

@@ -1,29 +1,34 @@
 from abc import ABC, abstractmethod
 
-from app.modules.auth.infrastructure.models import Usuario
-from app.modules.enrollment.infrastructure.models import Complementario, Estudiante, Grado, Periodo
+from app.modules.training_schools.domain.entities import (
+    PeriodInfo,
+    ProgramInfo,
+    StudentInfo,
+)
 from app.modules.training_schools.infrastructure.models import DetalleEscuelaFormacion
 
 
 class TrainingSchoolRepositoryInterface(ABC):
     @abstractmethod
-    async def get_all_programs(self) -> list[Complementario]:
+    async def get_all_programs(self) -> list[ProgramInfo]:
         pass
 
     @abstractmethod
-    async def get_user_by_id(self, user_id: int) -> Usuario | None:
+    async def validate_user_exists(self, user_id: int) -> bool:
         pass
 
     @abstractmethod
-    async def search_students(self, query: str) -> list[Estudiante]:
+    async def search_students(self, query: str) -> list[StudentInfo]:
         pass
 
     @abstractmethod
-    async def get_student_by_id(self, student_id: int) -> Estudiante | None:
+    async def get_student_by_id(self, student_id: int) -> StudentInfo | None:
         pass
 
     @abstractmethod
-    async def get_enrollment(self, enrollment_id: int) -> DetalleEscuelaFormacion | None:
+    async def get_enrollment(
+        self, enrollment_id: int
+    ) -> DetalleEscuelaFormacion | None:
         pass
 
     @abstractmethod
@@ -44,7 +49,7 @@ class TrainingSchoolRepositoryInterface(ABC):
     @abstractmethod
     async def get_enrollments_with_students(
         self, periodo_id: int
-    ) -> list[tuple[DetalleEscuelaFormacion, Estudiante, Grado]]:
+    ) -> list[tuple[DetalleEscuelaFormacion, StudentInfo]]:
         pass
 
     @abstractmethod
@@ -60,5 +65,5 @@ class TrainingSchoolRepositoryInterface(ABC):
         pass
 
     @abstractmethod
-    async def get_periods(self) -> list[Periodo]:
+    async def get_periods(self) -> list[PeriodInfo]:
         pass

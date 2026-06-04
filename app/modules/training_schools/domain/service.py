@@ -1,6 +1,10 @@
 from datetime import datetime
 
-from app.modules.enrollment.infrastructure.models import Complementario, Estudiante, Periodo
+from app.modules.training_schools.domain.entities import (
+    PeriodInfo,
+    ProgramInfo,
+    StudentInfo,
+)
 from app.modules.training_schools.domain.repositories import (
     TrainingSchoolRepositoryInterface,
 )
@@ -11,25 +15,25 @@ class TrainingSchoolService:
     def __init__(self, repository: TrainingSchoolRepositoryInterface) -> None:
         self.repository = repository
 
-    async def get_programs(self) -> list[Complementario]:
+    async def get_programs(self) -> list[ProgramInfo]:
         # read-only: programs (complementarios) and their price are configured in
         # the matrícula module; escuelas de formación consumes them as-is.
         return await self.repository.get_all_programs()
 
-    async def search_students(self, query: str) -> list[Estudiante]:
+    async def search_students(self, query: str) -> list[StudentInfo]:
         if not query or len(query.strip()) < 2:
             raise ValueError("La búsqueda requiere al menos 2 caracteres.")
         return await self.repository.search_students(query.strip())
 
-    async def get_periods(self) -> list[Periodo]:
+    async def get_periods(self) -> list[PeriodInfo]:
         return await self.repository.get_periods()
 
-    async def get_enrollments(
-        self, periodo_id: int
-    ) -> list[DetalleEscuelaFormacion]:
+    async def get_enrollments(self, periodo_id: int) -> list[DetalleEscuelaFormacion]:
         return await self.repository.get_enrollments_by_period(periodo_id)
 
-    async def get_enrollments_with_students(self, periodo_id: int):
+    async def get_enrollments_with_students(
+        self, periodo_id: int
+    ) -> list[tuple[DetalleEscuelaFormacion, StudentInfo]]:
         return await self.repository.get_enrollments_with_students(periodo_id)
 
     async def enroll_student(
@@ -61,9 +65,7 @@ class TrainingSchoolService:
         if not student:
             raise ValueError("Estudiante no encontrado.")
 
-        # validate the acting user exists to avoid a fk integrity error (500)
-        user = await self.repository.get_user_by_id(usuario_id)
-        if not user:
+        if not await self.repository.validate_user_exists(usuario_id):
             raise ValueError("Usuario no encontrado.")
 
         # ef-rf-03: use valor_acordado if provided, otherwise fall back to program price
@@ -98,11 +100,12 @@ class TrainingSchoolService:
         if not enrollment:
             raise ValueError("Inscripción no encontrada.")
         if not enrollment.activo:
-            raise ValueError("La inscripción está inactiva; no se pueden registrar pagos.")
+            raise ValueError(
+                "La inscripción está inactiva; no se pueden registrar pagos."
+            )
         if monto <= 0:
             raise ValueError("El monto del pago debe ser mayor a cero.")
-        user = await self.repository.get_user_by_id(usuario_id)
-        if not user:
+        if not await self.repository.validate_user_exists(usuario_id):
             raise ValueError("Usuario no encontrado.")
         if monto > enrollment.saldo_pendiente:
             raise ValueError(
@@ -131,9 +134,10 @@ class TrainingSchoolService:
         if not enrollment.activo:
             raise ValueError("La inscripción ya está inactiva.")
         if not motivo or len(motivo.strip()) < 5:
-            raise ValueError("El motivo de retiro es obligatorio (mínimo 5 caracteres).")
-        user = await self.repository.get_user_by_id(usuario_id)
-        if not user:
+            raise ValueError(
+                "El motivo de retiro es obligatorio (mínimo 5 caracteres)."
+            )
+        if not await self.repository.validate_user_exists(usuario_id):
             raise ValueError("Usuario no encontrado.")
 
         enrollment.activo = False

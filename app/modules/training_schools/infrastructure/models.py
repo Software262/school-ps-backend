@@ -10,8 +10,8 @@ class DetalleEscuelaFormacion(Base, table=True):
     complementario_id: int = Field(foreign_key="complementario.id")
     # fk to Estudiante
     estudiante_id: int = Field(foreign_key="estudiante.id", index=True)
-    # academic period
-    periodo_id: int | None = Field(default=None, foreign_key="periodo.id", index=True)
+    # academic period (required; every enrollment belongs to a period)
+    periodo_id: int = Field(foreign_key="periodo.id", index=True)
     # last staff member who acted on this record
     usuario_id: int | None = Field(default=None, foreign_key="usuario.id")
     fecha_registro: datetime = Field(default_factory=datetime.now)
