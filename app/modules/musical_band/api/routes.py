@@ -49,6 +49,7 @@ async def create_instrument(session: SessionDep, item_data: CreateInstrumentRequ
         return Response(
             data=None,
             status_code=status.HTTP_400_BAD_REQUEST,
+            success=False,
             message="Información invalida",
         ).to_dict()
 
@@ -70,6 +71,7 @@ async def update_instrument(
         return Response(
             data=None,
             status_code=status.HTTP_400_BAD_REQUEST,
+            success=False,
             message="invalida información para actualizar",
         )
 

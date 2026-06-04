@@ -21,7 +21,13 @@ class FilterPaginationMusicalBand(FilterPaginationInventory):
 
 
 class FilterPaginationBorrowingMusicalBand(FilterPaginationBorrowings):
-    active: bool | None = None
+    item_type: Literal["banda", "deporte", "ajedrez"] | None = Field(default="banda")
+
+    @model_validator(mode="after")
+    def validate_modification_modes(self) -> "FilterPaginationBorrowingMusicalBand":
+        if self.item_type != "banda":
+            raise ValueError("Invalido tipo para obtener los articulos")
+        return self
 
 
 class CreateInstrumentRequest(CreateItemRequest):

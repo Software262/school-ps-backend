@@ -2,7 +2,10 @@ from app.core.db import SessionDep
 from app.modules.tuition.infrastructure.repositories import SQLModelTuitionRepository
 from app.modules.tuition.domain.service import TuitionService
 from app.modules.tuition.domain.entities import TuitionAccount
-from app.modules.tuition.schemas.response import TuitionAccountResponse, TuitionInstallmentResponse
+from app.modules.tuition.schemas.response import (
+    TuitionAccountResponse,
+    TuitionInstallmentResponse,
+)
 
 
 class GetStudentTuitionUseCase:
@@ -16,14 +19,18 @@ class GetStudentTuitionUseCase:
             return None
         return self._build_account_response(account)
 
-    def _build_account_response(self, account: TuitionAccount) -> TuitionAccountResponse:
+    def _build_account_response(
+        self, account: TuitionAccount
+    ) -> TuitionAccountResponse:
         """Helper: construye TuitionAccountResponse con las 12 cuotas mensuales."""
         TOTAL_MONTHS = 12  # TODO: leer desde ParametrizarPension.num_meses cuando el Tech Lead agregue la columna
         monthly_value = account.valor_total  # El valor guardado es el costo mensual
 
         totals_by_month: dict[int, int] = {}
         for inst in account.installments:
-            totals_by_month[inst.mes] = totals_by_month.get(inst.mes, 0) + inst.valor_pagado
+            totals_by_month[inst.mes] = (
+                totals_by_month.get(inst.mes, 0) + inst.valor_pagado
+            )
 
         installments_response = []
         for mes in range(1, TOTAL_MONTHS + 1):
