@@ -29,11 +29,9 @@ async def create_chess_borrow(
         status_code = status.HTTP_404_NOT_FOUND if result["error"] == "NOT_FOUND" else status.HTTP_400_BAD_REQUEST
         return Response(
             data=None,
-            message="Error al .where(Prestamo.id == Novedad.prestamo_id)
-            .where(Prestamo.estudiante_id == estudiante_id)
-            .where(Novedad.resuelta.is_(False))",
+            message="Error al registrar el préstamo",
             status_code=status_code,
-            details={"error": result["message"]}
+            details={"error": result["message"]},
         ).to_dict()
     
     # At this point result is a Prestamo instance
@@ -82,21 +80,23 @@ async def resolve_chess_novelty(
     app_service = ResolveChessNovelty(session=session)
     result = await app_service.execute(novedad_id, request_data)
 
-    if result.get("error"):
+    if isinstance(result, dict) and result.get("error"):
+        status_code = status.HTTP_404_NOT_FOUND if result["error"] == "NOT_FOUND" else status.HTTP_400_BAD_REQUEST
         return Response(
             data=None,
             message="Error al resolver la novedad",
-            status_code=status.HTTP_404_NOT_FOUND,
-            details={"error": result["message"]}
+            status_code=status_code,
+            details={"error": result["message"]},
         ).to_dict()
 
-    # Safely extract data and message
-    data_body = result["data"]  # type: ignore[index]
+    # Ensure result is a dict for type checking
+    result_dict = cast(dict[str, Any], result)
+    data_body = result_dict["data"]  # type: ignore[index]
     mensaje: str = data_body.get("mensaje", "")
     return Response(
         data=data_body,
         message=mensaje,
-        status_code=status.HTTP_200_OK
+        status_code=status.HTTP_200_OK,
     ).to_dict()
 
 
