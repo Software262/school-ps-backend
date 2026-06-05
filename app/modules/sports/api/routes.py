@@ -3,10 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query, status
 
 from app.core.db import SessionDep
-from app.modules.inventory.schemas.response import (
-    ReturnItemBorrowingResponse,
-    UpdateItemInventoryResponse,
-)
+
 from app.modules.sports.application.create_item import CreateItemDeportes
 from app.modules.sports.application.update_item import UpdateItemDeportes
 from app.modules.sports.application.create_borrowing import CreateBorrowingDeportes
@@ -16,12 +13,11 @@ from app.modules.sports.application.get_items import (
     GetItemsDeportes,
 )
 from app.modules.sports.application.return_borrowing import ReturnBorrowingDeportes
-from app.modules.sports.application.update_item import UpdateItemDeportes
+
 from app.modules.sports.schemas.request import (
     CreateSportItemRequest,
     FilterPaginationBorrowingDeportes,
     FilterPaginationDeportes,
-    ReturnSportBorrowRequest,
     UpdateItemDeportesComplete,
     UpdateItemDeportesSingle,
     ReturnSportBorrowRequest,

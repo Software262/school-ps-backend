@@ -125,7 +125,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
             select(Matricula)
             .join(
                 ParametrizarMatricula,
-               col(Matricula.para_matricula_id) == col(ParametrizarMatricula.id),
+                col(Matricula.para_matricula_id) == col(ParametrizarMatricula.id),
             )
             .where(
                 Matricula.estudiante_id == student_id,
