@@ -35,14 +35,16 @@ async def get_all_instruments(
 ):
     get_items = GetItemsMusicalBand(session=session)
 
-    data = await get_items.execute(filter_pagination=filter_pagination)
+    total, data = await get_items.execute(filter_pagination=filter_pagination)
 
     return (
         Response(
             data=data,
             message="obtenido los articulos de banda exitosamente",
         )
-        .filterPagination(page=filter_pagination.page, limit=filter_pagination.limit)
+        .filterPagination(
+            page=filter_pagination.page, limit=filter_pagination.limit, total=total
+        )
         .to_dict()
     )
 
@@ -97,14 +99,16 @@ async def get_all_borrowings(
 ):
     get_items = GetBorrowingsMusicalBand(session=session)
 
-    data = await get_items.execute(filter_pagination=filter_pagination)
+    total, data = await get_items.execute(filter_pagination=filter_pagination)
 
     return (
         Response(
             data=data,
             message="obtenido los articulos de banda exitosamente",
         )
-        .filterPagination(page=filter_pagination.page, limit=filter_pagination.limit)
+        .filterPagination(
+            page=filter_pagination.page, limit=filter_pagination.limit, total=total
+        )
         .to_dict()
     )
 

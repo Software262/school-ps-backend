@@ -1,3 +1,5 @@
+import math
+
 from fastapi import status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
@@ -20,12 +22,18 @@ class Response:
         self.details = details
         self.success = success
 
-    def filterPagination(self, page: int, limit: int):
+    def filterPagination(self, page: int, limit: int, total: int = 1):
+        total_pages = math.ceil(total / limit)
+
         if isinstance(self.data, list):
             self.data = Pagination(
                 items=self.data,
                 current_page=page,
                 page_size=limit,
+                total=total,
+                total_pages=total_pages,
+                previous=page > 1,
+                next=page < total_pages,
             )
         return self
 

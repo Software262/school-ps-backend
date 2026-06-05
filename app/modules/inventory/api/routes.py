@@ -48,7 +48,7 @@ async def get_inventory(
     filter_pagination_query: Annotated[FilterPaginationInventory, Query()],
 ):
     inventory_app = GetItemsInventory(session=session)
-    data = await inventory_app.execute(filter_pagination=filter_pagination_query)
+    total, data = await inventory_app.execute(filter_pagination=filter_pagination_query)
 
     return (
         Response(
@@ -58,7 +58,9 @@ async def get_inventory(
             details={"message": "Inventario obtenido exitosamente"},
         )
         .filterPagination(
-            page=filter_pagination_query.page, limit=filter_pagination_query.limit
+            page=filter_pagination_query.page,
+            limit=filter_pagination_query.limit,
+            total=total,
         )
         .to_dict()
     )
@@ -131,7 +133,7 @@ async def get_types_inventory(
     filter_pagination_query: Annotated[FilterPaginationTypesInventory, Query()],
 ):
     inventory_app = GetTypesInventory(session=session)
-    data = await inventory_app.execute(filter_pagination=filter_pagination_query)
+    total, data = await inventory_app.execute(filter_pagination=filter_pagination_query)
 
     return (
         Response(
@@ -141,7 +143,9 @@ async def get_types_inventory(
             details={"message": "tipos de inventario obtenido exitosamente"},
         )
         .filterPagination(
-            page=filter_pagination_query.page, limit=filter_pagination_query.limit
+            page=filter_pagination_query.page,
+            limit=filter_pagination_query.limit,
+            total=total,
         )
         .to_dict()
     )
@@ -344,7 +348,9 @@ async def get_borrowings(
     filter_pagination_query: Annotated[FilterPaginationBorrowings, Query()],
 ):
     get_borrowings_app = GetBorrowings(session=session)
-    data = await get_borrowings_app.execute(filter_pagination=filter_pagination_query)
+    total, data = await get_borrowings_app.execute(
+        filter_pagination=filter_pagination_query
+    )
 
     return (
         Response(
@@ -354,7 +360,9 @@ async def get_borrowings(
             details={"message": "Lista de préstamos obtenida exitosamente"},
         )
         .filterPagination(
-            page=filter_pagination_query.page, limit=filter_pagination_query.limit
+            page=filter_pagination_query.page,
+            limit=filter_pagination_query.limit,
+            total=total,
         )
         .to_dict()
     )
