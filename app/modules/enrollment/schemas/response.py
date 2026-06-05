@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel
 
 
@@ -97,3 +98,41 @@ class StudentSearchListResponse(BaseModel):
 
     estudiantes: list[StudentSearchItemResponse]
     total_resultados: int
+
+
+class PaymentHistoryItemResponse(BaseModel):
+    """DTO para un ítem del historial de pagos (auditoría)."""
+
+    id: int
+    codigo_talonario: str
+    monto_total: int
+    fecha_pago: datetime
+    observacion: str | None = None
+
+
+class StudentReceiptInfo(BaseModel):
+    """DTO de estudiante para el comprobante."""
+
+    id: int
+    nombre: str
+    documento: str
+    grado: str
+
+
+class AcudienteReceiptInfo(BaseModel):
+    """DTO de acudiente para el comprobante."""
+
+    nombre: str
+
+
+class PaymentReceiptResponse(BaseModel):
+    """DTO completo del comprobante de pago."""
+
+    pago_id: int
+    codigo_talonario: str
+    monto_total: int
+    fecha_pago: datetime
+    observacion: str | None = None
+    estudiante: StudentReceiptInfo
+    acudiente: AcudienteReceiptInfo
+    distribuciones: list[PaymentDistributionResponse]

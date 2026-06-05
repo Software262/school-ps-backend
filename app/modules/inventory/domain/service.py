@@ -1,7 +1,4 @@
-from typing import Sequence
-
 from app.modules.inventory.domain.repositories import InventoryRepository
-from app.modules.inventory.infrastructure.models import Prestamo
 from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     CreateItemRequest,
@@ -29,10 +26,10 @@ class InventoryService:
             )
 
         type_id = await self.repository.get_type_id_by_name(filter_pagination.item_type)
-        
-        if type_id is None:  
-            return []
-        
+
+        if type_id is None:
+            return 0, []
+
         return await self.repository.get_items_filter_pagination(
             offset=offset,
             limit=filter_pagination.limit,
@@ -103,6 +100,9 @@ class InventoryService:
         if not borrow:
             return None
 
+        if not borrow.estado_prestamo:
+            return None
+
         if borrow.inventario_id != borrow_data.inventario_id:
             return None
 
@@ -110,9 +110,6 @@ class InventoryService:
             return None
 
         if borrow.cantidad != borrow_data.cantidad:
-            return None
-
-        if not borrow.estado_prestamo:
             return None
 
         item.cantidad += borrow_data.cantidad
@@ -125,7 +122,7 @@ class InventoryService:
 
     async def get_borrowings(
         self, filter_pagination: FilterPaginationInventory, active: bool | None
-    ) -> Sequence[Prestamo]:
+    ):
         offset = calculate_offset(filter_pagination.page, filter_pagination.limit)
 
         if not filter_pagination.item_type:
@@ -138,9 +135,9 @@ class InventoryService:
 
         type_id = await self.repository.get_type_id_by_name(filter_pagination.item_type)
 
-        if type_id is None:  
-            return []
-        
+        if type_id is None:
+            return 0, []
+
         return await self.repository.get_borrowings_pagination(
             offset=offset,
             limit=filter_pagination.limit,
