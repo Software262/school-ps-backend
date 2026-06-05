@@ -22,7 +22,7 @@ class Response:
         self.details = details
         self.success = success
 
-    def filterPagination(self, page: int, limit: int, total: int = 1):
+    def filterPagination(self, page: int, limit: int, total: int = 0):
         total_pages = math.ceil(total / limit)
 
         if isinstance(self.data, list):
