@@ -141,7 +141,11 @@ class EnrollmentRepository(ABC):
 
     @abstractmethod
     def update_complementary_pending(
-        self, matricula_id: int, complementario_id: int, new_pending: int
+        self,
+        matricula_id: int,
+        complementario_id: int,
+        new_pending: int,
+        detalle_id: int | None = None,
     ) -> None:
         """Actualiza el valor_pendiente de un detalle_matricula."""
         ...
@@ -224,6 +228,12 @@ class EnrollmentRepository(ABC):
         ...
 
     @abstractmethod
+    @abstractmethod
+    def get_total_paid(self, matricula_id: int) -> int:
+        """Retorna la suma total de pagos registrados para una matrícula."""
+        ...
+
+    @abstractmethod
     def get_payments(self, matricula_id: int) -> list:
         """Retorna la lista de pagos registrados para una matrícula."""
         ...
@@ -231,4 +241,58 @@ class EnrollmentRepository(ABC):
     @abstractmethod
     def search_students(self, documento: str | None, nombre: str | None) -> list[tuple]:
         """Busca estudiantes por coincidencia parcial en documento o nombre."""
+        ...
+
+    # === Nuevas Consultas y Acciones ===
+
+    @abstractmethod
+    def get_grade_by_name(self, name: str) -> int | None:
+        """Busca un grado por su nombre (insensible a mayúsculas). Retorna su ID."""
+        ...
+
+    @abstractmethod
+    def get_acudiente_by_name(self, name: str) -> int | None:
+        """Busca un acudiente por su nombre. Retorna su ID."""
+        ...
+
+    @abstractmethod
+    def create_acudiente(
+        self, nombre: str, parentesco: str, telefono: str, correo: str
+    ) -> int:
+        """Crea un acudiente y retorna su ID."""
+        ...
+
+    @abstractmethod
+    def get_payments_by_matricula(self, matricula_id: int) -> list:
+        """Retorna todos los pagos (Pago) de una matrícula."""
+        ...
+
+    @abstractmethod
+    def get_payment_by_id(self, pago_id: int) -> tuple | None:
+        """Retorna un pago por su ID como tupla."""
+        ...
+
+    @abstractmethod
+    def get_payment_details(self, pago_id: int) -> list[tuple[str, int | None, int]]:
+        """Retorna los detalles de un pago como lista de (concepto, complementario_id, monto_aplicado)."""
+        ...
+
+    @abstractmethod
+    def get_payment_receipt_data(self, pago_id: int) -> tuple | None:
+        """Retorna los datos crudos del recibo (Pago, Matricula, Estudiante, Grado, Acudiente) como tupla."""
+        ...
+
+    @abstractmethod
+    def get_detalle_matricula(self, detalle_id: int) -> tuple | None:
+        """Obtiene un detalle de matrícula por su ID."""
+        ...
+
+    @abstractmethod
+    def delete_detalle_matricula(self, detalle_id: int) -> None:
+        """Elimina un detalle de matrícula de la base de datos."""
+        ...
+
+    @abstractmethod
+    def decrease_enrollment_total_value(self, matricula_id: int, amount: int) -> None:
+        """Disminuye el valor total de una matrícula."""
         ...
