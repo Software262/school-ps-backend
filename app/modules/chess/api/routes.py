@@ -1,6 +1,7 @@
 from fastapi import APIRouter, status
 from app.core.db import SessionDep
 from app.shared.utils.response import Response
+from typing import Any, cast
 
 from app.modules.chess.schemas.request import (
     CreateChessBorrowRequest,
@@ -28,7 +29,9 @@ async def create_chess_borrow(
         status_code = status.HTTP_404_NOT_FOUND if result["error"] == "NOT_FOUND" else status.HTTP_400_BAD_REQUEST
         return Response(
             data=None,
-            message="Error al registrar el préstamo",
+            message="Error al .where(Prestamo.id == Novedad.prestamo_id)
+            .where(Prestamo.estudiante_id == estudiante_id)
+            .where(Novedad.resuelta.is_(False))",
             status_code=status_code,
             details={"error": result["message"]}
         ).to_dict()
@@ -60,9 +63,11 @@ async def return_chess_borrow(
             details={"error": result["message"]}
         ).to_dict()
     
-    # Successful result contains 'data' dict
-    data_body = result["data"]  # type: ignore[index]
-    mensaje = data_body.get("mensaje", "")
+    from typing import cast, Any
+    # Ensure result is a dict
+    result_dict = cast(dict[str, Any], result)
+    data_body = result_dict["data"]  # type: ignore[index]
+    mensaje: str = data_body.get("mensaje", "")
     return Response(
         data=data_body,
         message=mensaje,
@@ -87,7 +92,7 @@ async def resolve_chess_novelty(
 
     # Safely extract data and message
     data_body = result["data"]  # type: ignore[index]
-    mensaje = data_body.get("mensaje", "")
+    mensaje: str = data_body.get("mensaje", "")
     return Response(
         data=data_body,
         message=mensaje,
@@ -101,9 +106,10 @@ async def get_chess_clearance(
 ):
     app_service = GetChessClearance(session=session)
     result = await app_service.execute(estudiante_id)
-
+    # Ensure result is a dict for type checking
+    result_dict = cast(dict[str, Any], result)
     return Response(
-        data={"paz_y_salvo": result["paz_y_salvo"]},
-        message=result["message"],
+        data={"paz_y_salvo": result_dict["paz_y_salvo"]},
+        message=result_dict["message"],  # type: ignore[index]
         status_code=status.HTTP_200_OK
     ).to_dict()

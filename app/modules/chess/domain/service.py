@@ -47,7 +47,8 @@ class ChessService:
 
         # Store extension if grado_id was provided
         if data.grado_id:
-            self.chess_repo.create_borrowing_extension(prestamo_id=prestamo.id, grado_id=data.grado_id)
+            assert prestamo.id is not None
+            self.chess_repo.create_borrowing_extension(prestamo_id=prestamo.id, grado_id=data.grado_id)  # type: ignore[arg-type]
 
         return prestamo
 
@@ -68,7 +69,8 @@ class ChessService:
         # Update items stock
         item = await self.inventory_repo.get_item_by_id(prestamo.inventario_id)
         if item:
-            await self.inventory_repo.update_amount_item(item.id, item.cantidad + prestamo.cantidad)
+            assert item.id is not None
+            await self.inventory_repo.update_amount_item(item.id, item.cantidad + prestamo.cantidad)  # type: ignore[arg-type]
 
         novedad_creada = False
         if data.conteo_piezas < 32:
@@ -79,7 +81,8 @@ class ChessService:
                 descripcion=motivo
             )
             # Create extension
-            self.chess_repo.create_novelty_extension(novedad_id=novedad.id)
+            assert novedad.id is not None
+            self.chess_repo.create_novelty_extension(novedad_id=novedad.id)  # type: ignore[arg-type]
             novedad_creada = True
 
         return {
