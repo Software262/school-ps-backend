@@ -13,7 +13,7 @@ class GetBorrowings:
 
     async def execute(
         self, filter_pagination: FilterPaginationBorrowings
-    ) -> Sequence[Prestamo]:
+    ) -> tuple[int, Sequence[Prestamo]]:
         return await self.service.get_borrowings(
             filter_pagination=filter_pagination,
             active=filter_pagination.active,
