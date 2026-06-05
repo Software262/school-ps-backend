@@ -28,8 +28,9 @@ class ChessRepository:
     def get_open_novelties_by_student(self, estudiante_id: int) -> list[Novedad]:
         query = (
             select(Novedad)
-            .join(Prestamo, Prestamo.id == Novedad.prestamo_id)
+            .join(Prestamo)
+            .where(Prestamo.id == Novedad.prestamo_id)
             .where(Prestamo.estudiante_id == estudiante_id)
-            .where(Novedad.resuelta.is_(False))
+            .where(Novedad.resuelta == False)
         )
         return list(self.session.exec(query).all())

@@ -23,6 +23,7 @@ async def create_chess_borrow(
     app_service = CreateChessBorrowing(session=session)
     result = await app_service.execute(request_data)
     
+    # If result is an error dict, handle it
     if isinstance(result, dict) and result.get("error"):
         status_code = status.HTTP_404_NOT_FOUND if result["error"] == "NOT_FOUND" else status.HTTP_400_BAD_REQUEST
         return Response(
@@ -32,8 +33,10 @@ async def create_chess_borrow(
             details={"error": result["message"]}
         ).to_dict()
     
+    # At this point result is a Prestamo instance
+    prestamo = result  # type: ignore[assignment]
     return Response(
-        data={"prestamo_id": result.id},
+        data={"prestamo_id": getattr(prestamo, "id", None)},
         message="Préstamo de ajedrez registrado exitosamente.",
         status_code=status.HTTP_201_CREATED
     ).to_dict()
@@ -47,8 +50,8 @@ async def return_chess_borrow(
     user_id = 1 
     app_service = ReturnChessBorrowing(session=session)
     result = await app_service.execute(prestamo_id, user_id, request_data)
-
-    if result.get("error"):
+    
+    if isinstance(result, dict) and result.get("error"):
         status_code = status.HTTP_404_NOT_FOUND if result["error"] == "NOT_FOUND" else status.HTTP_400_BAD_REQUEST
         return Response(
             data=None,
@@ -56,10 +59,13 @@ async def return_chess_borrow(
             status_code=status_code,
             details={"error": result["message"]}
         ).to_dict()
-
+    
+    # Successful result contains 'data' dict
+    data_body = result["data"]  # type: ignore[index]
+    mensaje = data_body.get("mensaje", "")
     return Response(
-        data=result["data"],
-        message=result["data"]["mensaje"],
+        data=data_body,
+        message=mensaje,
         status_code=status.HTTP_200_OK
     ).to_dict()
 
@@ -79,9 +85,12 @@ async def resolve_chess_novelty(
             details={"error": result["message"]}
         ).to_dict()
 
+    # Safely extract data and message
+    data_body = result["data"]  # type: ignore[index]
+    mensaje = data_body.get("mensaje", "")
     return Response(
-        data=result["data"],
-        message=result["data"]["mensaje"],
+        data=data_body,
+        message=mensaje,
         status_code=status.HTTP_200_OK
     ).to_dict()
 
