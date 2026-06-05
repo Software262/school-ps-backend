@@ -10,4 +10,4 @@ class UpdateItem(EditSingleItem):
         self._service = MusicalBandService(repository=self.repository)
 
     async def _execute(self, item_id: int, item_data: UpdateItemMusicalBand):
-        return await self._service.update_item(item_id=item_id, item_data=item_data)
+        return await self._service._update_item(item_id=item_id, item_data=item_data)
