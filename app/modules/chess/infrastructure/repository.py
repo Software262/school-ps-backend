@@ -31,6 +31,6 @@ class ChessRepository:
             .join(Prestamo)
             .where(Prestamo.id == Novedad.prestamo_id)
             .where(Prestamo.estudiante_id == estudiante_id)
-            .where(Novedad.resuelta.is_(False))
+            .where(Novedad.resuelta == False)  # noqa: E712
         )
         return list(self.session.exec(query).all())
