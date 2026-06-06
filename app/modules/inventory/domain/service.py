@@ -1,4 +1,9 @@
+from typing import Sequence
+
+from app.modules.enrollment.application.contracts import StudentQueryService
+from app.modules.inventory.domain.entities import Borrowing
 from app.modules.inventory.domain.repositories import InventoryRepository
+from app.modules.inventory.infrastructure.models import Prestamo
 from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     CreateItemRequest,
@@ -14,8 +19,13 @@ from app.shared.utils.filter_pagination import calculate_offset
 
 
 class InventoryService:
-    def __init__(self, repository: InventoryRepository):
+    def __init__(
+        self,
+        repository: InventoryRepository,
+        studentService: StudentQueryService | None = None,
+    ):
         self.repository = repository
+        self.service = studentService
 
     async def get_inventory(self, filter_pagination: FilterPaginationInventory):
         offset = calculate_offset(filter_pagination.page, filter_pagination.limit)
@@ -67,6 +77,17 @@ class InventoryService:
         item = await self.repository.get_item_by_id(borrow_data.inventario_id)
         if not item:
             return None
+
+        if self.service:
+            student = self.service.get_student_by_id(
+                student_id=borrow_data.estudiante_id
+            )
+
+            if not student:
+                return None
+
+            if not student.activo:
+                return None
 
         if borrow_data.cantidad > item.cantidad:
             return None
@@ -120,30 +141,64 @@ class InventoryService:
             borrow_id=borrow_id, borrow_data=borrow_data
         )
 
+    async def format_borrowing(self, borrowings: Sequence[Prestamo]):
+        result: list[Borrowing] = []
+
+        for p in borrowings:
+            if p.id is None or self.service is None:
+                continue
+
+            item = await self.repository.get_item_by_id(p.inventario_id)
+            student = self.service.get_student_by_id(student_id=p.estudiante_id)
+
+            if item is None or student is None:
+                continue
+
+            result.append(
+                Borrowing(
+                    id=p.id,
+                    nombre_articulo=item.nombre,
+                    nombre_estudiante=student.nombre,
+                    estudiante_id=p.estudiante_id,
+                    inventario_id=p.inventario_id,
+                    cantidad=p.cantidad,
+                    estado_prestamo=p.estado_prestamo,
+                    fecha_devolucion=p.fecha_devolucion,
+                    fecha_salida=p.fecha_salida,
+                    observacion=p.observacion,
+                )
+            )
+
+        return result
+
     async def get_borrowings(
         self, filter_pagination: FilterPaginationInventory, active: bool | None
     ):
         offset = calculate_offset(filter_pagination.page, filter_pagination.limit)
 
         if not filter_pagination.item_type:
-            return await self.repository.get_borrowings_pagination(
+            count, borrowings = await self.repository.get_borrowings_pagination(
                 offset=offset,
                 limit=filter_pagination.limit,
                 active=active,
                 type_id=None,
             )
 
+            return count, (await self.format_borrowing(borrowings=borrowings))
+
         type_id = await self.repository.get_type_id_by_name(filter_pagination.item_type)
 
         if type_id is None:
             return 0, []
 
-        return await self.repository.get_borrowings_pagination(
+        count, borrowings = await self.repository.get_borrowings_pagination(
             offset=offset,
             limit=filter_pagination.limit,
             active=active,
             type_id=type_id,
         )
+
+        return count, (await self.format_borrowing(borrowings=borrowings))
 
     async def create_items_inventory_from_file(
         self, create_items_data: list[InventoryItemRequest]
