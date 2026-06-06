@@ -7,6 +7,7 @@ from app.modules.inventory.schemas.request import (
     CreateItemRequest,
     CreateTypeInventoryRequest,
     FilterPaginationInventory,
+    FilterPaginationTypesInventory,
     InventoryItemRequest,
     ReturnBorrowRequest,
     UpdateCompleteItemRequest,
@@ -35,11 +36,22 @@ class InventoryService:
             type_id=type_id,
         )
 
+    async def get_types_inventory(
+        self, filter_pagination: FilterPaginationTypesInventory
+    ):
+        offset = calculate_offset(filter_pagination.page, filter_pagination.limit)
+
+        return await self.repository.get_types_inventory_filter_pagination(
+            limit=filter_pagination.limit, offset=offset
+        )
+
     async def create_item(self, item_data: CreateItemRequest):
         return await self.repository.create_item(item_data)
 
     async def create_type_inventory(self, type_data: CreateTypeInventoryRequest):
-        return await self.repository.create_type_inventory(name=type_data.nombre)
+        name = type_data.nombre.strip().lower()
+
+        return await self.repository.create_type_inventory(name=name)
 
     async def update_item(self, item_id: int, item_data: UpdateCompleteItemRequest):
         item = await self.repository.get_item_by_id(item_id)
@@ -47,6 +59,9 @@ class InventoryService:
             return None
 
         return await self.repository.update_item(item=item, item_data=item_data)
+
+    async def get_type_by_name(self, name: str):
+        return await self.repository.get_type_by_name(name=name)
 
     async def create_borrow(self, borrow_data: CreateBorrowRequest):
         item = await self.repository.get_item_by_id(borrow_data.inventario_id)

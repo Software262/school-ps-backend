@@ -58,7 +58,7 @@ async def create_instrument(session: SessionDep, item_data: CreateInstrumentRequ
     ).to_dict()
 
 
-@router.patch("")
+@router.patch("/{id}")
 async def update_instrument(
     session: SessionDep, id: int, item_data: UpdateItemMusicalBand
 ):

@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 from pydantic import BaseModel
 from app.modules.classroom_holder.domain.enums import TipoIncidencia
 
@@ -11,7 +10,7 @@ class IncidenciaResponse(BaseModel):
     descripcion: str
     fecha: datetime
     esta_abierta: bool
-    fecha_cierre: Optional[datetime]
+    fecha_cierre: datetime | None
     created_at: datetime
     updated_at: datetime
 
