@@ -7,6 +7,7 @@ from app.modules.enrollment.domain.entities import (
     GradeInfo,
     StudentGeneralInfo,
     StudentInfo,
+    ComplementaryConcept,
 )
 from app.modules.enrollment.domain.repositories import EnrollmentRepository
 from app.modules.enrollment.infrastructure.models import (
@@ -661,3 +662,22 @@ class SQLEnrollmentRepository(EnrollmentRepository):
             mat.valor_total -= amount
             self._session.add(mat)
             self._session.commit()
+
+    def get_all_complementaries(
+        self, year: int | None = None
+    ) -> list[ComplementaryConcept]:
+        statement = select(Complementario)
+        if year is not None:
+            statement = statement.where(Complementario.anio == year)
+        results = self._session.exec(statement).all()
+        return [
+            ComplementaryConcept(
+                id=comp.id if comp.id is not None else 0,
+                tipo_complementario=comp.tipo_complementario,
+                anio=comp.anio,
+                valor=comp.valor,
+                estado_complemento=comp.estado_complemento,
+                uso_matricula=comp.uso_matricula,
+            )
+            for comp in results
+        ]

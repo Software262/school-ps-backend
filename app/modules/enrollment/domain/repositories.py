@@ -5,6 +5,7 @@ from app.modules.enrollment.domain.entities import (
     GradeInfo,
     StudentGeneralInfo,
     StudentInfo,
+    ComplementaryConcept,
 )
 from app.modules.enrollment.infrastructure.models import (
     Complementario,
@@ -235,7 +236,6 @@ class EnrollmentRepository(ABC):
         ...
 
     @abstractmethod
-    @abstractmethod
     def get_total_paid(self, matricula_id: int) -> int:
         """Retorna la suma total de pagos registrados para una matrícula."""
         ...
@@ -333,4 +333,11 @@ class EnrollmentRepository(ABC):
     @abstractmethod
     def decrease_enrollment_total_value(self, matricula_id: int, amount: int) -> None:
         """Disminuye el valor total de una matrícula."""
+        ...
+
+    @abstractmethod
+    def get_all_complementaries(
+        self, year: int | None = None
+    ) -> list[ComplementaryConcept]:
+        """Obtiene todos los conceptos complementarios registrados, opcionalmente filtrados por año."""
         ...
