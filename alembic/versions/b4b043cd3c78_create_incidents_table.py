@@ -157,7 +157,7 @@ def upgrade() -> None:
     sa.Column('observacion', sqlmodel.sql.sqltypes.AutoString(length=400), nullable=True),
     sa.ForeignKeyConstraint(['tipo_inventario_id'], ['tipoinventario.id'], ),
     sa.PrimaryKeyConstraint('id')
-    )
+    ) 
     op.create_table('parametrizarmatricula',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),

@@ -11,10 +11,8 @@ from app.modules.classroom_holder.application.create_incident import CreateIncid
 from app.modules.classroom_holder.application.close_incident import CloseIncidentUseCase
 from app.modules.classroom_holder.application.get_incidents import GetIncidentsUseCase
 
-# Importamos la dependencia de seguridad
 from app.modules.classroom_holder.api.dependencies import verificar_acceso_salon_titular
 
-# 🌟 Protegemos TODAS las rutas de este router inyectando la dependencia a nivel global
 router = APIRouter(
     dependencies=[Depends(verificar_acceso_salon_titular)]
 )
@@ -23,12 +21,10 @@ router = APIRouter(
 def crear_incidencia(
     payload: IncidenciaCreateRequest,
     session: SessionDep,
-    # Obtenemos el usuario validado para extraer su ID
     current_user = Depends(verificar_acceso_salon_titular) 
 ):
     repo = IncidenciaRepository(session)
     use_case = CreateIncidentUseCase(repo)
-    # Usamos el ID real del docente/admin autenticado
     return use_case.execute(payload, current_docente_id=current_user.id)
 
 @router.get("/incidencias/estudiante/{estudiante_id}", response_model=List[IncidenciaResponse])
@@ -67,3 +63,9 @@ def verificar_paz_y_salvo(estudiante_id: int, session: SessionDep):
         cumple_paz_y_salvo=cumple,
         mensaje=mensaje
     )
+
+# 🌟 NUEVO ENDPOINT: Para el buscador del Frontend
+@router.get("/buscar-estudiantes")
+def buscar_estudiantes(q: str, session: SessionDep):
+    repo = IncidenciaRepository(session)
+    return repo.buscar_estudiantes_por_nombre(q)

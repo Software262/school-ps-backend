@@ -17,3 +17,7 @@ app.add_middleware(
 )
 
 app.include_router(router)
+
+@app.get("/")
+def root():
+    return {"message": "Backend SchoolPS funcionando correctamente"}

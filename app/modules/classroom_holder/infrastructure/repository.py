@@ -1,5 +1,5 @@
 from typing import List, Optional
-from sqlmodel import Session, select
+from sqlmodel import Session, select, text  # 🌟 Agregamos 'text' aquí
 from app.modules.classroom_holder.domain.entities import IncidenciaDomain
 from app.modules.classroom_holder.domain.enums import TipoIncidencia
 from app.modules.classroom_holder.domain.repositories import IncidenciaRepositoryInterface
@@ -33,7 +33,6 @@ class IncidenciaRepository(IncidenciaRepositoryInterface):
                 model.updated_at = domain.updated_at
                 model.descripcion = domain.descripcion
         
-        # Si no tenía ID o si el ID no existía en la base de datos, lo creamos desde cero
         if model is None:
             model = Observador(
                 estudiante_id=domain.estudiante_id,
@@ -66,7 +65,26 @@ class IncidenciaRepository(IncidenciaRepositoryInterface):
     def has_open_incidents(self, estudiante_id: int) -> bool:
         statement = select(Observador).where(
             Observador.estudiante_id == estudiante_id,
-            Observador.esta_abierta 
+            Observador.esta_abierta == True
         )
         result = self.session.exec(statement).first()
         return result is not None
+
+    # 🌟 NUEVO MÉTODO: Búsqueda por nombre usando SQL Crudo
+    def buscar_estudiantes_por_nombre(self, query: str) -> list[dict]:
+        statement = text("""
+            SELECT e.id, e.nombre, g.nombre as grado_nombre
+            FROM estudiante e
+            LEFT JOIN grado g ON e.grado_id = g.id
+            WHERE e.nombre ILIKE :query
+            LIMIT 10
+        """)
+        results = self.session.execute(statement, {"query": f"%{query}%"}).fetchall()
+        return [
+            {
+                "id": row.id, 
+                "nombre": row.nombre, 
+                "grado_nombre": row.grado_nombre or "Sin curso"
+            } 
+            for row in results
+        ]
