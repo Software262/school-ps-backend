@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from datetime import datetime
 
 
 @dataclass
@@ -43,6 +44,8 @@ class EnrollmentBalance:
     enrollment_status: str = "sin_abono"
     enrollment_exists: bool = False
     pending_base: int = 0
+    payments_count: int = 0
+    matricula_id: int | None = None
 
 
 @dataclass
@@ -77,3 +80,57 @@ class EnrollmentCreated:
     costo_base: int
     total_complementarios: int
     complementarios: list[ComplementaryDetail]
+
+
+@dataclass
+class StudentGeneralInfo:
+    """Información general y resumida de un estudiante."""
+
+    id: int
+    nombre: str
+    documento: str
+    grado_nombre: str
+
+
+@dataclass
+class GradeInfo:
+    """Información general de un grado."""
+
+    id: int
+    nombre: str
+
+
+@dataclass
+class PaymentHistoryItem:
+    """Un pago dentro del historial de pagos de un estudiante."""
+
+    id: int
+    fecha_pago: datetime
+    codigo_talonario: str
+    monto_total: int
+    observacion: str | None
+
+
+@dataclass
+class PaymentDistribution:
+    """Distribución de un pago a un concepto específico."""
+
+    concepto: str
+    monto_aplicado: int
+
+
+@dataclass
+class PaymentReceipt:
+    """Datos completos del comprobante de pago."""
+
+    pago_id: int
+    codigo_talonario: str
+    fecha_pago: datetime
+    monto_total: int
+    observacion: str | None
+    estudiante_id: int
+    nombre_estudiante: str
+    documento_estudiante: str
+    grado_estudiante: str
+    nombre_acudiente: str
+    distribuciones: list[PaymentDistribution]

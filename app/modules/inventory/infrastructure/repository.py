@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Sequence
 
-from sqlmodel import select
+from sqlmodel import col, func, select
 
 from app.core.db import SessionDep
 from app.modules.inventory.domain.repositories import (
@@ -9,9 +9,9 @@ from app.modules.inventory.domain.repositories import (
 )
 from app.modules.inventory.infrastructure.models import (
     Inventario,
+    Novedad,
     Prestamo,
     TipoInventario,
-    Novedad,
 )
 from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
@@ -30,19 +30,24 @@ class InventoryRepository(InventoryRepositoryInterface):
     async def get_type_id_by_name(self, item_type: str) -> int | None:
         result = self.session.exec(
             select(TipoInventario).where(TipoInventario.nombre == item_type)
-        ).one_or_none()
+        ).first()
 
-        return result.id if result else None
+        if not result:
+            return None
+
+        return result.id
 
     async def get_items_filter_pagination(
         self, offset: int, limit: int, type_id: int | None
-    ) -> Sequence[Inventario]:
+    ):
         query = select(Inventario).offset(offset).limit(limit)
+        query_count = select(func.count(col(Inventario.id)))
 
         if type_id is not None:
             query = query.where(Inventario.tipo_inventario_id == type_id)
+            query_count = query_count.where(Inventario.tipo_inventario_id == type_id)
 
-        return self.session.exec(query).all()
+        return self.session.exec(query_count).one(), self.session.exec(query).all()
 
     async def create_item(self, item_data: CreateItemRequest):
         new_item = Inventario(
@@ -70,6 +75,13 @@ class InventoryRepository(InventoryRepositoryInterface):
 
     async def get_item_by_id(self, item_id: int):
         return self.session.get(Inventario, item_id)
+
+    async def get_types_inventory_filter_pagination(self, offset: int, limit: int):
+        query = select(TipoInventario).offset(offset).limit(limit)
+
+        return self.session.exec(
+            select(func.count(col(TipoInventario.id)))
+        ).one(), self.session.exec(query).all()
 
     async def update_item(self, item: Inventario, item_data: UpdateCompleteItemRequest):
         item.tipo_inventario_id = item_data.tipo_inventario_id
@@ -150,18 +162,25 @@ class InventoryRepository(InventoryRepositoryInterface):
 
     async def get_borrowings_pagination(
         self, offset: int, limit: int, active: bool | None, type_id: int | None
-    ) -> Sequence[Prestamo]:
-        query = select(Prestamo).offset(offset).limit(limit)
+    ) -> tuple[int, Sequence[Prestamo]]:
+        query = select(Prestamo)
+        query_count = select(func.count(col(Prestamo.id)))
 
         if active is not None:
             query = query.where(Prestamo.estado_prestamo == active)
+            query_count = query_count.where(Prestamo.estado_prestamo == active)
 
         if type_id is not None:
             query = query.join(Inventario).where(
                 Inventario.tipo_inventario_id == type_id
             )
+            query_count = query_count.join(Inventario).where(
+                Inventario.tipo_inventario_id == type_id
+            )
 
-        return self.session.exec(query).all()
+        return self.session.exec(query_count).one(), self.session.exec(
+            query.offset(offset).limit(limit)
+        ).all()
 
     async def create_items_batch(self, create_items_data: list[InventoryItemRequest]):
         inventory: list[Inventario] = []
@@ -197,3 +216,8 @@ class InventoryRepository(InventoryRepositoryInterface):
         self.session.commit()
         self.session.refresh(borrow)
         self.session.refresh(item)
+
+    async def get_type_by_name(self, name: str):
+        return self.session.exec(
+            select(TipoInventario).where(col(TipoInventario.nombre) == name)
+        ).first()

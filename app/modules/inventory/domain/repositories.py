@@ -25,7 +25,7 @@ class InventoryRepository(ABC):
     @abstractmethod
     async def get_items_filter_pagination(
         self, offset: int, limit: int, type_id: int | None
-    ) -> Sequence[Inventario]:
+    ) -> tuple[int, Sequence[Inventario]]:
         pass
 
     @abstractmethod
@@ -34,6 +34,16 @@ class InventoryRepository(ABC):
 
     @abstractmethod
     async def create_type_inventory(self, name: str) -> TipoInventario:
+        pass
+
+    @abstractmethod
+    async def get_types_inventory_filter_pagination(
+        self, offset: int, limit: int
+    ) -> tuple[int, Sequence[TipoInventario]]:
+        pass
+
+    @abstractmethod
+    async def get_type_by_name(self, name: str) -> TipoInventario | None:
         pass
 
     @abstractmethod
@@ -73,7 +83,7 @@ class InventoryRepository(ABC):
     @abstractmethod
     async def get_borrowings_pagination(
         self, offset: int, limit: int, active: bool | None, type_id: int | None
-    ) -> Sequence[Prestamo]:
+    ) -> tuple[int, Sequence[Prestamo]]:
         pass
 
     @abstractmethod
