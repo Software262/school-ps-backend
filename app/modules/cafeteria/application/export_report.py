@@ -1,29 +1,23 @@
 import io
 import csv
 from app.core.db import SessionDep
-from app.modules.cafeteria.domain.service import CafeteriaService
+from app.modules.enrollment.domain.service import StudentService
 from app.modules.cafeteria.infrastructure.repository import CafeteriaRepository
+from app.modules.cafeteria.domain.service import CafeteriaService
 
 
 class ExportReport:
-    def __init__(self, session: SessionDep):
-        self.repository = CafeteriaRepository(session=session)
-        self.service = CafeteriaService(repository=self.repository)
+    def __init__(self, session: SessionDep, student_service: StudentService):
+        self.repository = CafeteriaRepository(session)
+        self.service = CafeteriaService(self.repository, student_service)
 
     async def execute(self, periodo_id: int) -> str:
-        results = await self.repository.get_report_data(periodo_id)
-        output = io.StringIO()  # type: ignore
+        """Generates a CSV report with UTF-8 BOM for Excel compatibility."""
+        data_rows = await self.service.format_report_data(periodo_id)
+        output = io.StringIO()  # type: ignore[abstract]
+        output.write("\ufeff")
         writer = csv.writer(output)
         writer.writerow(["DOCUMENTO", "ESTUDIANTE", "CURSO", "ESTADO", "OBSERVACIONES"])
-
-        for caf, est, grado in results:
-            writer.writerow(
-                [
-                    est.documento,
-                    est.nombre,
-                    grado.nombre,
-                    "PAZ Y SALVO" if caf.estado_cafeteria else "DEUDA",
-                    caf.observaciones,
-                ]
-            )
+        for row in data_rows:
+            writer.writerow(row)
         return output.getvalue()
