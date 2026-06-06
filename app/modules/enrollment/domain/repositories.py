@@ -2,7 +2,15 @@ from abc import ABC, abstractmethod
 
 from app.modules.enrollment.domain.entities import (
     ComplementaryDetail,
+    GradeInfo,
+    StudentGeneralInfo,
     StudentInfo,
+    ComplementaryConcept,
+)
+from app.modules.enrollment.infrastructure.models import (
+    Complementario,
+    Estudiante,
+    Pago,
 )
 
 
@@ -228,7 +236,6 @@ class EnrollmentRepository(ABC):
         ...
 
     @abstractmethod
-    @abstractmethod
     def get_total_paid(self, matricula_id: int) -> int:
         """Retorna la suma total de pagos registrados para una matrícula."""
         ...
@@ -242,6 +249,37 @@ class EnrollmentRepository(ABC):
     def search_students(self, documento: str | None, nombre: str | None) -> list[tuple]:
         """Busca estudiantes por coincidencia parcial en documento o nombre."""
         ...
+
+    @abstractmethod
+    def search_active_students(
+        self, query: str | None, grado_id: int | None, limit: int, offset: int
+    ) -> list[StudentGeneralInfo]:
+        """Busca estudiantes activos con filtros opcionales de query y grado, con paginación."""
+        ...
+
+    @abstractmethod
+    def get_students_bulk(self, student_ids: list[int]) -> list[StudentGeneralInfo]:
+        """Obtiene información resumida de un lote de IDs de estudiantes."""
+        ...
+
+    @abstractmethod
+    def get_all_grades(self) -> list[GradeInfo]:
+        """Obtiene la lista de todos los grados académicos."""
+        ...
+
+    @abstractmethod
+    def get_student_entity_by_id(self, student_id: int) -> Estudiante | None:
+        """Obtiene el objeto/entidad Estudiante crudo por su ID."""
+        ...
+
+    @abstractmethod
+    def get_student_entities_by_grade(self, grado_id: int) -> list[Estudiante]:
+        """Obtiene la lista de entidades Estudiante crudas por grado ID."""
+        ...
+
+    @abstractmethod
+    def get_all_complementaries_by_year(self, year: int) -> list[Complementario]:
+        """Obtiene todos los conceptos complementarios activos por año."""
 
     # === Nuevas Consultas y Acciones ===
 
@@ -263,7 +301,7 @@ class EnrollmentRepository(ABC):
         ...
 
     @abstractmethod
-    def get_payments_by_matricula(self, matricula_id: int) -> list:
+    def get_payments_by_matricula(self, matricula_id: int) -> list[Pago]:
         """Retorna todos los pagos (Pago) de una matrícula."""
         ...
 
@@ -295,4 +333,11 @@ class EnrollmentRepository(ABC):
     @abstractmethod
     def decrease_enrollment_total_value(self, matricula_id: int, amount: int) -> None:
         """Disminuye el valor total de una matrícula."""
+        ...
+
+    @abstractmethod
+    def get_all_complementaries(
+        self, year: int | None = None
+    ) -> list[ComplementaryConcept]:
+        """Obtiene todos los conceptos complementarios registrados, opcionalmente filtrados por año."""
         ...

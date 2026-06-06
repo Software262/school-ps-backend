@@ -83,6 +83,36 @@ class EnrollmentCreated:
 
 
 @dataclass
+class ComplementaryConcept:
+    """Concepto complementario disponible en la institución."""
+
+    id: int
+    tipo_complementario: str
+    anio: int
+    valor: int
+    estado_complemento: str
+    uso_matricula: bool
+
+
+@dataclass
+class StudentGeneralInfo:
+    """Información general y resumida de un estudiante."""
+
+    id: int
+    nombre: str
+    documento: str
+    grado_nombre: str
+
+
+@dataclass
+class GradeInfo:
+    """Información general de un grado."""
+
+    id: int
+    nombre: str
+
+
+@dataclass
 class PaymentHistoryItem:
     """Un pago dentro del historial de pagos de un estudiante."""
 

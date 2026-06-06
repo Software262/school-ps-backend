@@ -1,10 +1,13 @@
 from datetime import datetime
 
-from sqlmodel import col, Session, select
+from sqlmodel import Session, col, func, or_, select
 
 from app.modules.enrollment.domain.entities import (
     ComplementaryDetail,
+    GradeInfo,
+    StudentGeneralInfo,
     StudentInfo,
+    ComplementaryConcept,
 )
 from app.modules.enrollment.domain.repositories import EnrollmentRepository
 from app.modules.enrollment.infrastructure.models import (
@@ -125,7 +128,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
             select(Matricula)
             .join(
                 ParametrizarMatricula,
-               col(Matricula.para_matricula_id) == col(ParametrizarMatricula.id),
+                col(Matricula.para_matricula_id) == col(ParametrizarMatricula.id),
             )
             .where(
                 Matricula.estudiante_id == student_id,
@@ -463,6 +466,84 @@ class SQLEnrollmentRepository(EnrollmentRepository):
 
         return list(self._session.exec(statement).all())
 
+    def search_active_students(
+        self, query: str | None, grado_id: int | None, limit: int, offset: int
+    ) -> list[StudentGeneralInfo]:
+        statement = (
+            select(Estudiante, Grado)
+            .join(
+                Grado,
+                col(Estudiante.grado_id) == col(Grado.id),
+            )
+            .where(col(Estudiante.activo))
+        )
+
+        if query:
+            q_norm = f"%{query.strip().lower()}%"
+            statement = statement.where(
+                or_(
+                    func.lower(Estudiante.nombre).like(q_norm),
+                    func.lower(Estudiante.documento).like(q_norm),
+                )
+            )
+        if grado_id is not None:
+            statement = statement.where(col(Estudiante.grado_id) == grado_id)
+
+        statement = statement.offset(offset).limit(limit)
+        results = self._session.exec(statement).all()
+        return [
+            StudentGeneralInfo(
+                id=est.id,
+                nombre=est.nombre,
+                documento=est.documento,
+                grado_nombre=gr.nombre,
+            )
+            for est, gr in results
+            if est.id is not None
+        ]
+
+    def get_students_bulk(self, student_ids: list[int]) -> list[StudentGeneralInfo]:
+        statement = (
+            select(Estudiante, Grado)
+            .join(Grado, col(Estudiante.grado_id) == col(Grado.id))
+            .where(col(Estudiante.id).in_(student_ids))
+        )
+        results = self._session.exec(statement).all()
+        return [
+            StudentGeneralInfo(
+                id=est.id,
+                nombre=est.nombre,
+                documento=est.documento,
+                grado_nombre=gr.nombre,
+            )
+            for est, gr in results
+            if est.id is not None
+        ]
+
+    def get_all_grades(self) -> list[GradeInfo]:
+        statement = select(Grado).order_by(col(Grado.nombre))
+        results = self._session.exec(statement).all()
+        return [
+            GradeInfo(id=gr.id, nombre=gr.nombre)  # type: ignore
+            for gr in results
+            if gr.id is not None
+        ]
+
+    def get_student_entity_by_id(self, student_id: int) -> Estudiante | None:
+        statement = select(Estudiante).where(col(Estudiante.id) == student_id)
+        return self._session.exec(statement).first()
+
+    def get_student_entities_by_grade(self, grado_id: int) -> list[Estudiante]:
+        statement = select(Estudiante).where(col(Estudiante.grado_id) == grado_id)
+        return list(self._session.exec(statement).all())
+
+    def get_all_complementaries_by_year(self, year: int) -> list[Complementario]:
+        statement = select(Complementario).where(
+            col(Complementario.anio) == year,
+            col(Complementario.estado_complemento) == "Activo",
+        )
+        return list(self._session.exec(statement).all())
+
     # === Nuevas Consultas y Acciones ===
 
     def get_grade_by_name(self, name: str) -> int | None:
@@ -581,3 +662,22 @@ class SQLEnrollmentRepository(EnrollmentRepository):
             mat.valor_total -= amount
             self._session.add(mat)
             self._session.commit()
+
+    def get_all_complementaries(
+        self, year: int | None = None
+    ) -> list[ComplementaryConcept]:
+        statement = select(Complementario)
+        if year is not None:
+            statement = statement.where(Complementario.anio == year)
+        results = self._session.exec(statement).all()
+        return [
+            ComplementaryConcept(
+                id=comp.id if comp.id is not None else 0,
+                tipo_complementario=comp.tipo_complementario,
+                anio=comp.anio,
+                valor=comp.valor,
+                estado_complemento=comp.estado_complemento,
+                uso_matricula=comp.uso_matricula,
+            )
+            for comp in results
+        ]
