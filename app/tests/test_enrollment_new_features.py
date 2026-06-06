@@ -418,3 +418,44 @@ def test_disassociate_complementary_error_already_paid(session, client):
     response_del = client.delete(f"/api/v1/enrollment/details/{detalle_id}")
     assert response_del.status_code == status.HTTP_400_BAD_REQUEST
     assert "ya tiene abonos registrados" in response_del.json()["detail"]
+
+
+def test_get_complementaries_list(session, client):
+    # 1. Seed some complementaries
+    comp1 = Complementario(
+        tipo_complementario="Banda Marcial",
+        anio=2026,
+        valor=100000,
+        estado_complemento="Activo",
+        uso_matricula=True,
+    )
+    comp2 = Complementario(
+        tipo_complementario="Club de Ajedrez",
+        anio=2027,
+        valor=80000,
+        estado_complemento="Activo",
+        uso_matricula=False,
+    )
+    session.add(comp1)
+    session.add(comp2)
+    session.commit()
+
+    # 2. Get all complementaries
+    response = client.get("/api/v1/enrollment/complementary")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert len(data) == 2
+
+    # Verify values
+    types = [item["tipo_complementario"] for item in data]
+    assert "Banda Marcial" in types
+    assert "Club de Ajedrez" in types
+
+    # 3. Filter by year
+    response_filtered = client.get(
+        "/api/v1/enrollment/complementary", params={"year": 2026}
+    )
+    assert response_filtered.status_code == status.HTTP_200_OK
+    data_filtered = response_filtered.json()
+    assert len(data_filtered) == 1
+    assert data_filtered[0]["tipo_complementario"] == "Banda Marcial"

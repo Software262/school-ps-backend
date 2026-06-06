@@ -8,6 +8,7 @@ from app.modules.enrollment.domain.entities import (
     PaymentHistoryItem,
     PaymentReceipt,
     PaymentResult,
+    ComplementaryConcept,
     StudentInfo,
 )
 from app.modules.enrollment.domain.repositories import EnrollmentRepository
@@ -578,6 +579,12 @@ class EnrollmentService:
             year=year,
         )
         return result.matricula_id
+
+    def get_all_complementaries(
+        self, year: int | None = None
+    ) -> list[ComplementaryConcept]:
+        """Obtiene todos los conceptos complementarios registrados."""
+        return self.repo.get_all_complementaries(year=year)
 
     def search_students(
         self, documento: str | None, nombre: str | None
