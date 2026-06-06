@@ -114,7 +114,7 @@ class TrainingSchoolRepository(TrainingSchoolRepositoryInterface):
             )
             .join(Grado, col(Estudiante.grado_id) == col(Grado.id))
             .where(DetalleEscuelaFormacion.periodo_id == periodo_id)
-            .order_by(DetalleEscuelaFormacion.id)
+            .order_by(col(DetalleEscuelaFormacion.id))
         )
         rows = self.session.exec(statement).all()
         return [

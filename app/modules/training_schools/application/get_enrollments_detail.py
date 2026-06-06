@@ -36,4 +36,5 @@ class GetEnrollmentsDetail:
                 updated_at=enr.updated_at,
             )
             for enr, student in pairs
+            if enr.id is not None
         ]
