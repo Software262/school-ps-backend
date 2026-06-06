@@ -3,25 +3,30 @@ from typing import Annotated
 from fastapi import APIRouter, Query, status
 
 from app.core.db import SessionDep
-from app.modules.inventory.schemas.response import (
-    ReturnItemBorrowingResponse,
-    UpdateItemInventoryResponse,
-)
+
 from app.modules.sports.application.create_item import CreateItemDeportes
+from app.modules.sports.application.update_item import UpdateItemDeportes
+from app.modules.sports.application.create_borrowing import CreateBorrowingDeportes
 from app.modules.sports.application.edit_single import EditItemDeportes
 from app.modules.sports.application.get_borrowing import GetBorrowingsDeportes
 from app.modules.sports.application.get_items import (
     GetItemsDeportes,
 )
 from app.modules.sports.application.return_borrowing import ReturnBorrowingDeportes
-from app.modules.sports.application.update_item import UpdateItemDeportes
+
 from app.modules.sports.schemas.request import (
     CreateSportItemRequest,
     FilterPaginationBorrowingDeportes,
     FilterPaginationDeportes,
-    ReturnSportBorrowRequest,
     UpdateItemDeportesComplete,
     UpdateItemDeportesSingle,
+    ReturnSportBorrowRequest,
+    CreateSportBorrowRequest,
+)
+from app.modules.inventory.schemas.response import (
+    CreateItemBorrowingResponse,
+    UpdateItemInventoryResponse,
+    ReturnItemBorrowingResponse,
 )
 from app.shared.utils.response import Response
 
@@ -168,4 +173,32 @@ async def return_sport_borrowing(
         ),
         message="Prestamo deportivo devuelto exitosamente",
         status_code=status.HTTP_200_OK,
+    ).to_dict()
+
+
+@router.post("/borrow")
+async def create_sport_borrowing(
+    session: SessionDep, borrow_data: CreateSportBorrowRequest
+):
+    create_borrow = CreateBorrowingDeportes(session=session)
+    data = await create_borrow.execute(borrow_data)
+
+    if not data or not data.id:
+        return Response(
+            data=None,
+            message="Error al crear el prestamo deportivo",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        ).to_dict()
+
+    return Response(
+        data=CreateItemBorrowingResponse(
+            id=data.id,
+            inventario_id=data.inventario_id,
+            estudiante_id=data.estudiante_id,
+            cantidad=data.cantidad,
+            estado_prestamo=data.estado_prestamo,
+            observacion=data.observacion,
+        ),
+        message="Prestamo deportivo creado exitosamente",
+        status_code=status.HTTP_201_CREATED,
     ).to_dict()

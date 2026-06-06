@@ -3,6 +3,7 @@ from app.modules.inventory.domain.service import InventoryService
 
 
 from app.modules.inventory.schemas.request import (
+    CreateBorrowRequest,
     CreateItemRequest,
     ReturnBorrowRequest,
     UpdateCompleteItemRequest,
@@ -56,3 +57,10 @@ class SportsService(InventoryService):
     async def return_borrow(self, borrow_id: int, borrow_data: ReturnBorrowRequest):
         await self.validate_sport_type(borrow_data.inventario_id)
         return await super().return_borrow(borrow_id=borrow_id, borrow_data=borrow_data)
+
+    async def create_borrow(self, borrow_data: CreateBorrowRequest):
+        item = await self.repository.get_item_by_id(borrow_data.inventario_id)
+        if not item:
+            return None
+        await self.validate_sport_type(item.tipo_inventario_id)
+        return await super().create_borrow(borrow_data=borrow_data)
