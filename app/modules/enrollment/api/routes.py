@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, HTTPException, Query
 
 from app.core.db import SessionDep
 from app.modules.enrollment.application.assign_complementary import (
@@ -9,10 +9,15 @@ from app.modules.enrollment.application.assign_complementary import (
 from app.modules.enrollment.application.create_complementary import (
     CreateComplementary,
 )
+from app.modules.enrollment.application.disassociate_complementary import (
+    DisassociateComplementary,
+)
 from app.modules.enrollment.application.get_enrollment_balance import (
     GetEnrollmentBalance,
 )
-from app.modules.enrollment.application.mass_enrollment import MassEnrollment
+from app.modules.enrollment.application.get_payment_history import GetPaymentHistory
+from app.modules.enrollment.application.get_payment_receipt import GetPaymentReceipt
+from app.modules.enrollment.application.manual_enrollment import ManualEnrollment
 from app.modules.enrollment.application.modify_enrollment import ModifyEnrollment
 from app.modules.enrollment.application.process_payment import ProcessDirectedPayment
 from app.modules.enrollment.application.register_enrollment import (
@@ -20,19 +25,24 @@ from app.modules.enrollment.application.register_enrollment import (
 )
 from app.modules.enrollment.application.search_students import SearchStudents
 from app.modules.enrollment.schemas.request import (
-    DirectedPaymentRequest,
-    RegisterEnrollmentRequest,
-    ModifyEnrollmentRequest,
-    ComplementaryCreateRequest,
     AssignComplementaryRequest,
+    ComplementaryCreateRequest,
+    DirectedPaymentRequest,
+    ManualEnrollmentRequest,
+    ModifyEnrollmentRequest,
+    RegisterEnrollmentRequest,
 )
 from app.modules.enrollment.schemas.response import (
+    AcudienteReceiptInfo,
     ComplementaryItemResponse,
     EnrollmentBalanceResponse,
     EnrollmentCreatedResponse,
     PaymentDistributionResponse,
+    PaymentHistoryItemResponse,
+    PaymentReceiptResponse,
     PaymentResultResponse,
     StudentInfoResponse,
+    StudentReceiptInfo,
     StudentSearchItemResponse,
     StudentSearchListResponse,
 )
@@ -253,7 +263,8 @@ async def directed_payment(
     use_case = ProcessDirectedPayment(session=session)
 
     asignaciones = [
-        (a.concepto, a.complementario_id, a.monto) for a in request.asignaciones
+        (a.concepto, a.complementario_id, a.detalle_id, a.monto)
+        for a in request.asignaciones
     ]
 
     try:
@@ -296,50 +307,6 @@ async def directed_payment(
         matricula_pagada=result.matricula_pagada,
         mensaje=mensaje,
     )
-
-
-@router.post(
-    "/register/massive/csv",
-    status_code=201,
-    summary="Registrar matrículas masivamente vía CSV",
-)
-async def register_massive_csv(
-    session: SessionDep,
-    periodo_id: int,
-    anio: int,
-    file: UploadFile = File(...),
-):
-    if not file.filename or not file.filename.lower().endswith(".csv"):
-        raise HTTPException(
-            status_code=400,
-            detail="Archivo inválido. Solo se admiten archivos con extensión .csv",
-        )
-    use_case = MassEnrollment(session=session)
-
-    content = await file.read()
-    return use_case.execute(content, periodo_id, anio)
-
-
-@router.post(
-    "/register/massive/txt",
-    status_code=201,
-    summary="Registrar matrículas masivamente vía TXT",
-)
-async def register_massive_txt(
-    session: SessionDep,
-    periodo_id: int,
-    anio: int,
-    file: UploadFile = File(...),
-):
-    if not file.filename or not file.filename.lower().endswith(".txt"):
-        raise HTTPException(
-            status_code=400,
-            detail="Archivo inválido. Solo se admiten archivos con extensión .txt",
-        )
-    use_case = MassEnrollment(session=session)
-
-    content = await file.read()
-    return use_case.execute(content, periodo_id, anio)
 
 
 @router.post(
@@ -389,4 +356,132 @@ async def assign_complementary(
     return {
         "mensaje": "Complementario asignado exitosamente a la matrícula",
         "detalle_id": detalle_id,
+    }
+
+
+@router.post(
+    "/students/manual",
+    status_code=201,
+    summary="Registrar y matricular manualmente a un estudiante",
+)
+async def manual_enrollment(
+    session: SessionDep,
+    request: ManualEnrollmentRequest,
+):
+    use_case = ManualEnrollment(session=session)
+    try:
+        matricula_id = use_case.execute(
+            documento=request.documento,
+            nombre=request.nombre,
+            grado_str=request.grado,
+            nombre_acudiente=request.nombre_acudiente,
+            periodo_id=request.periodo_id,
+            anio=request.anio,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    return {
+        "mensaje": "Estudiante matriculado manualmente de forma exitosa",
+        "matricula_id": matricula_id,
+    }
+
+
+@router.get(
+    "/students/{student_id}/payments",
+    response_model=list[PaymentHistoryItemResponse],
+    summary="Obtener el historial de pagos (auditoría) de un estudiante",
+)
+async def get_payment_history(
+    session: SessionDep,
+    student_id: int,
+    year: int | None = Query(
+        default=None,
+        description="Año a consultar. Si no se envía, se usa el año actual.",
+    ),
+) -> list[PaymentHistoryItemResponse]:
+    if year is None:
+        year = datetime.now().year
+
+    use_case = GetPaymentHistory(session=session)
+    try:
+        payments = use_case.execute(student_id, year)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+    return [
+        PaymentHistoryItemResponse(
+            id=p.id,
+            codigo_talonario=p.codigo_talonario,
+            monto_total=p.monto_total,
+            fecha_pago=p.fecha_pago,
+            observacion=p.observacion,
+        )
+        for p in payments
+    ]
+
+
+@router.get(
+    "/payments/{pago_id}/receipt",
+    response_model=PaymentReceiptResponse,
+    summary="Obtener los datos del comprobante de pago por ID",
+)
+async def get_payment_receipt(
+    session: SessionDep,
+    pago_id: int,
+) -> PaymentReceiptResponse:
+    use_case = GetPaymentReceipt(session=session)
+    try:
+        receipt_data = use_case.execute(pago_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+    return PaymentReceiptResponse(
+        pago_id=receipt_data.pago_id,
+        codigo_talonario=receipt_data.codigo_talonario,
+        monto_total=receipt_data.monto_total,
+        fecha_pago=receipt_data.fecha_pago,
+        observacion=receipt_data.observacion,
+        estudiante=StudentReceiptInfo(
+            id=receipt_data.estudiante_id,
+            nombre=receipt_data.nombre_estudiante,
+            documento=receipt_data.documento_estudiante,
+            grado=receipt_data.grado_estudiante,
+        ),
+        acudiente=AcudienteReceiptInfo(
+            nombre=receipt_data.nombre_acudiente,
+        ),
+        distribuciones=[
+            PaymentDistributionResponse(
+                concepto=d.concepto,
+                monto_aplicado=d.monto_aplicado,
+            )
+            for d in receipt_data.distribuciones
+        ],
+    )
+
+
+@router.delete(
+    "/details/{detalle_id}",
+    status_code=200,
+    summary="Desvincular un concepto complementario de un estudiante",
+    description=(
+        "Permite eliminar un concepto complementario específico asignado a un estudiante "
+        "siempre y cuando no tenga abonos registrados para ese concepto."
+    ),
+)
+async def disassociate_complementary(
+    session: SessionDep,
+    detalle_id: int,
+):
+    use_case = DisassociateComplementary(session=session)
+    try:
+        matricula_id = use_case.execute(detalle_id=detalle_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    return {
+        "mensaje": "Concepto complementario desvinculado exitosamente",
+        "detalle_id": detalle_id,
+        "matricula_id": matricula_id,
     }

@@ -1,14 +1,22 @@
+from app.modules.enrollment.application.contracts import StudentQueryService
 from app.modules.enrollment.domain.entities import (
     ComplementaryDetail,
     EnrollmentBalance,
     EnrollmentCreated,
     PaymentAllocation,
+    PaymentDistribution,
+    PaymentHistoryItem,
+    PaymentReceipt,
     PaymentResult,
     StudentInfo,
 )
 from app.modules.enrollment.domain.repositories import EnrollmentRepository
-
 from app.modules.enrollment.schemas.request import ModifyEnrollmentRequest
+from app.modules.enrollment.schemas.response import (
+    GradeResponse,
+    StudentGeneralResponse,
+    StudentResponse,
+)
 
 
 class EnrollmentService:
@@ -50,7 +58,9 @@ class EnrollmentService:
 
         if enrollment_exists:
             if matricula_id is None:
-                raise ValueError("El id de la matrícula no puede ser nulo cuando existe")
+                raise ValueError(
+                    "El id de la matrícula no puede ser nulo cuando existe"
+                )
             total_pending = pending_base + sum(
                 item.valor_pendiente for item in complementary_items
             )
@@ -254,7 +264,7 @@ class EnrollmentService:
     def process_directed_payment(
         self,
         matricula_id: int,
-        asignaciones: list[tuple[str, int | None, int]],
+        asignaciones: list[tuple[str, int | None, int | None, int]],
         codigo_talonario: str,
         observacion: str | None = None,
     ) -> PaymentResult:
@@ -265,7 +275,7 @@ class EnrollmentService:
         Valida que no se pague más de lo pendiente por concepto.
 
         Args:
-            asignaciones: Lista de (concepto, complementario_id, monto).
+            asignaciones: Lista de (concepto, complementario_id, detalle_id, monto).
         """
         enrollment = self.repo.get_enrollment_by_id(matricula_id)
         if enrollment is None:
@@ -294,12 +304,12 @@ class EnrollmentService:
         ) = enrollment
 
         comp_details = self.repo.get_enrollment_complementary_details(matricula_id)
-        comp_pending_map = {comp_id: pend for _, comp_id, _, pend, _, _ in comp_details}
+        comp_pending_map = {det_id: pend for det_id, _, _, pend, _, _ in comp_details}
 
         monto_total = 0
         distribuciones: list[PaymentAllocation] = []
 
-        for concepto, comp_id, monto in asignaciones:
+        for concepto, comp_id, detalle_id, monto in asignaciones:
             if monto <= 0:
                 msg = f"El monto para '{concepto}' debe ser mayor a 0"
                 raise ValueError(msg)
@@ -316,18 +326,42 @@ class EnrollmentService:
                 pending_base = new_pending
 
             elif concepto.startswith("complementario") and comp_id is not None:
-                current_pending = comp_pending_map.get(comp_id, 0)
+                target_det_id = detalle_id
+                if target_det_id is None:
+                    matching_details = [
+                        det_id
+                        for det_id, c_id, _, _, _, _ in comp_details
+                        if c_id == comp_id and comp_pending_map.get(det_id, 0) > 0
+                    ]
+                    if matching_details:
+                        target_det_id = matching_details[0]
+                    else:
+                        matching_details = [
+                            det_id
+                            for det_id, c_id, _, _, _, _ in comp_details
+                            if c_id == comp_id
+                        ]
+                        if matching_details:
+                            target_det_id = matching_details[0]
+
+                if target_det_id is None:
+                    msg = (
+                        f"No se encontró asignación para el complementario ID {comp_id}"
+                    )
+                    raise ValueError(msg)
+
+                current_pending = comp_pending_map.get(target_det_id, 0)
                 if monto > current_pending:
                     msg = (
                         f"Monto ${monto:,} excede el pendiente del "
-                        f"complementario ID {comp_id} (${current_pending:,})"
+                        f"complementario ID {comp_id} (detalle ID {target_det_id}): ${current_pending:,}"
                     )
                     raise ValueError(msg)
                 new_pending = current_pending - monto
                 self.repo.update_complementary_pending(
-                    matricula_id, comp_id, new_pending
+                    matricula_id, comp_id, new_pending, target_det_id
                 )
-                comp_pending_map[comp_id] = new_pending
+                comp_pending_map[target_det_id] = new_pending
             else:
                 msg = f"Concepto '{concepto}' no reconocido"
                 raise ValueError(msg)
@@ -407,6 +441,41 @@ class EnrollmentService:
 
         return detalle_id
 
+    def disassociate_complementary(self, detalle_id: int) -> int:
+        """
+        Desvincula un concepto complementario de la matrícula de un estudiante.
+
+        Valida que no existan abonos (pagos) aplicados al concepto.
+        Si es válido, elimina el detalle, decrementa el valor_total de la matrícula y
+        actualiza el estado de la matrícula.
+
+        Returns:
+            matricula_id de la matrícula afectada.
+        """
+        detalle = self.repo.get_detalle_matricula(detalle_id)
+        if detalle is None:
+            raise ValueError("Detalle de matrícula no encontrado")
+
+        det_id, matricula_id, valor_completo, descuento, valor_pendiente = detalle
+
+        # Validar que no se hayan registrado pagos (abonos) para este concepto
+        valor_neto = valor_completo - descuento
+        if valor_pendiente != valor_neto:
+            raise ValueError(
+                "No se puede desvincular un concepto que ya tiene abonos registrados"
+            )
+
+        # Eliminar el detalle de matrícula
+        self.repo.delete_detalle_matricula(detalle_id)
+
+        # Decrementar el valor total de la matrícula
+        self.repo.decrease_enrollment_total_value(matricula_id, valor_neto)
+
+        # Recalcular el estado de la matrícula (semafórico)
+        self._update_enrollment_state(matricula_id)
+
+        return matricula_id
+
     def _update_enrollment_state(self, matricula_id: int) -> None:
         """Calcula y actualiza el estado semáfórico de la matrícula.
 
@@ -457,6 +526,59 @@ class EnrollmentService:
             acudiente_id=acudiente_id,
         )
 
+    def resolve_grade_id(self, grado_str: str) -> int:
+        grado_str = grado_str.strip()
+        try:
+            val = int(grado_str)
+            return val
+        except ValueError:
+            val_id = self.repo.get_grade_by_name(grado_str)
+            if val_id is None:
+                raise ValueError(f"El grado '{grado_str}' no existe")
+            return val_id
+
+    def resolve_or_create_acudiente(self, acudiente_str: str) -> int:
+        acudiente_str = acudiente_str.strip()
+        try:
+            val = int(acudiente_str)
+            return val
+        except ValueError:
+            ac_id = self.repo.get_acudiente_by_name(acudiente_str)
+            if ac_id is None:
+                ac_id = self.repo.create_acudiente(
+                    nombre=acudiente_str,
+                    parentesco="Representante",
+                    telefono="No registrado",
+                    correo="no_registrado@correo.com",
+                )
+            return ac_id
+
+    def manual_enrollment(
+        self,
+        documento: str,
+        nombre: str,
+        grado_str: str,
+        nombre_acudiente: str,
+        period_id: int,
+        year: int,
+    ) -> int:
+        grado_id = self.resolve_grade_id(grado_str)
+        acudiente_id = self.resolve_or_create_acudiente(nombre_acudiente)
+
+        student_id = self.repo.find_or_create_student(
+            documento=documento.strip(),
+            nombre=nombre.strip(),
+            grado_id=grado_id,
+            acudiente_id=acudiente_id,
+        )
+
+        result = self.register_enrollment(
+            student_id=student_id,
+            period_id=period_id,
+            year=year,
+        )
+        return result.matricula_id
+
     def search_students(
         self, documento: str | None, nombre: str | None
     ) -> list[StudentInfo]:
@@ -491,3 +613,147 @@ class EnrollmentService:
             balance = self.get_balance(student.id, year)
             balances.append(balance)
         return balances
+
+
+class StudentService(StudentQueryService):
+    """Servicio de dominio para consultas generales de estudiantes y grados."""
+
+    def __init__(self, repository: EnrollmentRepository) -> None:
+        self.repo = repository
+
+    def search_active_students(
+        self,
+        query: str | None = None,
+        grado_id: int | None = None,
+        limit: int = 10,
+        offset: int = 0,
+    ) -> list[StudentGeneralResponse]:
+        """Servicio 1: Búsqueda general de estudiantes activos."""
+        students = self.repo.search_active_students(
+            query=query, grado_id=grado_id, limit=limit, offset=offset
+        )
+
+        return [
+            StudentGeneralResponse(
+                id=p.id,
+                nombre=p.nombre,
+                documento=p.documento,
+                grado_nombre=p.grado_nombre,
+            )
+            for p in students
+            if p.id is not None
+        ]
+
+    def get_students_bulk(self, student_ids: list[int]) -> list[StudentGeneralResponse]:
+        """Servicio 2: Información de estudiantes por lote (Bulk)."""
+        if not student_ids:
+            return []
+
+        students = self.repo.get_students_bulk(student_ids)
+
+        return [
+            StudentGeneralResponse(
+                id=p.id,
+                nombre=p.nombre,
+                documento=p.documento,
+                grado_nombre=p.grado_nombre,
+            )
+            for p in students
+            if p.id is not None
+        ]
+
+    def get_all_grades(self) -> list[GradeResponse]:
+        """Servicio 3: Listado de grados disponibles en el sistema."""
+        grades = self.repo.get_all_grades()
+
+        return [GradeResponse(id=g.id, nombre=g.nombre) for g in grades]
+
+    def get_student_by_id(self, student_id: int) -> StudentResponse | None:
+        """Servicio 4: Obtiene el objeto/entidad Estudiante crudo por ID."""
+        student = self.repo.get_student_entity_by_id(student_id)
+
+        return (
+            StudentResponse(
+                nombre=student.nombre,
+                activo=student.activo,
+                acudiente_id=student.acudiente_id,
+                documento=student.documento,
+                fecha_activo=student.fecha_activo,
+                grado_id=student.grado_id,
+            )
+            if student is not None
+            else None
+        )
+
+    def get_students_by_grade(self, grado_id: int) -> list[StudentResponse]:
+        """Servicio 5: Obtiene la lista de entidades Estudiante crudas en un grado."""
+        students = self.repo.get_student_entities_by_grade(grado_id)
+
+        return [
+            StudentResponse(
+                nombre=p.nombre,
+                activo=p.activo,
+                acudiente_id=p.acudiente_id,
+                documento=p.documento,
+                fecha_activo=p.fecha_activo,
+                grado_id=p.grado_id,
+            )
+            for p in students
+            if p.id is not None
+        ]
+
+    def get_payment_history(
+        self, student_id: int, year: int
+    ) -> list[PaymentHistoryItem]:
+        """Retorna el historial de pagos de un estudiante para un año dado."""
+        student = self.repo.get_student_by_id(student_id)
+        if student is None:
+            raise ValueError(f"Estudiante con ID {student_id} no encontrado")
+
+        matricula_id, _, _, _, _ = self.repo.get_enrollment_details(student_id, year)
+        if matricula_id is None:
+            return []
+
+        pagos = self.repo.get_payments_by_matricula(matricula_id)
+        return [
+            PaymentHistoryItem(
+                id=p.id,
+                fecha_pago=p.fecha_pago,
+                codigo_talonario=p.codigo_talonario,
+                monto_total=p.monto_total,
+                observacion=p.observacion,
+            )
+            for p in pagos
+            if p.id is not None
+        ]
+
+    def get_payment_receipt(self, pago_id: int) -> PaymentReceipt:
+        """Construye el comprobante completo de un pago con la lógica de negocio."""
+        raw = self.repo.get_payment_receipt_data(pago_id)
+        if raw is None:
+            raise ValueError(f"Pago con ID {pago_id} no encontrado")
+
+        pago, _matricula, estudiante, grado, acudiente = raw
+
+        detalles = self.repo.get_payment_details(pago_id)
+        distribuciones = [
+            PaymentDistribution(
+                concepto=concepto,
+                monto_aplicado=monto,
+            )
+            for concepto, _comp_id, monto in detalles
+        ]
+
+        return PaymentReceipt(
+            pago_id=pago_id,
+            codigo_talonario=pago.codigo_talonario,
+            fecha_pago=pago.fecha_pago,
+            monto_total=pago.monto_total,
+            observacion=pago.observacion,
+            estudiante_id=estudiante.id,
+            nombre_estudiante=estudiante.nombre,
+            documento_estudiante=estudiante.documento,
+            grado_estudiante=grado.nombre,
+            nombre_acudiente=acudiente.nombre,
+            distribuciones=distribuciones,
+        )

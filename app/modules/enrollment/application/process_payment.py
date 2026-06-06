@@ -16,7 +16,7 @@ class ProcessDirectedPayment:
     def execute(
         self,
         matricula_id: int,
-        asignaciones: list[tuple[str, int | None, int]],
+        asignaciones: list[tuple[str, int | None, int | None, int]],
         codigo_talonario: str,
         observacion: str | None = None,
     ) -> PaymentResult:
