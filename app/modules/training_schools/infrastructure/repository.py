@@ -136,7 +136,7 @@ class TrainingSchoolRepository(TrainingSchoolRepositoryInterface):
     ) -> list[DetalleEscuelaFormacion]:
         statement = select(DetalleEscuelaFormacion).where(
             DetalleEscuelaFormacion.estudiante_id == estudiante_id,
-            DetalleEscuelaFormacion.activo == True,  # noqa: E712
+            col(DetalleEscuelaFormacion.activo),
         )
         return list(self.session.exec(statement).all())
 
@@ -149,7 +149,7 @@ class TrainingSchoolRepository(TrainingSchoolRepositoryInterface):
         return enrollment
 
     async def get_periods(self) -> list[PeriodInfo]:
-        statement = select(Periodo).where(Periodo.estado == True)  # noqa: E712
+        statement = select(Periodo).where(col(Periodo.estado))
         rows = list(self.session.exec(statement).all())
         return [
             PeriodInfo(
