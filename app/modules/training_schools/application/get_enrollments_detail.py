@@ -1,5 +1,8 @@
 from app.core.db import SessionDep
 from app.modules.training_schools.domain.service import TrainingSchoolService
+from app.modules.training_schools.infrastructure.enrollment_adapter import (
+    EnrollmentAdapter,
+)
 from app.modules.training_schools.infrastructure.repository import (
     TrainingSchoolRepository,
 )
@@ -8,8 +11,10 @@ from app.modules.training_schools.schemas.response import EnrollmentDetailRespon
 
 class GetEnrollmentsDetail:
     def __init__(self, session: SessionDep) -> None:
-        self.repository = TrainingSchoolRepository(session=session)
-        self.service = TrainingSchoolService(repository=self.repository)
+        self.service = TrainingSchoolService(
+            repository=TrainingSchoolRepository(session=session),
+            enrollment=EnrollmentAdapter(session),
+        )
 
     async def execute(self, periodo_id: int) -> list[EnrollmentDetailResponse]:
         pairs = await self.service.get_enrollments_with_students(periodo_id)

@@ -3,11 +3,11 @@ from datetime import datetime
 from sqlmodel import Session, col, func, or_, select
 
 from app.modules.enrollment.domain.entities import (
+    ComplementaryConcept,
     ComplementaryDetail,
     GradeInfo,
     StudentGeneralInfo,
     StudentInfo,
-    ComplementaryConcept,
 )
 from app.modules.enrollment.domain.repositories import EnrollmentRepository
 from app.modules.enrollment.infrastructure.models import (
@@ -524,9 +524,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
         statement = select(Grado).order_by(col(Grado.nombre))
         results = self._session.exec(statement).all()
         return [
-            GradeInfo(id=gr.id, nombre=gr.nombre)  # type: ignore
-            for gr in results
-            if gr.id is not None
+            GradeInfo(id=gr.id, nombre=gr.nombre) for gr in results if gr.id is not None
         ]
 
     def get_student_entity_by_id(self, student_id: int) -> Estudiante | None:
