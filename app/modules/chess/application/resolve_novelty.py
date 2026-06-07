@@ -4,11 +4,14 @@ from app.modules.chess.infrastructure.repository import ChessRepository
 from app.modules.inventory.infrastructure.repository import InventoryRepository
 from app.modules.chess.schemas.request import ResolveChessNoveltyRequest
 
+
 class ResolveChessNovelty:
     def __init__(self, session: SessionDep):
         self.chess_repo = ChessRepository(session=session)
         self.inventory_repo = InventoryRepository(session=session)
-        self.service = ChessService(chess_repo=self.chess_repo, inventory_repo=self.inventory_repo)
+        self.service = ChessService(
+            chess_repo=self.chess_repo, inventory_repo=self.inventory_repo
+        )
 
     async def execute(self, novedad_id: int, data: ResolveChessNoveltyRequest):
         return await self.service.resolve_chess_novelty(novedad_id, data)

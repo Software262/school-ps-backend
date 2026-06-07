@@ -2,6 +2,7 @@ from datetime import datetime
 from pydantic import BaseModel
 from app.modules.classroom_holder.domain.enums import TipoIncidencia
 
+
 class IncidenciaResponse(BaseModel):
     id: int
     estudiante_id: int
@@ -16,6 +17,7 @@ class IncidenciaResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class PazYSalvoClassroomResponse(BaseModel):
     estudiante_id: int

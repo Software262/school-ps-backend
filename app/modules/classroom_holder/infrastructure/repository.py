@@ -1,9 +1,12 @@
-from typing import List, Optional
-from sqlmodel import Session, select, text  # 🌟 Agregamos 'text' aquí
+from sqlmodel import Session, col, select, text
+
 from app.modules.classroom_holder.domain.entities import IncidenciaDomain
 from app.modules.classroom_holder.domain.enums import TipoIncidencia
-from app.modules.classroom_holder.domain.repositories import IncidenciaRepositoryInterface
+from app.modules.classroom_holder.domain.repositories import (
+    IncidenciaRepositoryInterface,
+)
 from app.modules.classroom_holder.infrastructure.models import Observador
+
 
 class IncidenciaRepository(IncidenciaRepositoryInterface):
     def __init__(self, session: Session):
@@ -20,57 +23,53 @@ class IncidenciaRepository(IncidenciaRepositoryInterface):
             esta_abierta=model.esta_abierta,
             fecha_cierre=model.fecha_cierre,
             created_at=model.created_at,
-            updated_at=model.updated_at
+            updated_at=model.updated_at,
         )
 
-    def save(self, domain: IncidenciaDomain) -> IncidenciaDomain:
-        model = None
-        if domain.id is not None:
-            model = self.session.get(Observador, domain.id)
+    def save(self, incidencia: IncidenciaDomain) -> IncidenciaDomain:
+        if incidencia.id is not None:
+            model = self.session.get(Observador, incidencia.id)
             if model:
-                model.esta_abierta = domain.esta_abierta
-                model.fecha_cierre = domain.fecha_cierre
-                model.updated_at = domain.updated_at
-                model.descripcion = domain.descripcion
-        
-        if model is None:
-            model = Observador(
-                estudiante_id=domain.estudiante_id,
-                docente_id=domain.docente_id,
-                tipo_incidencia=domain.tipo_incidencia.value,
-                descripcion=domain.descripcion,
-                fecha=domain.fecha,
-                esta_abierta=domain.esta_abierta,
-                fecha_cierre=domain.fecha_cierre,
-                created_at=domain.created_at,
-                updated_at=domain.updated_at
-            )
-        
+                model.esta_abierta = incidencia.esta_abierta
+                model.fecha_cierre = incidencia.fecha_cierre
+                model.updated_at = incidencia.updated_at
+                model.descripcion = incidencia.descripcion
+
+        model = Observador(
+            estudiante_id=incidencia.estudiante_id,
+            docente_id=incidencia.docente_id,
+            tipo_incidencia=incidencia.tipo_incidencia.value,
+            descripcion=incidencia.descripcion,
+            fecha=incidencia.fecha,
+            esta_abierta=incidencia.esta_abierta,
+            fecha_cierre=incidencia.fecha_cierre,
+            created_at=incidencia.created_at,
+            updated_at=incidencia.updated_at,
+        )
+
         self.session.add(model)
         self.session.commit()
         self.session.refresh(model)
         return self._to_domain(model)
 
-    def find_by_id(self, incidencia_id: int) -> Optional[IncidenciaDomain]:
+    def find_by_id(self, incidencia_id: int) -> IncidenciaDomain | None:
         model = self.session.get(Observador, incidencia_id)
         if not model:
             return None
         return self._to_domain(model)
 
-    def find_by_student(self, estudiante_id: int) -> List[IncidenciaDomain]:
+    def find_by_student(self, estudiante_id: int) -> list[IncidenciaDomain]:
         statement = select(Observador).where(Observador.estudiante_id == estudiante_id)
         results = self.session.exec(statement).all()
         return [self._to_domain(row) for row in results]
 
     def has_open_incidents(self, estudiante_id: int) -> bool:
         statement = select(Observador).where(
-            Observador.estudiante_id == estudiante_id,
-            Observador.esta_abierta == True
+            Observador.estudiante_id == estudiante_id, col(Observador.esta_abierta)
         )
         result = self.session.exec(statement).first()
         return result is not None
 
-    # 🌟 NUEVO MÉTODO: Búsqueda por nombre usando SQL Crudo
     def buscar_estudiantes_por_nombre(self, query: str) -> list[dict]:
         statement = text("""
             SELECT e.id, e.nombre, g.nombre as grado_nombre
@@ -82,9 +81,9 @@ class IncidenciaRepository(IncidenciaRepositoryInterface):
         results = self.session.execute(statement, {"query": f"%{query}%"}).fetchall()
         return [
             {
-                "id": row.id, 
-                "nombre": row.nombre, 
-                "grado_nombre": row.grado_nombre or "Sin curso"
-            } 
+                "id": row.id,
+                "nombre": row.nombre,
+                "grado_nombre": row.grado_nombre or "Sin curso",
+            }
             for row in results
         ]

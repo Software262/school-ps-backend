@@ -1,5 +1,8 @@
 from app.modules.classroom_holder.domain.entities import IncidenciaDomain
-from app.modules.classroom_holder.domain.repositories import IncidenciaRepositoryInterface
+from app.modules.classroom_holder.domain.repositories import (
+    IncidenciaRepositoryInterface,
+)
+
 
 class GetIncidentsUseCase:
     def __init__(self, repository: IncidenciaRepositoryInterface):

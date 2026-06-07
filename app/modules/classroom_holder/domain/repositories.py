@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 from typing import List, Optional
 from app.modules.classroom_holder.domain.entities import IncidenciaDomain
 
-class IncidenciaRepositoryInterface(ABC):
 
+class IncidenciaRepositoryInterface(ABC):
     @abstractmethod
     def save(self, incidencia: IncidenciaDomain) -> IncidenciaDomain:
         pass

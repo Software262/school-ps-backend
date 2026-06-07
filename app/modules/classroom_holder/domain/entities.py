@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional
 from app.modules.classroom_holder.domain.enums import TipoIncidencia
 
+
 class IncidenciaDomain:
     def __init__(
         self,
@@ -14,7 +15,7 @@ class IncidenciaDomain:
         esta_abierta: bool = True,
         fecha_cierre: Optional[datetime] = None,
         created_at: Optional[datetime] = None,
-        updated_at: Optional[datetime] = None
+        updated_at: Optional[datetime] = None,
     ):
         self.id = id
         self.estudiante_id = estudiante_id
