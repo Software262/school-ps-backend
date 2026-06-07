@@ -1,16 +1,9 @@
 from abc import ABC, abstractmethod
 
-from app.modules.enrollment.infrastructure.models import Complementario, Estudiante
 from app.modules.tests.infrastructure.models import DetallePrueba
 from app.modules.tests.schemas.request import (
     CreateTestDetailRequest,
     UpdateTestDetailRequest,
-)
-from app.modules.tests.domain.entities import (
-    TestDetailEntity,
-    GradoEntity,
-    PeriodoEntity,
-    EstudianteEntity,
 )
 
 
@@ -18,7 +11,7 @@ class InternalTestRepository(ABC):
     @abstractmethod
     async def get_tests_pagination(
         self, offset: int, limit: int
-    ) -> list[TestDetailEntity]:
+    ) -> list[DetallePrueba]:
         pass
 
     @abstractmethod
@@ -31,7 +24,7 @@ class InternalTestRepository(ABC):
         student_id: int,
         offset: int,
         limit: int,
-    ) -> list[TestDetailEntity]:
+    ) -> list[DetallePrueba]:
         pass
 
     @abstractmethod
@@ -53,29 +46,9 @@ class InternalTestRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_active_students_by_grade(self, grado_id: int) -> list[Estudiante]:
-        pass
-
-    @abstractmethod
-    async def get_available_tests(self) -> list[Complementario]:
-        pass
-
-    @abstractmethod
     async def get_existing_assignments(
         self, complementario_id: int, periodo_id: int
     ) -> list[int]:
-        pass
-
-    @abstractmethod
-    async def get_complementary_by_id(self, comp_id: int) -> Complementario | None:
-        pass
-
-    @abstractmethod
-    async def delete_test_complementary(self, comp_id: int) -> bool:
-        pass
-
-    @abstractmethod
-    async def save_complementary(self, comp: Complementario) -> Complementario:
         pass
 
     @abstractmethod
@@ -87,13 +60,5 @@ class InternalTestRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_all_grados(self) -> list[GradoEntity]:
-        pass
-
-    @abstractmethod
-    async def get_all_periodos(self) -> list[PeriodoEntity]:
-        pass
-
-    @abstractmethod
-    async def get_all_estudiantes(self) -> list[EstudianteEntity]:
+    async def delete_tests_by_complementary_id(self, comp_id: int) -> None:
         pass

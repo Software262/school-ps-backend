@@ -54,3 +54,11 @@ class EstudianteEntity:
     nombre: str
     documento: str
     grado_id: int
+
+
+@dataclass
+class ComplementarioEntity:
+    id: int
+    tipo_complementario: str
+    valor: int
+    anio: int
