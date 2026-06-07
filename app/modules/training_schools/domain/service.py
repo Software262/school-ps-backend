@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from app.modules.training_schools.application.contracts import EnrollmentDataService
 from app.modules.training_schools.domain.entities import (
     PeriodInfo,
     ProgramInfo,
@@ -12,21 +13,24 @@ from app.modules.training_schools.infrastructure.models import DetalleEscuelaFor
 
 
 class TrainingSchoolService:
-    def __init__(self, repository: TrainingSchoolRepositoryInterface) -> None:
+    def __init__(
+        self,
+        repository: TrainingSchoolRepositoryInterface,
+        enrollment: EnrollmentDataService,
+    ) -> None:
         self.repository = repository
+        self.enrollment = enrollment
 
     async def get_programs(self) -> list[ProgramInfo]:
-        # read-only: programs (complementarios) and their price are configured in
-        # the matrícula module; escuelas de formación consumes them as-is.
-        return await self.repository.get_all_programs()
+        return await self.enrollment.get_all_programs()
 
     async def search_students(self, query: str) -> list[StudentInfo]:
         if not query or len(query.strip()) < 2:
             raise ValueError("La búsqueda requiere al menos 2 caracteres.")
-        return await self.repository.search_students(query.strip())
+        return await self.enrollment.search_students(query.strip())
 
     async def get_periods(self) -> list[PeriodInfo]:
-        return await self.repository.get_periods()
+        return await self.enrollment.get_periods()
 
     async def get_enrollments(self, periodo_id: int) -> list[DetalleEscuelaFormacion]:
         return await self.repository.get_enrollments_by_period(periodo_id)
@@ -34,7 +38,18 @@ class TrainingSchoolService:
     async def get_enrollments_with_students(
         self, periodo_id: int
     ) -> list[tuple[DetalleEscuelaFormacion, StudentInfo]]:
-        return await self.repository.get_enrollments_with_students(periodo_id)
+        enrollments = await self.repository.get_enrollments_by_period(periodo_id)
+        result = []
+        students_cache: dict = {}
+        for enr in enrollments:
+            if enr.estudiante_id not in students_cache:
+                students_cache[enr.estudiante_id] = await self.enrollment.get_student_by_id(
+                    enr.estudiante_id
+                )
+            student = students_cache[enr.estudiante_id]
+            if student:
+                result.append((enr, student))
+        return result
 
     async def enroll_student(
         self,
@@ -47,7 +62,6 @@ class TrainingSchoolService:
         valor_acordado: int | None = None,
         numero_comprobante: str | None = None,
     ) -> DetalleEscuelaFormacion:
-        # ef-rf-02: block duplicate active enrollment in the same program and period
         existing = await self.repository.get_enrollment_by_student_program_period(
             estudiante_id, complementario_id, periodo_id
         )
@@ -56,22 +70,20 @@ class TrainingSchoolService:
                 "El estudiante ya está inscrito activamente en este programa y período."
             )
 
-        programs = await self.repository.get_all_programs()
+        programs = await self.enrollment.get_all_programs()
         program = next((p for p in programs if p.id == complementario_id), None)
         if not program:
             raise ValueError("Programa no encontrado.")
 
-        student = await self.repository.get_student_by_id(estudiante_id)
+        student = await self.enrollment.get_student_by_id(estudiante_id)
         if not student:
             raise ValueError("Estudiante no encontrado.")
 
         if not await self.repository.validate_user_exists(usuario_id):
             raise ValueError("Usuario no encontrado.")
 
-        # ef-rf-03: use valor_acordado if provided, otherwise fall back to program price
         base_valor = program.valor if program.valor and program.valor > 0 else 0
         saldo_pendiente = valor_acordado if valor_acordado is not None else base_valor
-        # ef-rf-04: if there's a pending balance, paz y salvo is blocked
         estado_escuela = saldo_pendiente == 0
 
         enrollment = DetalleEscuelaFormacion(
@@ -115,7 +127,6 @@ class TrainingSchoolService:
         enrollment.saldo_pendiente -= monto
         enrollment.usuario_id = usuario_id
         enrollment.updated_at = datetime.now()
-        # ef-rf-04: fully paid → unblock paz y salvo
         if enrollment.saldo_pendiente == 0:
             enrollment.estado_escuela = True
 
@@ -127,7 +138,6 @@ class TrainingSchoolService:
         motivo: str,
         usuario_id: int,
     ) -> DetalleEscuelaFormacion:
-        # ef-rf-05: withdrawal with traceability
         enrollment = await self.repository.get_enrollment(enrollment_id)
         if not enrollment:
             raise ValueError("Inscripción no encontrada.")
@@ -148,7 +158,6 @@ class TrainingSchoolService:
         return await self.repository.save(enrollment)
 
     async def get_student_paz_y_salvo(self, estudiante_id: int) -> bool:
-        # ef-rf-04: student loses paz y salvo if any active enrollment has pending balance
         enrollments = await self.repository.get_active_enrollments_by_student(
             estudiante_id
         )
