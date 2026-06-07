@@ -35,6 +35,13 @@ def crear_incidencia(
     "/incidencias/estudiante/{estudiante_id}",
     response_model=list[IncidenciaResponse],
 )
+@router.get("/incidencias", response_model=List[IncidenciaResponse])
+def listar_incidencias(session: SessionDep):
+    repo = IncidenciaRepository(session)
+    use_case = GetIncidentsUseCase(repo)
+    return use_case.execute_all()
+
+@router.get("/incidencias/estudiante/{estudiante_id}", response_model=List[IncidenciaResponse])
 def listar_incidencias_por_estudiante(estudiante_id: int, session: SessionDep):
     use_case = GetIncidents(session=session)
     return use_case.execute(estudiante_id)

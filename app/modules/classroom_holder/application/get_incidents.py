@@ -13,5 +13,8 @@ class GetIncidents:
             enrollment=ClassroomEnrollmentAdapter(session=session),
         )
 
+    def execute_all(self) -> list[IncidenciaDomain]:
+        return self.repository.find_all()
+
     def execute(self, estudiante_id: int) -> list[IncidenciaDomain]:
         return self.service.listar_por_estudiante(estudiante_id)
