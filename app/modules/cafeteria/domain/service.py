@@ -4,20 +4,23 @@ Author: Danilo Castillejo
 """
 
 from datetime import datetime
-from app.modules.cafeteria.domain.repositories import CafeteriaRepositoryInterface
-from app.modules.enrollment.domain.service import StudentService
-from app.modules.cafeteria.infrastructure.models import Cafeteria
+
 from app.modules.cafeteria.domain.entities import (
     CafeteriaEntity,
     DebtorEntity,
-    StudentInfoEntity,
     GradeEntity,
+    StudentInfoEntity,
 )
+from app.modules.cafeteria.domain.repositories import CafeteriaRepositoryInterface
+from app.modules.cafeteria.infrastructure.models import Cafeteria
+from app.modules.enrollment.application.contracts import StudentQueryService
 
 
 class CafeteriaService:
     def __init__(
-        self, repository: CafeteriaRepositoryInterface, student_service: StudentService
+        self,
+        repository: CafeteriaRepositoryInterface,
+        student_service: StudentQueryService,
     ):
         self.repository = repository
         self.student_service = student_service

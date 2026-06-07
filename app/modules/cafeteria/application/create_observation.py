@@ -1,8 +1,8 @@
 from app.core.db import SessionDep
-from app.modules.enrollment.infrastructure.repository import SQLEnrollmentRepository
-from app.modules.enrollment.domain.service import StudentService
-from app.modules.cafeteria.infrastructure.repository import CafeteriaRepository
 from app.modules.cafeteria.domain.service import CafeteriaService
+from app.modules.cafeteria.infrastructure.repository import CafeteriaRepository
+from app.modules.enrollment.domain.service import StudentService
+from app.modules.enrollment.infrastructure.repository import SQLEnrollmentRepository
 
 
 class CreateObservation:
