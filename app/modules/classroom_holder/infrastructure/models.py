@@ -1,16 +1,11 @@
 from datetime import datetime
 
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field
+
+from app.shared.infrastructure.base import Base
 
 
-class Observador(SQLModel, table=True):
-    __tablename__ = "observador"
-    __table_args__ = {"extend_existing": True}
-
-    id: int | None = Field(default=None, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.now, nullable=False)
-    updated_at: datetime = Field(default_factory=datetime.now, nullable=False)
-
+class Observador(Base, table=True):
     estudiante_id: int = Field(foreign_key="estudiante.id", nullable=False)
     docente_id: int = Field(foreign_key="docente.id", nullable=False)
 
