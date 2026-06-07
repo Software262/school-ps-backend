@@ -1,4 +1,3 @@
-from app.modules.enrollment.application.contracts import StudentQueryService
 from app.modules.enrollment.domain.entities import (
     ComplementaryDetail,
     EnrollmentBalance,
@@ -13,11 +12,6 @@ from app.modules.enrollment.domain.entities import (
 )
 from app.modules.enrollment.domain.repositories import EnrollmentRepository
 from app.modules.enrollment.schemas.request import ModifyEnrollmentRequest
-from app.modules.enrollment.schemas.response import (
-    GradeResponse,
-    StudentGeneralResponse,
-    StudentResponse,
-)
 
 
 class EnrollmentService:
@@ -621,98 +615,9 @@ class EnrollmentService:
             balances.append(balance)
         return balances
 
-
-class StudentService(StudentQueryService):
-    """Servicio de dominio para consultas generales de estudiantes y grados."""
-
-    def __init__(self, repository: EnrollmentRepository) -> None:
-        self.repo = repository
-
-    def search_active_students(
-        self,
-        query: str | None = None,
-        grado_id: int | None = None,
-        limit: int = 10,
-        offset: int = 0,
-    ) -> list[StudentGeneralResponse]:
-        """Servicio 1: Búsqueda general de estudiantes activos."""
-        students = self.repo.search_active_students(
-            query=query, grado_id=grado_id, limit=limit, offset=offset
-        )
-
-        return [
-            StudentGeneralResponse(
-                id=p.id,
-                nombre=p.nombre,
-                documento=p.documento,
-                grado_nombre=p.grado_nombre,
-            )
-            for p in students
-            if p.id is not None
-        ]
-
-    def get_students_bulk(self, student_ids: list[int]) -> list[StudentGeneralResponse]:
-        """Servicio 2: Información de estudiantes por lote (Bulk)."""
-        if not student_ids:
-            return []
-
-        students = self.repo.get_students_bulk(student_ids)
-
-        return [
-            StudentGeneralResponse(
-                id=p.id,
-                nombre=p.nombre,
-                documento=p.documento,
-                grado_nombre=p.grado_nombre,
-            )
-            for p in students
-            if p.id is not None
-        ]
-
-    def get_all_grades(self) -> list[GradeResponse]:
-        """Servicio 3: Listado de grados disponibles en el sistema."""
-        grades = self.repo.get_all_grades()
-
-        return [GradeResponse(id=g.id, nombre=g.nombre) for g in grades]
-
-    def get_student_by_id(self, student_id: int) -> StudentResponse | None:
-        """Servicio 4: Obtiene el objeto/entidad Estudiante crudo por ID."""
-        student = self.repo.get_student_entity_by_id(student_id)
-
-        return (
-            StudentResponse(
-                nombre=student.nombre,
-                activo=student.activo,
-                acudiente_id=student.acudiente_id,
-                documento=student.documento,
-                fecha_activo=student.fecha_activo,
-                grado_id=student.grado_id,
-            )
-            if student is not None
-            else None
-        )
-
-    def get_students_by_grade(self, grado_id: int) -> list[StudentResponse]:
-        """Servicio 5: Obtiene la lista de entidades Estudiante crudas en un grado."""
-        students = self.repo.get_student_entities_by_grade(grado_id)
-
-        return [
-            StudentResponse(
-                nombre=p.nombre,
-                activo=p.activo,
-                acudiente_id=p.acudiente_id,
-                documento=p.documento,
-                fecha_activo=p.fecha_activo,
-                grado_id=p.grado_id,
-            )
-            for p in students
-            if p.id is not None
-        ]
-
     def get_payment_history(
         self, student_id: int, year: int
     ) -> list[PaymentHistoryItem]:
-        """Retorna el historial de pagos de un estudiante para un año dado."""
         student = self.repo.get_student_by_id(student_id)
         if student is None:
             raise ValueError(f"Estudiante con ID {student_id} no encontrado")
@@ -735,7 +640,6 @@ class StudentService(StudentQueryService):
         ]
 
     def get_payment_receipt(self, pago_id: int) -> PaymentReceipt:
-        """Construye el comprobante completo de un pago con la lógica de negocio."""
         raw = self.repo.get_payment_receipt_data(pago_id)
         if raw is None:
             raise ValueError(f"Pago con ID {pago_id} no encontrado")

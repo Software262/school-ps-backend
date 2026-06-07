@@ -1,3 +1,4 @@
+from app.modules.inventory.application.contracts import InventoryEnrollmentService
 from app.modules.inventory.domain.repositories import InventoryRepository
 from app.modules.inventory.domain.service import InventoryService
 
@@ -24,8 +25,10 @@ class SportItemNotFound(Exception):
 
 
 class SportsService(InventoryService):
-    def __init__(self, repository: InventoryRepository):
-        super().__init__(repository=repository)
+    def __init__(
+        self, repository: InventoryRepository, enrollment: InventoryEnrollmentService
+    ):
+        super().__init__(repository=repository, enrollment=enrollment)
 
     async def validate_sport_type(self, tipo_inventario_id: int):
 

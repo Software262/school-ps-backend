@@ -7,11 +7,13 @@ from app.modules.chess.schemas.request import (
     CreateChessBorrowRequest,
     ReturnChessBorrowRequest,
     ResolveChessNoveltyRequest,
+    ResolveBorrowNoveltyRequest,
 )
 
 from app.modules.chess.application.create_borrowing import CreateChessBorrowing
 from app.modules.chess.application.return_borrowing import ReturnChessBorrowing
 from app.modules.chess.application.resolve_novelty import ResolveChessNovelty
+from app.modules.chess.application.resolve_borrow_novelty import ResolveBorrowNovelty
 from app.modules.chess.application.get_clearance import GetChessClearance
 
 router = APIRouter()
@@ -25,7 +27,11 @@ async def create_chess_borrow(
     result = await app_service.execute(request_data)
 
     if isinstance(result, dict) and result.get("error"):
-        status_code = status.HTTP_404_NOT_FOUND if result["error"] == "NOT_FOUND" else status.HTTP_400_BAD_REQUEST
+        status_code = (
+            status.HTTP_404_NOT_FOUND
+            if result["error"] == "NOT_FOUND"
+            else status.HTTP_400_BAD_REQUEST
+        )
         return Response(
             data=None,
             message="Error al registrar el préstamo",
@@ -36,7 +42,7 @@ async def create_chess_borrow(
     return Response(
         data={"prestamo_id": getattr(result, "id", None)},
         message="Préstamo de ajedrez registrado exitosamente.",
-        status_code=status.HTTP_201_CREATED
+        status_code=status.HTTP_201_CREATED,
     ).to_dict()
 
 
@@ -49,20 +55,22 @@ async def return_chess_borrow(
     result = await app_service.execute(prestamo_id, user_id, request_data)
 
     if isinstance(result, dict) and result.get("error"):
-        status_code = status.HTTP_404_NOT_FOUND if result["error"] == "NOT_FOUND" else status.HTTP_400_BAD_REQUEST
+        status_code = (
+            status.HTTP_404_NOT_FOUND
+            if result["error"] == "NOT_FOUND"
+            else status.HTTP_400_BAD_REQUEST
+        )
         return Response(
             data=None,
             message="Error al procesar la devolución",
             status_code=status_code,
-            details={"error": result["message"]}
+            details={"error": result["message"]},
         ).to_dict()
 
     data_body: Any = result.get("data", {})
     mensaje: str = str(data_body.get("mensaje", ""))
     return Response(
-        data=data_body,
-        message=mensaje,
-        status_code=status.HTTP_200_OK
+        data=data_body, message=mensaje, status_code=status.HTTP_200_OK
     ).to_dict()
 
 
@@ -74,7 +82,40 @@ async def resolve_chess_novelty(
     result = await app_service.execute(novedad_id, request_data)
 
     if isinstance(result, dict) and result.get("error"):
-        status_code = status.HTTP_404_NOT_FOUND if result["error"] == "NOT_FOUND" else status.HTTP_400_BAD_REQUEST
+        status_code = (
+            status.HTTP_404_NOT_FOUND
+            if result["error"] == "NOT_FOUND"
+            else status.HTTP_400_BAD_REQUEST
+        )
+        return Response(
+            data=None,
+            message="Error al resolver la novedad",
+            status_code=status_code,
+            details={"error": result["message"]},
+        ).to_dict()
+
+    data_body: Any = result.get("data", {})
+    mensaje: str = str(data_body.get("mensaje", ""))
+    return Response(
+        data=data_body,
+        message=mensaje,
+        status_code=status.HTTP_200_OK,
+    ).to_dict()
+
+
+@router.post("/borrow/{prestamo_id}/resolve-novelty", status_code=status.HTTP_200_OK)
+async def resolve_borrow_novelty(
+    session: SessionDep, prestamo_id: int, request_data: ResolveBorrowNoveltyRequest
+):
+    app_service = ResolveBorrowNovelty(session=session)
+    result = await app_service.execute(prestamo_id, request_data)
+
+    if isinstance(result, dict) and result.get("error"):
+        status_code = (
+            status.HTTP_404_NOT_FOUND
+            if result["error"] == "NOT_FOUND"
+            else status.HTTP_400_BAD_REQUEST
+        )
         return Response(
             data=None,
             message="Error al resolver la novedad",
@@ -92,14 +133,12 @@ async def resolve_chess_novelty(
 
 
 @router.get("/clearance/{estudiante_id}", status_code=status.HTTP_200_OK)
-async def get_chess_clearance(
-    session: SessionDep, estudiante_id: int
-):
+async def get_chess_clearance(session: SessionDep, estudiante_id: int):
     app_service = GetChessClearance(session=session)
     result = await app_service.execute(estudiante_id)
     mensaje: str = str(result.get("message", ""))
     return Response(
         data={"paz_y_salvo": result.get("paz_y_salvo")},
         message=mensaje,
-        status_code=status.HTTP_200_OK
+        status_code=status.HTTP_200_OK,
     ).to_dict()

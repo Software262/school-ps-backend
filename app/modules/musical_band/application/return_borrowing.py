@@ -1,5 +1,8 @@
 from app.core.db import SessionDep
 from app.modules.inventory.application.return_borrowing import ReturnBorrowing
+from app.modules.inventory.infrastructure.enrollment_adapter import (
+    InventoryEnrollmentAdapter,
+)
 from app.modules.musical_band.domain.service import MusicalBandService
 from app.modules.musical_band.schemas.request import (
     ReturnInstrumentBorrowingMusicalBand,
@@ -9,7 +12,10 @@ from app.modules.musical_band.schemas.request import (
 class ReturnInstrumentBorrowMusicalBand(ReturnBorrowing):
     def __init__(self, session: SessionDep):
         super().__init__(session=session)
-        self._service = MusicalBandService(repository=self.repository)
+        self._service = MusicalBandService(
+            repository=self.service.repository,
+            enrollment=InventoryEnrollmentAdapter(session=session),
+        )
 
     async def _execute(
         self, borrow_id: int, borrow_data: ReturnInstrumentBorrowingMusicalBand

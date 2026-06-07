@@ -1,6 +1,6 @@
 from typing import Sequence
 
-from app.modules.enrollment.application.contracts import StudentQueryService
+from app.modules.inventory.application.contracts import InventoryEnrollmentService
 from app.modules.inventory.domain.entities import Borrowing
 from app.modules.inventory.domain.repositories import InventoryRepository
 from app.modules.inventory.infrastructure.models import Prestamo
@@ -22,10 +22,10 @@ class InventoryService:
     def __init__(
         self,
         repository: InventoryRepository,
-        studentService: StudentQueryService | None = None,
+        enrollment: InventoryEnrollmentService,
     ):
         self.repository = repository
-        self.service = studentService
+        self.service = enrollment
 
     async def get_inventory(self, filter_pagination: FilterPaginationInventory):
         offset = calculate_offset(filter_pagination.page, filter_pagination.limit)
@@ -154,6 +154,9 @@ class InventoryService:
             if item is None or student is None:
                 continue
 
+            novedad = await self.repository.get_novedad_by_borrow_id(p.id)
+            novedad_pendiente = novedad is not None and not novedad.resuelta
+
             result.append(
                 Borrowing(
                     id=p.id,
@@ -163,6 +166,7 @@ class InventoryService:
                     inventario_id=p.inventario_id,
                     cantidad=p.cantidad,
                     estado_prestamo=p.estado_prestamo,
+                    novedad_pendiente=novedad_pendiente,
                     fecha_devolucion=p.fecha_devolucion,
                     fecha_salida=p.fecha_salida,
                     observacion=p.observacion,

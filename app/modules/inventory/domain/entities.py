@@ -1,6 +1,14 @@
+from dataclasses import dataclass
 from datetime import datetime
 
 from pydantic import BaseModel
+
+
+@dataclass
+class StudentEntity:
+    id: int
+    nombre: str
+    activo: bool
 
 
 class Borrowing(BaseModel):
@@ -14,3 +22,4 @@ class Borrowing(BaseModel):
     estado_prestamo: bool
     cantidad: int
     observacion: str | None
+    novedad_pendiente: bool = False

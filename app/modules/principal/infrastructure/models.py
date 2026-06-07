@@ -52,23 +52,6 @@ class RectoriaObservaciones(Base, table=True):
     fecha: datetime
 
 
-class Observador(Base, table=True):
-    """
-    Represents a student's disciplinary observer record.
-
-    Attributes:
-        estudiante_id (int): Foreign key identifier of the student.
-        tipo_incidencia (str): Classification type of the incidence.
-        descripcion (str): Detailed text describing the incidence.
-        fecha (datetime): Timestamp when the record was registered.
-    """
-
-    estudiante_id: int = Field(foreign_key="estudiante.id")
-    tipo_incidencia: str = Field(max_length=50)
-    descripcion: str = Field(max_length=400)
-    fecha: datetime = Field(default_factory=datetime.utcnow)
-
-
 class Auditoria(Base, table=True):
     """
     Represents system audit logs tracking modifications of administrative records.

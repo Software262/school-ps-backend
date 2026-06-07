@@ -4,6 +4,7 @@ from app.modules.auth.api.routes import router as auth
 from app.modules.cafeteria.api.routes import router as cafeteria
 from app.modules.chess.api.routes import router as chess
 from app.modules.classroom.api.routes import router as classroom
+from app.modules.classroom_holder.api.routes import router as classroom_holder
 from app.modules.enrollment.api.routes import router as enrollment
 from app.modules.health.api.routes import router as health
 from app.modules.inventory.api.routes import router as inventory
@@ -26,6 +27,9 @@ router.include_router(principal, prefix="/principal", tags=["principal"])
 router.include_router(tests, prefix="/tests", tags=["tests"])
 router.include_router(tuition, prefix="/tuition", tags=["tuition"])
 router.include_router(classroom, prefix="/classroom", tags=["classroom"])
+router.include_router(
+    classroom_holder, prefix="/classroom-holder", tags=["classroom-holder"]
+)
 router.include_router(auth, prefix="/auth", tags=["auth"])
 router.include_router(cafeteria, prefix="/cafeteria", tags=["cafeteria"])
 router.include_router(chess, prefix="/chess", tags=["chess"])

@@ -8,6 +8,8 @@ Author: Yessyth Jaimes
 Role: Product Owner and developer of the rectoria module
 """
 
+from typing import Any
+
 from app.modules.principal.domain.repositories import PrincipalRepository
 from app.modules.principal.schemas.request import (
     CreateObservationRequest,
@@ -40,7 +42,7 @@ class PrincipalService:
         """
         results = await self.repository.get_teachers()
 
-        teachers_map = {}
+        teachers_map: dict[int, dict[str, Any]] = {}
         for docente, estado, observacion in results:
             docente_id = docente.id
             if docente_id is None:
