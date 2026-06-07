@@ -7,11 +7,13 @@ from app.modules.chess.schemas.request import (
     CreateChessBorrowRequest,
     ReturnChessBorrowRequest,
     ResolveChessNoveltyRequest,
+    ResolveBorrowNoveltyRequest,
 )
 
 from app.modules.chess.application.create_borrowing import CreateChessBorrowing
 from app.modules.chess.application.return_borrowing import ReturnChessBorrowing
 from app.modules.chess.application.resolve_novelty import ResolveChessNovelty
+from app.modules.chess.application.resolve_borrow_novelty import ResolveBorrowNovelty
 from app.modules.chess.application.get_clearance import GetChessClearance
 
 router = APIRouter()
@@ -78,6 +80,35 @@ async def resolve_chess_novelty(
 ):
     app_service = ResolveChessNovelty(session=session)
     result = await app_service.execute(novedad_id, request_data)
+
+    if isinstance(result, dict) and result.get("error"):
+        status_code = (
+            status.HTTP_404_NOT_FOUND
+            if result["error"] == "NOT_FOUND"
+            else status.HTTP_400_BAD_REQUEST
+        )
+        return Response(
+            data=None,
+            message="Error al resolver la novedad",
+            status_code=status_code,
+            details={"error": result["message"]},
+        ).to_dict()
+
+    data_body: Any = result.get("data", {})
+    mensaje: str = str(data_body.get("mensaje", ""))
+    return Response(
+        data=data_body,
+        message=mensaje,
+        status_code=status.HTTP_200_OK,
+    ).to_dict()
+
+
+@router.post("/borrow/{prestamo_id}/resolve-novelty", status_code=status.HTTP_200_OK)
+async def resolve_borrow_novelty(
+    session: SessionDep, prestamo_id: int, request_data: ResolveBorrowNoveltyRequest
+):
+    app_service = ResolveBorrowNovelty(session=session)
+    result = await app_service.execute(prestamo_id, request_data)
 
     if isinstance(result, dict) and result.get("error"):
         status_code = (

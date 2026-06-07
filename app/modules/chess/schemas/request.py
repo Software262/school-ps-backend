@@ -31,3 +31,12 @@ class ResolveChessNoveltyRequest(BaseModel):
     usuario_auditoria_id: int = Field(
         ge=1, description="ID del responsable que cierra la novedad"
     )
+
+
+class ResolveBorrowNoveltyRequest(BaseModel):
+    notas_resolucion: str = Field(
+        min_length=5, max_length=500, description="Detalles de la resolución"
+    )
+    usuario_auditoria_id: int = Field(
+        ge=1, description="ID del responsable que cierra la novedad"
+    )
