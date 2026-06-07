@@ -36,3 +36,8 @@ class MassiveAssignmentRequest(BaseModel):
 
 class PaymentRequest(BaseModel):
     monto: int = Field(gt=0, description="Monto a abonar")
+
+
+class ComplementaryUpdateBody(BaseModel):
+    nombre: str
+    valor: int

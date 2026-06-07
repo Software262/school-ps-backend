@@ -1,6 +1,21 @@
-from sqlmodel import select, col
+from sqlmodel import col, select
 
 from app.core.db import SessionDep
+from app.modules.enrollment.infrastructure.models import (
+    Complementario,
+    Estudiante,
+    Grado,
+    Periodo,
+)
+from app.modules.tests.domain.entities import (
+    ComplementarySummary,
+    EstudianteEntity,
+    GradoEntity,
+    PeriodoEntity,
+    PeriodSummary,
+    StudentSummary,
+    TestDetailEntity,
+)
 from app.modules.tests.domain.repositories import (
     InternalTestRepository as InternalTestRepositoryInterface,
 )
@@ -8,21 +23,6 @@ from app.modules.tests.infrastructure.models import DetallePrueba
 from app.modules.tests.schemas.request import (
     CreateTestDetailRequest,
     UpdateTestDetailRequest,
-)
-from app.modules.enrollment.infrastructure.models import (
-    Estudiante,
-    Complementario,
-    Periodo,
-    Grado,
-)
-from app.modules.tests.domain.entities import (
-    TestDetailEntity,
-    StudentSummary,
-    ComplementarySummary,
-    PeriodSummary,
-    GradoEntity,
-    PeriodoEntity,
-    EstudianteEntity,
 )
 
 
@@ -87,6 +87,7 @@ class InternalTestRepository(InternalTestRepositoryInterface):
             .limit(limit)
         )
         results = self.session.exec(stmt).all()
+
         return [
             TestDetailEntity(
                 id=d.id or 0,

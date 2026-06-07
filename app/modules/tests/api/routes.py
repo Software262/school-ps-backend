@@ -1,37 +1,36 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Query, status
-from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
 
-
 from app.core.db import SessionDep
+from app.modules.tests.application.assign_massive import AssignMassiveTests
 from app.modules.tests.application.create_internal import CreateInternalTest
+from app.modules.tests.application.delete_complementary import (
+    DeleteTestComplementary,
+)
+from app.modules.tests.application.delete_internal import DeleteInternalTest
+from app.modules.tests.application.get_available import GetAvailableTests
+from app.modules.tests.application.get_estudiantes import GetEstudiantes
+from app.modules.tests.application.get_grados import GetGrados
 from app.modules.tests.application.get_internal import GetInternalTests
 from app.modules.tests.application.get_internal_by_id import GetInternalTestById
 from app.modules.tests.application.get_internal_by_student import (
     GetInternalTestsByStudent,
 )
-from app.modules.tests.application.update_internal import UpdateInternalTest
-from app.modules.tests.application.assign_massive import AssignMassiveTests
-from app.modules.tests.application.register_payment import RegisterTestPayment
-from app.modules.tests.application.get_student_status import GetStudentTestStatus
-from app.modules.tests.application.get_available import GetAvailableTests
-from app.modules.tests.application.get_grados import GetGrados
 from app.modules.tests.application.get_periodos import GetPeriodos
-from app.modules.tests.application.get_estudiantes import GetEstudiantes
-from app.modules.tests.application.delete_internal import DeleteInternalTest
-from app.modules.tests.application.delete_complementary import (
-    DeleteTestComplementary,
-)
+from app.modules.tests.application.get_student_status import GetStudentTestStatus
+from app.modules.tests.application.register_payment import RegisterTestPayment
 from app.modules.tests.application.update_complementary import (
     UpdateTestComplementary,
 )
+from app.modules.tests.application.update_internal import UpdateInternalTest
 from app.modules.tests.schemas.request import (
+    ComplementaryUpdateBody,
     CreateTestDetailRequest,
-    UpdateTestDetailRequest,
     MassiveAssignmentRequest,
     PaymentRequest,
+    UpdateTestDetailRequest,
 )
 from app.modules.tests.schemas.response import (
     CreateTestDetailResponse,
@@ -485,16 +484,11 @@ async def delete_internal_test(session: SessionDep, test_id: int):
         ).to_dict()
 
 
-class _ComplementaryUpdateBody(BaseModel):
-    nombre: str
-    valor: int
-
-
 @router.put("/complementary/{comp_id}")
 async def update_test_complementary(
     session: SessionDep,
     comp_id: int,
-    body: _ComplementaryUpdateBody,
+    body: ComplementaryUpdateBody,
 ):
     try:
         use_case = UpdateTestComplementary(session=session)
