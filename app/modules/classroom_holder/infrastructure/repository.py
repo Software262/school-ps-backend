@@ -1,4 +1,4 @@
-from sqlmodel import Session, col, select
+from sqlmodel import Session, col, select, desc
 from app.modules.classroom_holder.domain.entities import IncidenciaDomain
 from app.modules.classroom_holder.domain.enums import TipoIncidencia
 from app.modules.classroom_holder.domain.repositories import (
@@ -61,7 +61,7 @@ class IncidenciaRepository(IncidenciaRepositoryInterface):
         return self._to_domain(model)
 
     def find_all(self) -> list[IncidenciaDomain]:
-        statement = select(Observador).order_by(Observador.fecha.desc())
+        statement = select(Observador).order_by(desc(Observador.fecha))
         results = self.session.exec(statement).all()
         return [self._to_domain(row) for row in results]
 
