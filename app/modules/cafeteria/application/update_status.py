@@ -1,25 +1,16 @@
-"""
-Cafeteria Module Update Status (Bulk) Use Case.
-
-Author: Danilo Castillejo
-Role: Developer of the cafeteria module
-"""
-
 from app.core.db import SessionDep
-from app.modules.cafeteria.domain.service import CafeteriaService
+from app.modules.enrollment.infrastructure.repository import SQLEnrollmentRepository
+from app.modules.enrollment.domain.service import StudentService
 from app.modules.cafeteria.infrastructure.repository import CafeteriaRepository
+from app.modules.cafeteria.domain.service import CafeteriaService
 
 
 class UpdateStatus:
-    """Use case to handle bulk 'Paz y Salvo' assignment while respecting manual blocks."""
-
     def __init__(self, session: SessionDep):
-        self.repository = CafeteriaRepository(session=session)
-        self.service = CafeteriaService(repository=self.repository)
+        self.repository = CafeteriaRepository(session)
+        enrollment_repo = SQLEnrollmentRepository(session)
+        student_service = StudentService(enrollment_repo)
+        self.service = CafeteriaService(self.repository, student_service)
 
-    async def execute(
-        self, periodo_id: int, estudiantes_ids: list[int], usuario_id: int
-    ):
-        return await self.service.bulk_update_paz_y_salvo(
-            periodo_id, estudiantes_ids, usuario_id
-        )
+    async def execute(self, registro_ids: list[int], usuario_id: int):
+        return await self.service.clear_debts_bulk(registro_ids, usuario_id)

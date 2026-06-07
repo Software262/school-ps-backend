@@ -1,45 +1,105 @@
+from typing import Any
 from fastapi import APIRouter, status
 from app.core.db import SessionDep
 from app.shared.utils.response import Response
-from app.modules.chess.schemas.request import ReturnChessRequest
-from app.modules.chess.schemas.response import ReturnChessResponse
-from app.modules.chess.application.return_chess_borrowing import ReturnChessBorrowing
+
+from app.modules.chess.schemas.request import (
+    CreateChessBorrowRequest,
+    ReturnChessBorrowRequest,
+    ResolveChessNoveltyRequest,
+)
+
+from app.modules.chess.application.create_borrowing import CreateChessBorrowing
+from app.modules.chess.application.return_borrowing import ReturnChessBorrowing
+from app.modules.chess.application.resolve_novelty import ResolveChessNovelty
+from app.modules.chess.application.get_clearance import GetChessClearance
 
 router = APIRouter()
 
 
-@router.patch("/borrow/{borrow_id}/return", status_code=status.HTTP_200_OK)
-async def return_chess_borrowing(
-    session: SessionDep, borrow_id: int, return_request: ReturnChessRequest
+@router.post("/borrow", status_code=status.HTTP_201_CREATED)
+async def create_chess_borrow(
+    session: SessionDep, request_data: CreateChessBorrowRequest
 ):
-    app_service = ReturnChessBorrowing(session=session)
-    result = await app_service.execute(borrow_id, return_request)
+    app_service = CreateChessBorrowing(session=session)
+    result = await app_service.execute(request_data)
 
-    if result.get("error"):
-        status_code = (
-            status.HTTP_404_NOT_FOUND
-            if result["error"] == "NOT_FOUND"
-            else status.HTTP_400_BAD_REQUEST
-        )
+    if isinstance(result, dict) and result.get("error"):
+        status_code = status.HTTP_404_NOT_FOUND if result["error"] == "NOT_FOUND" else status.HTTP_400_BAD_REQUEST
         return Response(
             data=None,
-            message="Error al procesar la devolución de ajedrez",
+            message="Error al registrar el préstamo",
             status_code=status_code,
-            details={"message": result["message"]},
+            details={"error": result["message"]},
         ).to_dict()
 
-    data = result["data"]
-
-    response_data = ReturnChessResponse(
-        id=data["id"],
-        estado_prestamo=data["estado_prestamo"],
-        novedad_creada=data["novedad_creada"],
-        mensaje=data["mensaje"],
-    )
-
     return Response(
-        data=response_data,
-        message=str(data["mensaje"]),
+        data={"prestamo_id": getattr(result, "id", None)},
+        message="Préstamo de ajedrez registrado exitosamente.",
+        status_code=status.HTTP_201_CREATED
+    ).to_dict()
+
+
+@router.post("/return/{prestamo_id}", status_code=status.HTTP_200_OK)
+async def return_chess_borrow(
+    session: SessionDep, prestamo_id: int, request_data: ReturnChessBorrowRequest
+):
+    user_id = 1
+    app_service = ReturnChessBorrowing(session=session)
+    result = await app_service.execute(prestamo_id, user_id, request_data)
+
+    if isinstance(result, dict) and result.get("error"):
+        status_code = status.HTTP_404_NOT_FOUND if result["error"] == "NOT_FOUND" else status.HTTP_400_BAD_REQUEST
+        return Response(
+            data=None,
+            message="Error al procesar la devolución",
+            status_code=status_code,
+            details={"error": result["message"]}
+        ).to_dict()
+
+    data_body: Any = result.get("data", {})
+    mensaje: str = str(data_body.get("mensaje", ""))
+    return Response(
+        data=data_body,
+        message=mensaje,
+        status_code=status.HTTP_200_OK
+    ).to_dict()
+
+
+@router.post("/novelty/{novedad_id}/resolve", status_code=status.HTTP_200_OK)
+async def resolve_chess_novelty(
+    session: SessionDep, novedad_id: int, request_data: ResolveChessNoveltyRequest
+):
+    app_service = ResolveChessNovelty(session=session)
+    result = await app_service.execute(novedad_id, request_data)
+
+    if isinstance(result, dict) and result.get("error"):
+        status_code = status.HTTP_404_NOT_FOUND if result["error"] == "NOT_FOUND" else status.HTTP_400_BAD_REQUEST
+        return Response(
+            data=None,
+            message="Error al resolver la novedad",
+            status_code=status_code,
+            details={"error": result["message"]},
+        ).to_dict()
+
+    data_body: Any = result.get("data", {})
+    mensaje: str = str(data_body.get("mensaje", ""))
+    return Response(
+        data=data_body,
+        message=mensaje,
         status_code=status.HTTP_200_OK,
-        details={"novedad_creada": bool(data["novedad_creada"])},
+    ).to_dict()
+
+
+@router.get("/clearance/{estudiante_id}", status_code=status.HTTP_200_OK)
+async def get_chess_clearance(
+    session: SessionDep, estudiante_id: int
+):
+    app_service = GetChessClearance(session=session)
+    result = await app_service.execute(estudiante_id)
+    mensaje: str = str(result.get("message", ""))
+    return Response(
+        data={"paz_y_salvo": result.get("paz_y_salvo")},
+        message=mensaje,
+        status_code=status.HTTP_200_OK
     ).to_dict()
