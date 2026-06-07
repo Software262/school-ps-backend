@@ -1,7 +1,4 @@
-from typing import List
-
 from sqlmodel import Session, col, select
-
 from app.modules.classroom_holder.domain.entities import IncidenciaDomain
 from app.modules.classroom_holder.domain.enums import TipoIncidencia
 from app.modules.classroom_holder.domain.repositories import (
@@ -31,17 +28,14 @@ class IncidenciaRepository(IncidenciaRepositoryInterface):
     def save(self, incidencia: IncidenciaDomain) -> IncidenciaDomain:
         if incidencia.id is not None:
             model = self.session.get(Observador, incidencia.id)
-
             if model:
                 model.esta_abierta = incidencia.esta_abierta
                 model.fecha_cierre = incidencia.fecha_cierre
                 model.updated_at = incidencia.updated_at
                 model.descripcion = incidencia.descripcion
-
                 self.session.add(model)
                 self.session.commit()
                 self.session.refresh(model)
-
                 return self._to_domain(model)
 
         model = Observador(
@@ -55,42 +49,30 @@ class IncidenciaRepository(IncidenciaRepositoryInterface):
             created_at=incidencia.created_at,
             updated_at=incidencia.updated_at,
         )
-
         self.session.add(model)
         self.session.commit()
         self.session.refresh(model)
-
         return self._to_domain(model)
 
     def find_by_id(self, incidencia_id: int) -> IncidenciaDomain | None:
         model = self.session.get(Observador, incidencia_id)
-
         if not model:
             return None
-
         return self._to_domain(model)
 
-    def find_all(self) -> List[IncidenciaDomain]:
+    def find_all(self) -> list[IncidenciaDomain]:
         statement = select(Observador).order_by(Observador.fecha.desc())
         results = self.session.exec(statement).all()
-
         return [self._to_domain(row) for row in results]
 
-    def find_by_student(self, estudiante_id: int) -> List[IncidenciaDomain]:
-        statement = select(Observador).where(
-            Observador.estudiante_id == estudiante_id
-        )
-
+    def find_by_student(self, estudiante_id: int) -> list[IncidenciaDomain]:
+        statement = select(Observador).where(Observador.estudiante_id == estudiante_id)
         results = self.session.exec(statement).all()
-
         return [self._to_domain(row) for row in results]
 
     def has_open_incidents(self, estudiante_id: int) -> bool:
         statement = select(Observador).where(
-            Observador.estudiante_id == estudiante_id,
-            col(Observador.esta_abierta),
+            Observador.estudiante_id == estudiante_id, col(Observador.esta_abierta)
         )
-
         result = self.session.exec(statement).first()
-
         return result is not None
