@@ -222,7 +222,19 @@ class InventoryRepository(InventoryRepositoryInterface):
             select(Novedad).where(Novedad.prestamo_id == prestamo_id)
         ).first()
 
-    async def update_borrow_observacion(self, prestamo_id: int, observacion: str) -> Prestamo:
+    async def update_item_estado(self, item_id: int, estado: str) -> Inventario:
+        item = self.session.exec(
+            select(Inventario).where(Inventario.id == item_id)
+        ).one()
+        item.estado_objeto = estado
+        self.session.add(item)
+        self.session.commit()
+        self.session.refresh(item)
+        return item
+
+    async def update_borrow_observacion(
+        self, prestamo_id: int, observacion: str
+    ) -> Prestamo:
         prestamo = self.session.exec(
             select(Prestamo).where(Prestamo.id == prestamo_id)
         ).one()

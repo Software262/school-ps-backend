@@ -3,7 +3,6 @@ from app.modules.inventory.infrastructure.repository import InventoryRepository
 from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     ReturnBorrowRequest,
-    UpdateSingleItemRequest,
 )
 from app.modules.chess.schemas.request import (
     CreateChessBorrowRequest,
@@ -11,6 +10,7 @@ from app.modules.chess.schemas.request import (
     ResolveChessNoveltyRequest,
     ResolveBorrowNoveltyRequest,
 )
+
 
 class ChessService:
     def __init__(
@@ -91,9 +91,9 @@ class ChessService:
 
         novedad_creada = False
         if data.conteo_piezas >= 32 and item and item.id:
-            await self.inventory_repo.edit_item(
+            await self.inventory_repo.update_item_estado(
                 item.id,
-                UpdateSingleItemRequest(estado_objeto="Disponible"),
+                "Disponible",
             )
 
         if data.conteo_piezas < 32:
@@ -139,13 +139,21 @@ class ChessService:
             }
         }
 
-    async def resolve_borrow_novelty(self, prestamo_id: int, data: ResolveBorrowNoveltyRequest):
+    async def resolve_borrow_novelty(
+        self, prestamo_id: int, data: ResolveBorrowNoveltyRequest
+    ):
         novedad = await self.inventory_repo.get_novedad_by_borrow_id(prestamo_id)
         if not novedad:
-            return {"error": "NOT_FOUND", "message": "No se encontró novedad para este préstamo."}
+            return {
+                "error": "NOT_FOUND",
+                "message": "No se encontró novedad para este préstamo.",
+            }
 
         if novedad.resuelta:
-            return {"error": "BAD_REQUEST", "message": "La novedad ya fue resuelta previamente."}
+            return {
+                "error": "BAD_REQUEST",
+                "message": "La novedad ya fue resuelta previamente.",
+            }
 
         if novedad.id is None:
             raise ValueError("La novedad no tiene un ID válido")
@@ -165,12 +173,17 @@ class ChessService:
         if prestamo:
             item = await self.inventory_repo.get_item_by_id(prestamo.inventario_id)
             if item and item.id:
-                await self.inventory_repo.edit_item(
+                await self.inventory_repo.update_item_estado(
                     item.id,
-                    UpdateSingleItemRequest(estado_objeto="Disponible"),
+                    "Disponible",
                 )
 
-        return {"data": {"id": prestamo_id, "mensaje": "Novedad resuelta. Material repuesto correctamente."}}
+        return {
+            "data": {
+                "id": prestamo_id,
+                "mensaje": "Novedad resuelta. Material repuesto correctamente.",
+            }
+        }
 
     async def get_clearance(self, estudiante_id: int):
         open_novelties = self.chess_repo.get_open_novelties_by_student(estudiante_id)

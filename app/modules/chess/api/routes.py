@@ -111,7 +111,11 @@ async def resolve_borrow_novelty(
     result = await app_service.execute(prestamo_id, request_data)
 
     if isinstance(result, dict) and result.get("error"):
-        status_code = status.HTTP_404_NOT_FOUND if result["error"] == "NOT_FOUND" else status.HTTP_400_BAD_REQUEST
+        status_code = (
+            status.HTTP_404_NOT_FOUND
+            if result["error"] == "NOT_FOUND"
+            else status.HTTP_400_BAD_REQUEST
+        )
         return Response(
             data=None,
             message="Error al resolver la novedad",

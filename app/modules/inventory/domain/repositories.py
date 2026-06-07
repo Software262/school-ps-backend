@@ -103,3 +103,7 @@ class InventoryRepository(ABC):
     @abstractmethod
     async def get_novedad_by_borrow_id(self, prestamo_id: int) -> Novedad | None:
         pass
+
+    @abstractmethod
+    async def update_item_estado(self, item_id: int, estado: str) -> Inventario:
+        pass
