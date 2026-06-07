@@ -8,8 +8,10 @@ from app.modules.classroom_holder.infrastructure.repository import IncidenciaRep
 
 class GetIncidents:
     def __init__(self, session):
+        self.repository = IncidenciaRepository(session=session)
+
         self.service = ClassroomDomainService(
-            repository=IncidenciaRepository(session=session),
+            repository=self.repository,
             enrollment=ClassroomEnrollmentAdapter(session=session),
         )
 
