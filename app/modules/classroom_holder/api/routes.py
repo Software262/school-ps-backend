@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List
 from app.core.db import SessionDep
 from app.modules.classroom_holder.api.dependencies import verificar_acceso_salon_titular
 from app.modules.classroom_holder.application.close_incident import CloseIncident
@@ -31,13 +30,16 @@ def crear_incidencia(
     return use_case.execute(payload, current_docente_id=current_user.id)
 
 
-@router.get("/incidencias", response_model=List[IncidenciaResponse])
+@router.get("/incidencias", response_model=list[IncidenciaResponse])
 def listar_incidencias(session: SessionDep):
     use_case = GetIncidents(session=session)
     return use_case.execute_all()
 
 
-@router.get("/incidencias/estudiante/{estudiante_id}", response_model=List[IncidenciaResponse])
+@router.get(
+    "/incidencias/estudiante/{estudiante_id}",
+    response_model=list[IncidenciaResponse],
+)
 def listar_incidencias_por_estudiante(estudiante_id: int, session: SessionDep):
     use_case = GetIncidents(session=session)
     return use_case.execute(estudiante_id)
