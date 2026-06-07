@@ -18,3 +18,5 @@ cache/
 .coverage
 uploads/
 logs/
+
+testsprite_tests/

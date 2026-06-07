@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from pydantic import BaseModel
 
 
@@ -136,3 +137,35 @@ class PaymentReceiptResponse(BaseModel):
     estudiante: StudentReceiptInfo
     acudiente: AcudienteReceiptInfo
     distribuciones: list[PaymentDistributionResponse]
+
+
+class ComplementaryConceptResponse(BaseModel):
+    """DTO para un concepto complementario."""
+
+    id: int
+    tipo_complementario: str
+    anio: int
+    valor: int
+    estado_complemento: str
+    uso_matricula: bool
+
+
+class StudentResponse(BaseModel):
+    grado_id: int
+    acudiente_id: int
+    nombre: str
+    documento: str
+    activo: bool
+    fecha_activo: datetime | None
+
+
+class GradeResponse(BaseModel):
+    id: int
+    nombre: str
+
+
+class StudentGeneralResponse(BaseModel):
+    id: int
+    nombre: str
+    documento: str
+    grado_nombre: str
