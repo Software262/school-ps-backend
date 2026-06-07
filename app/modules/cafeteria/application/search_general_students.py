@@ -5,12 +5,12 @@ from app.modules.cafeteria.infrastructure.repository import CafeteriaRepository
 from app.modules.cafeteria.domain.service import CafeteriaService
 
 
-class UpdateStatus:
+class SearchGeneralStudents:
     def __init__(self, session: SessionDep):
         self.repository = CafeteriaRepository(session)
         enrollment_repo = SQLEnrollmentRepository(session)
         student_service = StudentService(enrollment_repo)
         self.service = CafeteriaService(self.repository, student_service)
 
-    async def execute(self, registro_ids: list[int], usuario_id: int):
-        return await self.service.clear_debts_bulk(registro_ids, usuario_id)
+    async def execute(self, query: str | None = None, grado_id: int | None = None):
+        return await self.service.search_general_students_flat(query, grado_id)
