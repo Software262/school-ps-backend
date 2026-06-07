@@ -1,7 +1,6 @@
 from fastapi import APIRouter, status
 from app.core.db import SessionDep
 from app.shared.utils.response import Response
-from typing import Any, cast
 
 from app.modules.chess.schemas.request import (
     CreateChessBorrowRequest,
@@ -23,8 +22,7 @@ async def create_chess_borrow(
 ):
     app_service = CreateChessBorrowing(session=session)
     result = await app_service.execute(request_data)
-    
-    # If result is an error dict, handle it
+
     if isinstance(result, dict) and result.get("error"):
         status_code = status.HTTP_404_NOT_FOUND if result["error"] == "NOT_FOUND" else status.HTTP_400_BAD_REQUEST
         return Response(
@@ -33,11 +31,9 @@ async def create_chess_borrow(
             status_code=status_code,
             details={"error": result["message"]},
         ).to_dict()
-    
-    # At this point result is a Prestamo instance
-    prestamo = result  # type: ignore[assignment]
+
     return Response(
-        data={"prestamo_id": getattr(prestamo, "id", None)},
+        data={"prestamo_id": getattr(result, "id", None)},
         message="Préstamo de ajedrez registrado exitosamente.",
         status_code=status.HTTP_201_CREATED
     ).to_dict()
@@ -47,11 +43,10 @@ async def create_chess_borrow(
 async def return_chess_borrow(
     session: SessionDep, prestamo_id: int, request_data: ReturnChessBorrowRequest
 ):
-    # En un entorno real user_id vendría del token. Aquí lo simulamos o pedimos por request.
-    user_id = 1 
+    user_id = 1
     app_service = ReturnChessBorrowing(session=session)
     result = await app_service.execute(prestamo_id, user_id, request_data)
-    
+
     if isinstance(result, dict) and result.get("error"):
         status_code = status.HTTP_404_NOT_FOUND if result["error"] == "NOT_FOUND" else status.HTTP_400_BAD_REQUEST
         return Response(
@@ -60,12 +55,9 @@ async def return_chess_borrow(
             status_code=status_code,
             details={"error": result["message"]}
         ).to_dict()
-    
-    from typing import cast, Any
-    # Ensure result is a dict
-    result_dict = cast(dict[str, Any], result)
-    data_body = result_dict["data"]  # type: ignore[index]
-    mensaje: str = data_body.get("mensaje", "")
+
+    data_body = result.get("data", {})
+    mensaje = data_body.get("mensaje", "")
     return Response(
         data=data_body,
         message=mensaje,
@@ -89,10 +81,8 @@ async def resolve_chess_novelty(
             details={"error": result["message"]},
         ).to_dict()
 
-    # Ensure result is a dict for type checking
-    result_dict = cast(dict[str, Any], result)
-    data_body = result_dict["data"]  # type: ignore[index]
-    mensaje: str = data_body.get("mensaje", "")
+    data_body = result.get("data", {})
+    mensaje = data_body.get("mensaje", "")
     return Response(
         data=data_body,
         message=mensaje,
@@ -106,10 +96,8 @@ async def get_chess_clearance(
 ):
     app_service = GetChessClearance(session=session)
     result = await app_service.execute(estudiante_id)
-    # Ensure result is a dict for type checking
-    result_dict = cast(dict[str, Any], result)
     return Response(
-        data={"paz_y_salvo": result_dict["paz_y_salvo"]},
-        message=result_dict["message"],  # type: ignore[index]
+        data={"paz_y_salvo": result.get("paz_y_salvo")},
+        message=result.get("message", ""),
         status_code=status.HTTP_200_OK
     ).to_dict()
