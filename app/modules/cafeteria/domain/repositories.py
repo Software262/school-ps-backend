@@ -1,22 +1,10 @@
-"""
-Cafeteria Module Domain Repository Interface.
-
-Author: Danilo Castillejo
-Role: Developer of the cafeteria module
-"""
-
 from abc import ABC, abstractmethod
 from app.modules.cafeteria.infrastructure.models import Cafeteria
 
 
 class CafeteriaRepositoryInterface(ABC):
-    """
-    Abstract interface that defines the data access rules.
-    To comply with decoupling rules, it only handles Cafeteria entities.
-    """
-
     @abstractmethod
-    async def get_all_by_period(self, periodo_id: int) -> list[Cafeteria]:
+    async def get_all_debtors(self, periodo_id: int) -> list[Cafeteria]:
         pass
 
     @abstractmethod
