@@ -4,6 +4,7 @@ from pydantic import Field, model_validator
 
 from app.modules.inventory.schemas.request import (
     CreateItemRequest,
+    CreateBorrowRequest,
     FilterPaginationBorrowings,
     FilterPaginationInventory,
     UpdateCompleteItemRequest,
@@ -40,4 +41,8 @@ class UpdateItemDeportesComplete(UpdateCompleteItemRequest):
 
 
 class ReturnSportBorrowRequest(ReturnBorrowRequest):
+    pass
+
+
+class CreateSportBorrowRequest(CreateBorrowRequest):
     pass
