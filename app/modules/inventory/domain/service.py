@@ -154,6 +154,9 @@ class InventoryService:
             if item is None or student is None:
                 continue
 
+            novedad = await self.repository.get_novedad_by_borrow_id(p.id)
+            novedad_pendiente = novedad is not None and not novedad.resuelta
+
             result.append(
                 Borrowing(
                     id=p.id,
@@ -163,6 +166,7 @@ class InventoryService:
                     inventario_id=p.inventario_id,
                     cantidad=p.cantidad,
                     estado_prestamo=p.estado_prestamo,
+                    novedad_pendiente=novedad_pendiente,
                     fecha_devolucion=p.fecha_devolucion,
                     fecha_salida=p.fecha_salida,
                     observacion=p.observacion,

@@ -8,6 +8,7 @@ from app.modules.chess.schemas.request import (
     CreateChessBorrowRequest,
     ReturnChessBorrowRequest,
     ResolveChessNoveltyRequest,
+    ResolveBorrowNoveltyRequest,
 )
 
 
@@ -89,6 +90,12 @@ class ChessService:
             )
 
         novedad_creada = False
+        if data.conteo_piezas >= 32 and item and item.id:
+            await self.inventory_repo.update_item_estado(
+                item.id,
+                "Disponible",
+            )
+
         if data.conteo_piezas < 32:
             faltantes = 32 - data.conteo_piezas
             motivo = f"Material incompleto: Faltan {faltantes} piezas de ajedrez."
@@ -129,6 +136,52 @@ class ChessService:
                 "id": novedad_id,
                 "resuelta": True,
                 "mensaje": "Novedad resuelta y auditada correctamente",
+            }
+        }
+
+    async def resolve_borrow_novelty(
+        self, prestamo_id: int, data: ResolveBorrowNoveltyRequest
+    ):
+        novedad = await self.inventory_repo.get_novedad_by_borrow_id(prestamo_id)
+        if not novedad:
+            return {
+                "error": "NOT_FOUND",
+                "message": "No se encontró novedad para este préstamo.",
+            }
+
+        if novedad.resuelta:
+            return {
+                "error": "BAD_REQUEST",
+                "message": "La novedad ya fue resuelta previamente.",
+            }
+
+        if novedad.id is None:
+            raise ValueError("La novedad no tiene un ID válido")
+
+        self.chess_repo.resolve_novedad_and_extension(
+            novedad=novedad,
+            resuelta_por_id=data.usuario_auditoria_id,
+            notas_resolucion=data.notas_resolucion,
+        )
+
+        await self.inventory_repo.update_borrow_observacion(
+            prestamo_id=prestamo_id,
+            observacion="Devuelto completo en buen estado",
+        )
+
+        prestamo = await self.inventory_repo.get_borrowing(prestamo_id)
+        if prestamo:
+            item = await self.inventory_repo.get_item_by_id(prestamo.inventario_id)
+            if item and item.id:
+                await self.inventory_repo.update_item_estado(
+                    item.id,
+                    "Disponible",
+                )
+
+        return {
+            "data": {
+                "id": prestamo_id,
+                "mensaje": "Novedad resuelta. Material repuesto correctamente.",
             }
         }
 
