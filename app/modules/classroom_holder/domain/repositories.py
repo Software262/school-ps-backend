@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+
 from app.modules.classroom_holder.domain.entities import IncidenciaDomain
 
 
@@ -9,11 +9,11 @@ class IncidenciaRepositoryInterface(ABC):
         pass
 
     @abstractmethod
-    def find_by_id(self, incidencia_id: int) -> Optional[IncidenciaDomain]:
+    def find_by_id(self, incidencia_id: int) -> IncidenciaDomain | None:
         pass
 
     @abstractmethod
-    def find_by_student(self, estudiante_id: int) -> List[IncidenciaDomain]:
+    def find_by_student(self, estudiante_id: int) -> list[IncidenciaDomain]:
         pass
 
     @abstractmethod
