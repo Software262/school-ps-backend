@@ -99,3 +99,7 @@ class InventoryRepository(ABC):
     @abstractmethod
     async def finalize_chess_return(self, borrow: Prestamo, item: Inventario) -> None:
         pass
+
+    @abstractmethod
+    async def get_novedad_by_borrow_id(self, prestamo_id: int) -> Novedad | None:
+        pass

@@ -14,3 +14,4 @@ class Borrowing(BaseModel):
     estado_prestamo: bool
     cantidad: int
     observacion: str | None
+    novedad_pendiente: bool = False
