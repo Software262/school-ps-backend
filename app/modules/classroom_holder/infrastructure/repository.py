@@ -1,4 +1,4 @@
-from sqlmodel import Session, col, select, text
+from sqlmodel import Session, col, select
 
 from app.modules.classroom_holder.domain.entities import IncidenciaDomain
 from app.modules.classroom_holder.domain.enums import TipoIncidencia
@@ -34,6 +34,10 @@ class IncidenciaRepository(IncidenciaRepositoryInterface):
                 model.fecha_cierre = incidencia.fecha_cierre
                 model.updated_at = incidencia.updated_at
                 model.descripcion = incidencia.descripcion
+                self.session.add(model)
+                self.session.commit()
+                self.session.refresh(model)
+                return self._to_domain(model)
 
         model = Observador(
             estudiante_id=incidencia.estudiante_id,
@@ -46,7 +50,6 @@ class IncidenciaRepository(IncidenciaRepositoryInterface):
             created_at=incidencia.created_at,
             updated_at=incidencia.updated_at,
         )
-
         self.session.add(model)
         self.session.commit()
         self.session.refresh(model)
@@ -69,21 +72,3 @@ class IncidenciaRepository(IncidenciaRepositoryInterface):
         )
         result = self.session.exec(statement).first()
         return result is not None
-
-    def buscar_estudiantes_por_nombre(self, query: str) -> list[dict]:
-        statement = text("""
-            SELECT e.id, e.nombre, g.nombre as grado_nombre
-            FROM estudiante e
-            LEFT JOIN grado g ON e.grado_id = g.id
-            WHERE e.nombre ILIKE :query
-            LIMIT 10
-        """)
-        results = self.session.execute(statement, {"query": f"%{query}%"}).fetchall()
-        return [
-            {
-                "id": row.id,
-                "nombre": row.nombre,
-                "grado_nombre": row.grado_nombre or "Sin curso",
-            }
-            for row in results
-        ]

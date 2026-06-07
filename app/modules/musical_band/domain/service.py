@@ -1,3 +1,4 @@
+from app.modules.inventory.application.contracts import InventoryEnrollmentService
 from app.modules.inventory.domain.repositories import InventoryRepository
 from app.modules.inventory.domain.service import InventoryService
 from app.modules.musical_band.schemas.request import (
@@ -9,8 +10,10 @@ from app.modules.musical_band.schemas.request import (
 
 
 class MusicalBandService(InventoryService):
-    def __init__(self, repository: InventoryRepository):
-        super().__init__(repository=repository)
+    def __init__(
+        self, repository: InventoryRepository, enrollment: InventoryEnrollmentService
+    ):
+        super().__init__(repository=repository, enrollment=enrollment)
 
     async def validate_musical_band(self, item_id: int):
         type_id = await self.repository.get_type_id_by_name("banda")

@@ -1,6 +1,14 @@
+from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from app.modules.classroom_holder.domain.enums import TipoIncidencia
+
+
+@dataclass
+class EstudianteResumen:
+    id: int
+    nombre: str
+    grado_nombre: str
 
 
 class IncidenciaDomain:

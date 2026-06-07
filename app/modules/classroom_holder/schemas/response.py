@@ -23,3 +23,9 @@ class PazYSalvoClassroomResponse(BaseModel):
     estudiante_id: int
     cumple_paz_y_salvo: bool
     mensaje: str
+
+
+class EstudianteResumenResponse(BaseModel):
+    id: int
+    nombre: str
+    grado_nombre: str

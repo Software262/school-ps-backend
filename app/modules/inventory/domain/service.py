@@ -1,6 +1,6 @@
 from typing import Sequence
 
-from app.modules.enrollment.application.contracts import StudentQueryService
+from app.modules.inventory.application.contracts import InventoryEnrollmentService
 from app.modules.inventory.domain.entities import Borrowing
 from app.modules.inventory.domain.repositories import InventoryRepository
 from app.modules.inventory.infrastructure.models import Prestamo
@@ -22,10 +22,10 @@ class InventoryService:
     def __init__(
         self,
         repository: InventoryRepository,
-        studentService: StudentQueryService | None = None,
+        enrollment: InventoryEnrollmentService,
     ):
         self.repository = repository
-        self.service = studentService
+        self.service = enrollment
 
     async def get_inventory(self, filter_pagination: FilterPaginationInventory):
         offset = calculate_offset(filter_pagination.page, filter_pagination.limit)

@@ -43,9 +43,9 @@ class TrainingSchoolService:
         students_cache: dict = {}
         for enr in enrollments:
             if enr.estudiante_id not in students_cache:
-                students_cache[enr.estudiante_id] = await self.enrollment.get_student_by_id(
+                students_cache[
                     enr.estudiante_id
-                )
+                ] = await self.enrollment.get_student_by_id(enr.estudiante_id)
             student = students_cache[enr.estudiante_id]
             if student:
                 result.append((enr, student))

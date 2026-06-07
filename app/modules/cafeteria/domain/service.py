@@ -11,16 +11,16 @@ from app.modules.cafeteria.domain.entities import (
     GradeEntity,
     StudentInfoEntity,
 )
+from app.modules.cafeteria.application.contracts import CafeteriaEnrollmentService
 from app.modules.cafeteria.domain.repositories import CafeteriaRepositoryInterface
 from app.modules.cafeteria.infrastructure.models import Cafeteria
-from app.modules.enrollment.application.contracts import StudentQueryService
 
 
 class CafeteriaService:
     def __init__(
         self,
         repository: CafeteriaRepositoryInterface,
-        student_service: StudentQueryService,
+        student_service: CafeteriaEnrollmentService,
     ):
         self.repository = repository
         self.student_service = student_service
@@ -60,7 +60,7 @@ class CafeteriaService:
                 documento=students_map[d.estudiante_id].documento
                 if d.estudiante_id in students_map
                 else "N/A",
-                grado=students_map[d.estudiante_id].grado_nombre
+                grado=students_map[d.estudiante_id].grado
                 if d.estudiante_id in students_map
                 else "N/A",
                 estado_cafeteria=d.estado_cafeteria,
@@ -72,15 +72,9 @@ class CafeteriaService:
     async def search_general_students_flat(
         self, query: str | None, grado_id: int | None
     ) -> list[StudentInfoEntity]:
-        results = self.student_service.search_active_students(
+        return self.student_service.search_active_students(
             query=query.lower() if query else None, grado_id=grado_id, limit=15
         )
-        return [
-            StudentInfoEntity(
-                id=s.id, nombre=s.nombre, documento=s.documento, grado=s.grado_nombre
-            )
-            for s in results
-        ]
 
     async def get_all_grades_info(self) -> list[GradeEntity]:
         grades = self.student_service.get_all_grades()
