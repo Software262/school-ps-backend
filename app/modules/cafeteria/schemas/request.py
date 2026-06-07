@@ -2,7 +2,8 @@ from pydantic import BaseModel, Field
 
 
 class ManualBlockRequest(BaseModel):
-    registro_id: int = Field(..., ge=1)
+    estudiante_id: int = Field(..., ge=1)
+    periodo_id: int = Field(..., ge=1)
     usuario_id: int = Field(..., ge=1)
     observaciones: str = Field(..., min_length=5, max_length=400)
 
