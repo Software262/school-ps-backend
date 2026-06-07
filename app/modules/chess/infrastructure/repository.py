@@ -45,6 +45,8 @@ class ChessRepository:
         novedad.resuelta = True
         self.session.add(novedad)
 
+        if novedad.id is None:
+            raise ValueError("La novedad no tiene un ID válido")
         extension = self.session.exec(
             select(ChessNoveltyExtension).where(ChessNoveltyExtension.novedad_id == novedad.id)
         ).first()

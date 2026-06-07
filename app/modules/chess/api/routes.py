@@ -1,3 +1,4 @@
+from typing import Any
 from fastapi import APIRouter, status
 from app.core.db import SessionDep
 from app.shared.utils.response import Response
@@ -56,8 +57,8 @@ async def return_chess_borrow(
             details={"error": result["message"]}
         ).to_dict()
 
-    data_body = result.get("data", {})
-    mensaje = data_body.get("mensaje", "")
+    data_body: Any = result.get("data", {})
+    mensaje: str = str(data_body.get("mensaje", ""))
     return Response(
         data=data_body,
         message=mensaje,
@@ -81,8 +82,8 @@ async def resolve_chess_novelty(
             details={"error": result["message"]},
         ).to_dict()
 
-    data_body = result.get("data", {})
-    mensaje = data_body.get("mensaje", "")
+    data_body: Any = result.get("data", {})
+    mensaje: str = str(data_body.get("mensaje", ""))
     return Response(
         data=data_body,
         message=mensaje,
@@ -96,8 +97,9 @@ async def get_chess_clearance(
 ):
     app_service = GetChessClearance(session=session)
     result = await app_service.execute(estudiante_id)
+    mensaje: str = str(result.get("message", ""))
     return Response(
         data={"paz_y_salvo": result.get("paz_y_salvo")},
-        message=result.get("message", ""),
+        message=mensaje,
         status_code=status.HTTP_200_OK
     ).to_dict()
