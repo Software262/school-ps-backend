@@ -12,8 +12,8 @@ class CreateChessBorrowRequest(BaseModel):
     cantidad: int = Field(default=1, ge=1, description="Cantidad de tableros")
     observacion: str | None = Field(None, description="Observación del préstamo")
 
-    @model_validator(mode='after')
-    def check_estudiante_or_grado(self) -> 'CreateChessBorrowRequest':
+    @model_validator(mode="after")
+    def check_estudiante_or_grado(self) -> "CreateChessBorrowRequest":
         if not self.estudiante_id and not self.grado_id:
             raise ValueError("Se debe especificar un estudiante_id o un grado_id")
         return self
@@ -25,5 +25,9 @@ class ReturnChessBorrowRequest(BaseModel):
 
 
 class ResolveChessNoveltyRequest(BaseModel):
-    notas_resolucion: str = Field(min_length=5, max_length=500, description="Detalles de la resolución")
-    usuario_auditoria_id: int = Field(ge=1, description="ID del responsable que cierra la novedad")
+    notas_resolucion: str = Field(
+        min_length=5, max_length=500, description="Detalles de la resolución"
+    )
+    usuario_auditoria_id: int = Field(
+        ge=1, description="ID del responsable que cierra la novedad"
+    )

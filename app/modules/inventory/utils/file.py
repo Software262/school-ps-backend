@@ -1,7 +1,7 @@
 from tempfile import SpooledTemporaryFile
 
 from fastapi import UploadFile
-from pandas import read_csv, read_excel  # type: ignore
+from pandas import read_csv, read_excel
 
 from app.modules.inventory.schemas.request import InventoryItemRequest
 
