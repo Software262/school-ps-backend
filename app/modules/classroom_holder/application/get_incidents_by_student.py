@@ -6,7 +6,7 @@ from app.modules.classroom_holder.infrastructure.enrollment_adapter import (
 from app.modules.classroom_holder.infrastructure.repository import IncidenciaRepository
 
 
-class GetIncidents:
+class GetIncidentsByStudent:
     def __init__(self, session):
         self.service = ClassroomDomainService(
             repository=IncidenciaRepository(session=session),

@@ -9,6 +9,7 @@ class Grado(Base, table=True):
     """Grados académicos de la institución."""
 
     nombre: str = Field(max_length=50)
+    docente_titular_id: int | None = Field(default=None, foreign_key="docente.id")
 
 
 class Acudiente(Base, table=True):

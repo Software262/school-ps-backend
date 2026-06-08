@@ -10,7 +10,7 @@ class UpdatePupitreState:
         self.service = PupitreService(repositorio=self.repository)
 
     async def execute(self, estudiante_id: int, request: PupitreInSchema):
-        return await self.service.actualizar_estado_estudiante(
+        return await self.service.update_desk_state(
             estudiante_id=estudiante_id,
             nuevo_estado=request.estado_pupitre,
             observacion=request.observacion,
