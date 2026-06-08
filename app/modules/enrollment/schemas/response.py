@@ -37,7 +37,7 @@ class EnrollmentBalanceResponse(BaseModel):
     costo_total: int
     total_pagado: int
     total_pendiente: int
-    estado_matricula: str  # sin_abono | parcial | paz_y_salvo
+    estado_matricula: str  # pendiente | parcial | paz_y_salvo
     matricula_registrada: bool
     pendiente_base: int
     pagos_realizados: int
@@ -87,7 +87,7 @@ class StudentSearchItemResponse(BaseModel):
     grado_nombre: str
     anio: int
     matricula_registrada: bool
-    estado_matricula: str  # sin_abono | parcial | paz_y_salvo | sin_matricula
+    estado_matricula: str  # pendiente | parcial | paz_y_salvo | sin_matricula
     pagos_realizados: int
     saldo_pendiente: int
     costo_total: int

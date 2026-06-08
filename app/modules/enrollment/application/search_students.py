@@ -18,5 +18,8 @@ class SearchStudents:
         documento: str | None,
         nombre: str | None,
         year: int,
+        query: str | None = None,
     ) -> list[EnrollmentBalance]:
-        return self.service.search_students_with_balances(documento, nombre, year)
+        return self.service.search_students_with_balances(
+            documento, nombre, year, query
+        )

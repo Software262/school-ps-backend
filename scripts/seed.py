@@ -17,6 +17,8 @@ from app.modules.enrollment.infrastructure.models import (
     Matricula,
     ParametrizarMatricula,
     Periodo,
+    Pago,
+    PagoDetalle,
 )
 from app.modules.tuition.infrastructure.models import ParametrizarPension
 
@@ -118,27 +120,40 @@ def seed() -> None:
         assert periodo.id is not None
 
         # === PARAMETRIZAR MATRÍCULA (costo base por grado y año) ===
-        param_sexto = ParametrizarMatricula(
-            grado_id=grados[5].id or 1,
-            anio=2026,
-            valor=850000,  # type: ignore[arg-type]
-        )
-        param_decimo = ParametrizarMatricula(
-            grado_id=grados[10].id or 1,
-            anio=2026,
-            valor=950000,  # type: ignore[arg-type]
-        )
-        param_segundo = ParametrizarMatricula(
-            grado_id=grados[2].id or 1,
-            anio=2026,
-            valor=750000,  # type: ignore[arg-type]
-        )
+        params_matricula = []
+        param_map = {}
+        for g in grados:
+            idx = grados.index(g)
+            val = 600000 + idx * 50000
+
+            # Ajustamos específicos para mantener los valores originales para Quinto (index 5), Décimo (index 10) y Segundo (index 2)
+            if idx == 5:
+                val = 850000
+            elif idx == 10:
+                val = 950000
+            elif idx == 2:
+                val = 750000
+
+            pm = ParametrizarMatricula(
+                grado_id=g.id or 1,
+                anio=2026,
+                valor=val,  # type: ignore[arg-type]
+            )
+            params_matricula.append(pm)
+            param_map[idx] = pm
+
+        param_sexto = param_map[5]
+        param_decimo = param_map[10]
+        param_segundo = param_map[2]
+
         param_sexto_2025 = ParametrizarMatricula(
             grado_id=grados[5].id or 1,
             anio=2025,
             valor=800000,  # type: ignore[arg-type]
         )
-        session.add_all([param_sexto, param_decimo, param_segundo, param_sexto_2025])
+        params_matricula.append(param_sexto_2025)
+
+        session.add_all(params_matricula)
         session.flush()
 
         assert param_sexto.id is not None
@@ -316,6 +331,77 @@ def seed() -> None:
             ),
         ]
         session.add_all(detalles2)
+        session.flush()
+
+        # Pagos para Estudiante 1 (Juan - Sexto) para respaldar su estado parcial
+        pago_juan = Pago(
+            matricula_id=matricula1.id,
+            codigo_talonario="TAL-J01",
+            monto_total=110000,
+            fecha_pago=datetime(2026, 1, 25),
+            observacion="Abonos iniciales a complementarios",
+        )
+        session.add(pago_juan)
+        session.flush()
+        assert pago_juan.id is not None
+
+        session.add_all(
+            [
+                PagoDetalle(
+                    pago_id=pago_juan.id,
+                    concepto="complementario",
+                    complementario_id=comp_agenda.id,
+                    monto_aplicado=40000,
+                ),
+                PagoDetalle(
+                    pago_id=pago_juan.id,
+                    concepto="complementario",
+                    complementario_id=comp_plataforma.id,
+                    monto_aplicado=70000,
+                ),
+            ]
+        )
+
+        # Pagos para Estudiante 2 (Ana - Décimo) para respaldar su estado paz_y_salvo
+        pago_ana = Pago(
+            matricula_id=matricula2.id,
+            codigo_talonario="TAL-A01",
+            monto_total=1140000,
+            fecha_pago=datetime(2026, 1, 18),
+            observacion="Pago completo de matricula y complementarios",
+        )
+        session.add(pago_ana)
+        session.flush()
+        assert pago_ana.id is not None
+
+        session.add_all(
+            [
+                PagoDetalle(
+                    pago_id=pago_ana.id,
+                    concepto="matricula_base",
+                    complementario_id=None,
+                    monto_aplicado=950000,
+                ),
+                PagoDetalle(
+                    pago_id=pago_ana.id,
+                    concepto="complementario",
+                    complementario_id=comp_seguro.id,
+                    monto_aplicado=120000,
+                ),
+                PagoDetalle(
+                    pago_id=pago_ana.id,
+                    concepto="complementario",
+                    complementario_id=comp_agenda.id,
+                    monto_aplicado=45000,
+                ),
+                PagoDetalle(
+                    pago_id=pago_ana.id,
+                    concepto="complementario",
+                    complementario_id=comp_carnet.id,
+                    monto_aplicado=25000,
+                ),
+            ]
+        )
 
         # Estudiante 3 (Pedro - Segundo): SIN matrícula registrada
         # Se usará para probar el endpoint POST /register

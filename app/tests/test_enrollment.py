@@ -136,7 +136,7 @@ def test_student_search_and_payment_count(session, client):
     assert response_after.status_code == status.HTTP_200_OK
     student_item_after = response_after.json()["estudiantes"][0]
     assert student_item_after["matricula_registrada"] is True
-    assert student_item_after["estado_matricula"] == "sin_abono"
+    assert student_item_after["estado_matricula"] == "pendiente"
     assert student_item_after["pagos_realizados"] == 0
     assert student_item_after["saldo_pendiente"] == 1500000
 
@@ -229,7 +229,7 @@ def test_directed_payment_with_duplicate_complementarios(session, client):
         periodo_id=periodo.id,
         valor_total=1700000,
         fecha_registro=datetime.now(),
-        estado_matricula="sin_abono",
+        estado_matricula="pendiente",
         valor_pendiente_base=1500000,
     )
     session.add(matricula)
