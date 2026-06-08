@@ -4,23 +4,24 @@ Elimina todos los datos y recrea datos de prueba para todos los módulos.
 """
 
 from datetime import datetime
+
 from sqlmodel import Session, delete, text
 
 from app.core.db import engine
-from app.modules.tests.infrastructure.models import DetallePrueba
 from app.modules.enrollment.infrastructure.models import (
-    Grado,
     Acudiente,
-    Estudiante,
-    Docente,
-    Periodo,
     Complementario,
-    ParametrizarMatricula,
-    Matricula,
     DetalleMatricula,
+    Docente,
+    Estudiante,
+    Grado,
+    Matricula,
     Pago,
     PagoDetalle,
+    ParametrizarMatricula,
+    Periodo,
 )
+from app.modules.tests.infrastructure.models import DetallePrueba
 
 
 def truncate_all(session: Session):
@@ -58,6 +59,57 @@ def truncate_all(session: Session):
 def seed_all(session: Session):
     print("[*] Sembrando datos...\n")
 
+    # -- 1. DOCENTES (primero porque grados dependen de ellos)
+    print("[1] Docentes...")
+    docentes = [
+        Docente(
+            nombre="Prof. Ramirez",
+            documento="555001",
+            estado=True,
+            asignatura="Matematicas",
+        ),
+        Docente(
+            nombre="Prof. Serrano",
+            documento="555002",
+            estado=True,
+            asignatura="Espanol",
+        ),
+        Docente(
+            nombre="Prof. Mendoza",
+            documento="555003",
+            estado=True,
+            asignatura="Ciencias",
+        ),
+        Docente(
+            nombre="Prof. Gutierrez",
+            documento="555004",
+            estado=True,
+            asignatura="Historia",
+        ),
+        Docente(
+            nombre="Prof. Vargas", documento="555005", estado=True, asignatura="Ingles"
+        ),
+        Docente(
+            nombre="Prof. Castro", documento="555006", estado=True, asignatura="Fisica"
+        ),
+    ]
+    session.add_all(docentes)
+    session.commit()
+    for d in docentes:
+        session.refresh(d)
+    print(f"   OK: {len(docentes)} docentes\n")
+
+    # -- 2. GRADOS (con docente titular asignado)
+    print("[2] Grados...")
+    grados_data = [
+        ("Sexto", docentes[0].id),
+        ("Septimo", docentes[1].id),
+        ("Octavo", docentes[2].id),
+        ("Noveno", docentes[3].id),
+        ("Decimo", docentes[4].id),
+        ("Once", docentes[5].id),
+    ]
+    grados = [Grado(nombre=n, docente_titular_id=did) for n, did in grados_data]
     # -- 1. GRADOS
     print("[1] Grados...")
     grados_data = ["Sexto", "Septimo", "Octavo", "Noveno", "Decimo", "Once"]
@@ -70,6 +122,8 @@ def seed_all(session: Session):
     grado_once = grados[5]
     print(f"   OK: {len(grados)} grados\n")
 
+    # -- 3. ACUDIENTES
+    print("[3] Acudientes...")
     # -- 2. ACUDIENTES
     print("[2] Acudientes...")
     acudientes = [
@@ -199,6 +253,7 @@ def seed_all(session: Session):
     session.commit()
     for c in comps:
         session.refresh(c)
+    print(f"   OK: {len(comps)} complementarios\n")
     pruebas = [c for c in comps if not c.uso_matricula]
     print(
         f"   OK: {len(comps)} complementarios ({len(pruebas)} para pruebas, {len(comps) - len(pruebas)} para matricula)\n"
@@ -273,6 +328,10 @@ def seed_all(session: Session):
 
     session.add_all(estudiantes)
     session.commit()
+
+    print(f"  Docentes:            {len(docentes)}")
+    print(f"  Grados:              {len(grados)}")
+    print(f"  Acudientes:          {len(acudientes)}")
     print(f"  Acudientes:          {len(acudientes)}")
     print(f"  Docentes:            {len(docentes)}")
     print(f"  Períodos:            {len(periodos)}")
