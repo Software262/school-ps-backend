@@ -73,7 +73,7 @@ class Matricula(Base, table=True):
     periodo_id: int = Field(foreign_key="periodo.id")
     valor_total: int = Field()
     fecha_registro: datetime = Field(nullable=False)
-    estado_matricula: str = Field(default="sin_abono", max_length=20)
+    estado_matricula: str = Field(default="pendiente", max_length=20)
     valor_pendiente_base: int = Field(default=0)
 
 

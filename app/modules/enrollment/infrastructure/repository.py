@@ -20,6 +20,7 @@ from app.modules.enrollment.infrastructure.models import (
     Pago,
     PagoDetalle,
     ParametrizarMatricula,
+    Periodo,
 )
 
 
@@ -79,7 +80,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
         matricula = self._session.exec(statement).first()
 
         if matricula is None:
-            return None, "sin_abono", [], 0, 0
+            return None, "pendiente", [], 0, 0
 
         # Obtener detalles con complementarios
         detail_statement = (
@@ -150,6 +151,10 @@ class SQLEnrollmentRepository(EnrollmentRepository):
             if comp.id is not None
         ]
 
+    def period_exists(self, period_id: int) -> bool:
+        statement = select(Periodo).where(Periodo.id == period_id)
+        return self._session.exec(statement).first() is not None
+
     def create_enrollment(
         self,
         para_matricula_id: int,
@@ -165,7 +170,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
             periodo_id=period_id,
             valor_total=valor_total,
             fecha_registro=datetime.now(),
-            estado_matricula="sin_abono",
+            estado_matricula="pendiente",
             valor_pendiente_base=base_cost,
         )
         self._session.add(matricula)
@@ -419,7 +424,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
                 fecha_activo=datetime.now(),
             )
             self._session.add(estudiante)
-            self._session.commit()
+            self._session.flush()
             self._session.refresh(estudiante)
         else:
             if (
@@ -429,7 +434,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
                 estudiante.grado_id = grado_id
                 estudiante.acudiente_id = acudiente_id
                 self._session.add(estudiante)
-                self._session.commit()
+                self._session.flush()
 
         assert estudiante.id is not None
         return estudiante.id
@@ -449,20 +454,34 @@ class SQLEnrollmentRepository(EnrollmentRepository):
         return list(self._session.exec(statement).all())
 
     def search_students(
-        self, documento: str | None, nombre: str | None
+        self,
+        documento: str | None,
+        nombre: str | None,
+        query: str | None = None,
     ) -> list[tuple[Estudiante, Grado]]:
         statement = select(Estudiante, Grado).join(
             Grado,
             col(Estudiante.grado_id) == col(Grado.id),
         )
+
+        search_terms = []
+        if query:
+            search_terms.append(query.strip().lower())
         if documento:
-            doc_norm = documento.strip().lower()
-            statement = statement.where(
-                col(Estudiante.documento).ilike(f"%{doc_norm}%")
-            )
+            search_terms.append(documento.strip().lower())
         if nombre:
-            nom_norm = nombre.strip().lower()
-            statement = statement.where(col(Estudiante.nombre).ilike(f"%{nom_norm}%"))
+            search_terms.append(nombre.strip().lower())
+
+        # Eliminar términos vacíos y duplicados
+        search_terms = list(set([t for t in search_terms if t]))
+
+        for term in search_terms:
+            statement = statement.where(
+                or_(
+                    col(Estudiante.documento).ilike(f"%{term}%"),
+                    col(Estudiante.nombre).ilike(f"%{term}%"),
+                )
+            )
 
         return list(self._session.exec(statement).all())
 
@@ -564,7 +583,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
             correo=correo.strip(),
         )
         self._session.add(acudiente)
-        self._session.commit()
+        self._session.flush()
         assert acudiente.id is not None
         return acudiente.id
 
@@ -664,7 +683,9 @@ class SQLEnrollmentRepository(EnrollmentRepository):
     def get_all_complementaries(
         self, year: int | None = None
     ) -> list[ComplementaryConcept]:
-        statement = select(Complementario)
+        statement = select(Complementario).where(
+            Complementario.estado_complemento == "Activo"
+        )
         if year is not None:
             statement = statement.where(Complementario.anio == year)
         results = self._session.exec(statement).all()

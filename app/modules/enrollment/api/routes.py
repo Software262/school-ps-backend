@@ -23,8 +23,13 @@ from app.modules.enrollment.application.process_payment import ProcessDirectedPa
 from app.modules.enrollment.application.register_enrollment import (
     RegisterEnrollment,
 )
-from app.modules.enrollment.application.search_students import SearchStudents
+from app.modules.enrollment.application.get_all_grades import GetAllGrades
 from app.modules.enrollment.application.get_complementaries import GetComplementaries
+from app.modules.enrollment.application.get_students_bulk import GetStudentsBulk
+from app.modules.enrollment.application.search_active_students import (
+    SearchActiveStudents,
+)
+from app.modules.enrollment.application.search_students import SearchStudents
 from app.modules.enrollment.schemas.request import (
     AssignComplementaryRequest,
     ComplementaryCreateRequest,
@@ -47,6 +52,8 @@ from app.modules.enrollment.schemas.response import (
     StudentReceiptInfo,
     StudentSearchItemResponse,
     StudentSearchListResponse,
+    GradeResponse,
+    StudentGeneralResponse,
 )
 
 router = APIRouter(
@@ -140,12 +147,16 @@ async def search_students(
         default=None,
         description="Año a consultar. Si no se envía, se usa el año actual.",
     ),
+    query: str | None = Query(
+        default=None,
+        description="Búsqueda unificada por documento/código o nombre",
+    ),
 ) -> StudentSearchListResponse:
     if year is None:
         year = datetime.now().year
 
     use_case = SearchStudents(session=session)
-    balances = use_case.execute(documento, nombre, year)
+    balances = use_case.execute(documento, nombre, year, query)
 
     items = []
     for b in balances:
@@ -335,20 +346,40 @@ async def create_complementary(
 
 
 @router.post(
-    "/{matricula_id}/complementary/assign",
+    "/students/{student_id}/complementary/assign",
     status_code=201,
     summary="Asignar un complementario a una matrícula existente",
 )
 async def assign_complementary(
     session: SessionDep,
-    matricula_id: int,
+    student_id: int,
     request: AssignComplementaryRequest,
+    year: int | None = Query(
+        default=None,
+        description="Año de la matrícula. Si no se envía, se usa el año actual.",
+    ),
 ):
+    if year is None:
+        year = datetime.now().year
+
+    # Obtener el balance para resolver la matricula_id activa del estudiante
+    use_case_balance = GetEnrollmentBalance(session=session)
+    try:
+        balance = use_case_balance.execute(student_id, year)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+    if not balance.enrollment_exists or balance.matricula_id is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"El estudiante con ID {student_id} no tiene matrícula activa para el año {year}",
+        )
+
     use_case = AssignComplementary(session=session)
 
     try:
         detalle_id = use_case.execute(
-            matricula_id=matricula_id,
+            matricula_id=balance.matricula_id,
             complementary_id=request.complementario_id,
             descuento=request.descuento,
         )
@@ -515,3 +546,46 @@ async def get_complementaries(
         )
         for item in results
     ]
+
+
+@router.get(
+    "/students/active",
+    response_model=list[StudentGeneralResponse],
+    summary="Buscar estudiantes activos",
+)
+async def search_active_students(
+    session: SessionDep,
+    query: str | None = Query(
+        default=None, description="Nombre o documento del estudiante"
+    ),
+    grado_id: int | None = Query(default=None, description="Filtrar por grado"),
+    limit: int = Query(default=10, description="Límite de resultados"),
+    offset: int = Query(default=0, description="Offset de paginación"),
+) -> list[StudentGeneralResponse]:
+    use_case = SearchActiveStudents(session=session)
+    return use_case.execute(query=query, grado_id=grado_id, limit=limit, offset=offset)
+
+
+@router.post(
+    "/students/bulk",
+    response_model=list[StudentGeneralResponse],
+    summary="Obtener estudiantes por lote (Bulk)",
+)
+async def get_students_bulk(
+    session: SessionDep,
+    student_ids: list[int],
+) -> list[StudentGeneralResponse]:
+    use_case = GetStudentsBulk(session=session)
+    return use_case.execute(student_ids)
+
+
+@router.get(
+    "/grades",
+    response_model=list[GradeResponse],
+    summary="Listar todos los grados académicos",
+)
+async def get_all_grades(
+    session: SessionDep,
+) -> list[GradeResponse]:
+    use_case = GetAllGrades(session=session)
+    return use_case.execute()

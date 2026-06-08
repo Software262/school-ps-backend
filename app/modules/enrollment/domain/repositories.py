@@ -39,7 +39,7 @@ class EnrollmentRepository(ABC):
         Returns:
             Tuple de (matricula_id, estado_matricula, lista_complementarios,
                        pendiente_base, valor_total).
-            Si no existe matrícula, retorna (None, 'sin_abono', [], 0, 0).
+            Si no existe matrícula, retorna (None, 'pendiente', [], 0, 0).
         """
         ...
 
@@ -63,6 +63,11 @@ class EnrollmentRepository(ABC):
         Returns:
             Lista de (complementario_id, tipo_complementario, valor).
         """
+        ...
+
+    @abstractmethod
+    def period_exists(self, period_id: int) -> bool:
+        """Verifica si un periodo existe en la base de datos."""
         ...
 
     @abstractmethod
@@ -160,7 +165,7 @@ class EnrollmentRepository(ABC):
 
     @abstractmethod
     def update_enrollment_status(self, matricula_id: int, status: str) -> None:
-        """Actualiza el estado_matricula (sin_abono / parcial / paz_y_salvo)."""
+        """Actualiza el estado_matricula (pendiente / parcial / paz_y_salvo)."""
         ...
 
     @abstractmethod
@@ -246,8 +251,13 @@ class EnrollmentRepository(ABC):
         ...
 
     @abstractmethod
-    def search_students(self, documento: str | None, nombre: str | None) -> list[tuple]:
-        """Busca estudiantes por coincidencia parcial en documento o nombre."""
+    def search_students(
+        self,
+        documento: str | None,
+        nombre: str | None,
+        query: str | None = None,
+    ) -> list[tuple]:
+        """Busca estudiantes por coincidencia parcial en documento, nombre o consulta general."""
         ...
 
     @abstractmethod
