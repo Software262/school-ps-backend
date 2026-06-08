@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlmodel import Session, col, select, text
+from sqlmodel import Session, col, select
 
 from app.modules.cafeteria.infrastructure.models import Cafeteria
 from app.modules.classroom.infrastructure.models import Pupitre
@@ -9,6 +9,7 @@ from app.modules.enrollment.infrastructure.models import (
     DetalleMatricula,
     Docente,
     Estudiante,
+    Grado,
     Matricula,
     Periodo,
 )
@@ -18,15 +19,20 @@ from app.modules.inventory.infrastructure.models import (
     Prestamo,
     TipoInventario,
 )
+from app.modules.peace_safe.domain.repositories import (
+    PeaceSafeRepository as PeaceSafeRepositoryInterface,
+)
 from app.modules.peace_safe.infrastructure.models import (
     DetallePazYSalvo,
     PazYSalvo,
 )
 from app.modules.principal.infrastructure.models import RectoriaEstado
+from app.modules.tests.infrastructure.models import DetallePrueba
+from app.modules.training_schools.infrastructure.models import DetalleEscuelaFormacion
 from app.modules.tuition.infrastructure.models import Pension
 
 
-class PeaceSafeRepository:
+class PeaceSafeRepository(PeaceSafeRepositoryInterface):
     def __init__(self, session: Session):
         self.session = session
 
@@ -55,9 +61,17 @@ class PeaceSafeRepository:
         )
 
     def get_active_period(self) -> Periodo | None:
-        return self.session.exec(
-            select(Periodo).where(Periodo.estado == True)  # noqa: E712
-        ).first()
+        return self.session.exec(select(Periodo).where(col(Periodo.estado))).first()
+
+    def get_student(self, estudiante_id: int) -> Estudiante | None:
+        return self.session.get(Estudiante, estudiante_id)
+
+    def get_grade_name(self, grado_id: int) -> str | None:
+        grado = self.session.get(Grado, grado_id)
+        return grado.nombre if grado else None
+
+    def get_teacher(self, docente_id: int) -> Docente | None:
+        return self.session.get(Docente, docente_id)
 
     # ── Datos de módulos (solo acceso a datos) ──────────────────────────
 
@@ -132,32 +146,32 @@ class PeaceSafeRepository:
         novedades = list(
             self.session.exec(
                 select(Novedad).where(
-                    Novedad.prestamo_id.in_(ids),  # type: ignore[attr-defined]
-                    Novedad.resuelta == False,  # noqa: E712
+                    col(Novedad.prestamo_id).in_(ids),
+                    not col(Novedad.resuelta),
                 )
             ).all()
         )
         return prestamos, novedades
 
-    def get_training_school_details(self, estudiante_id: int) -> list:
+    def get_training_school_details(
+        self, estudiante_id: int
+    ) -> list[DetalleEscuelaFormacion]:
         return list(
-            self.session.execute(
-                text(
-                    "SELECT id, activo, estado_escuela FROM detalleescuelaformacion "
-                    "WHERE estudiante_id = :eid AND activo = true"
-                ),
-                {"eid": estudiante_id},
+            self.session.exec(
+                select(DetalleEscuelaFormacion).where(
+                    DetalleEscuelaFormacion.estudiante_id == estudiante_id,
+                    col(DetalleEscuelaFormacion.activo),
+                )
             ).all()
         )
 
-    def get_test_details(self, estudiante_id: int) -> list:
+    def get_test_details(self, estudiante_id: int) -> list[DetallePrueba]:
         return list(
-            self.session.execute(
-                text(
-                    "SELECT id, tipo_prueba FROM detalleprueba "
-                    "WHERE estudiante_id = :eid AND estado = false"
-                ),
-                {"eid": estudiante_id},
+            self.session.exec(
+                select(DetallePrueba).where(
+                    DetallePrueba.estudiante_id == estudiante_id,
+                    DetallePrueba.estado == "pendiente",
+                )
             ).all()
         )
 
@@ -212,6 +226,7 @@ class PeaceSafeRepository:
 
         self.session.commit()
         self.session.refresh(record)
+
         return record
 
     def get_pazysalvo(self, pazysalvo_id: int) -> PazYSalvo | None:

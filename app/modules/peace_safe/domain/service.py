@@ -1,7 +1,4 @@
-from sqlmodel import select
-
-from app.modules.enrollment.infrastructure.models import Docente, Estudiante, Grado
-from app.modules.peace_safe.infrastructure.repository import PeaceSafeRepository
+from app.modules.peace_safe.domain.repositories import PeaceSafeRepository
 from app.modules.peace_safe.schemas.response import (
     DocenteInfo,
     EstudianteInfo,
@@ -239,16 +236,13 @@ class PeaceSafeService:
     # ── Métodos principales ───────────────────────────────────────────
 
     def get_student_status(self, estudiante_id: int) -> StatusResponse | None:
-        estudiante = self.repo.session.get(Estudiante, estudiante_id)
+        estudiante = self.repo.get_student(estudiante_id)
         if not estudiante:
             return None
 
-        grado_nombre = None
-        if estudiante.grado_id:
-            stmt = select(Grado.nombre).where(Grado.id == estudiante.grado_id)
-            result = self.repo.session.exec(stmt).first()
-            if result:
-                grado_nombre = result[0]
+        grado_nombre = (
+            self.repo.get_grade_name(estudiante.grado_id) if estudiante.grado_id else None
+        )
 
         periodo = self.repo.get_active_period()
         periodo_id = int(periodo.id) if periodo else 0
@@ -270,7 +264,6 @@ class PeaceSafeService:
                 else:
                     result = method(estudiante_id)
             except Exception as e:
-                self.repo.session.rollback()
                 result = ModuloStatus(
                     clave=clave,
                     nombre=nombre,
@@ -292,7 +285,7 @@ class PeaceSafeService:
         )
 
     def get_teacher_status(self, docente_id: int) -> StatusResponse | None:
-        docente = self.repo.session.get(Docente, docente_id)
+        docente = self.repo.get_teacher(docente_id)
         if not docente:
             return None
 
@@ -472,7 +465,7 @@ class PeaceSafeService:
         detalles = self.repo.get_detalles(pazysalvo_id)
 
         if record.entidad_tipo == "estudiante":
-            estudiante = self.repo.session.get(Estudiante, record.entidad_id)
+            estudiante = self.repo.get_student(record.entidad_id)
             entidad_info = (
                 {
                     "id": estudiante.id,
@@ -483,7 +476,7 @@ class PeaceSafeService:
                 else {}
             )
         else:
-            docente = self.repo.session.get(Docente, record.entidad_id)
+            docente = self.repo.get_teacher(record.entidad_id)
             entidad_info = (
                 {
                     "id": docente.id,
