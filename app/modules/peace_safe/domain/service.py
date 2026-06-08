@@ -42,10 +42,10 @@ class PeaceSafeService:
             stmt = select(Grado.nombre).where(Grado.id == estudiante.grado_id)
             result = self.repo.session.exec(stmt).first()
             if result:
-                grado_nombre = result
+                grado_nombre = result[0]
 
         periodo = self.repo.get_active_period()
-        periodo_id = periodo.id if periodo else 0
+        periodo_id = int(periodo.id) if periodo else 0
 
         entidad = EstudianteInfo(estudiante, grado_nombre)
 
@@ -102,7 +102,7 @@ class PeaceSafeService:
             raise ValueError("El estudiante no está a paz y salvo en todos los módulos")
 
         periodo = self.repo.get_active_period()
-        periodo_id = periodo.id if periodo else 0
+        periodo_id = int(periodo.id) if periodo else 0
 
         detalles = [
             {
@@ -153,7 +153,7 @@ class PeaceSafeService:
             raise ValueError("El docente no está a paz y salvo en rectoría")
 
         periodo = self.repo.get_active_period()
-        periodo_id = periodo.id if periodo else 0
+        periodo_id = int(periodo.id) if periodo else 0
         periodo_nombre = (
             periodo.periodo_electivo.isoformat()
             if periodo and periodo.periodo_electivo

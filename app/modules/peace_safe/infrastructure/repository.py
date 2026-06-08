@@ -260,6 +260,7 @@ class PeaceSafeRepository:
         self.session.add(record)
         self.session.flush()
 
+        assert record.id is not None
         for d in detalles:
             detalle = DetallePazYSalvo(
                 paz_y_salvo_id=record.id,
