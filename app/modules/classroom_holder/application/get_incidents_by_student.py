@@ -6,17 +6,12 @@ from app.modules.classroom_holder.infrastructure.enrollment_adapter import (
 from app.modules.classroom_holder.infrastructure.repository import IncidenciaRepository
 
 
-class GetIncidents:
+class GetIncidentsByStudent:
     def __init__(self, session):
-        self.repository = IncidenciaRepository(session=session)
-
         self.service = ClassroomDomainService(
-            repository=self.repository,
+            repository=IncidenciaRepository(session=session),
             enrollment=ClassroomEnrollmentAdapter(session=session),
         )
-
-    def execute_all(self) -> list[IncidenciaDomain]:
-        return self.repository.find_all()
 
     def execute(self, estudiante_id: int) -> list[IncidenciaDomain]:
         return self.service.listar_por_estudiante(estudiante_id)

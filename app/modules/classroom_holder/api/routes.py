@@ -3,7 +3,8 @@ from app.core.db import SessionDep
 from app.modules.classroom_holder.api.dependencies import verificar_acceso_salon_titular
 from app.modules.classroom_holder.application.close_incident import CloseIncident
 from app.modules.classroom_holder.application.create_incident import CreateIncident
-from app.modules.classroom_holder.application.get_incidents import GetIncidents
+from app.modules.classroom_holder.application.get_all_incidents import GetAllIncidents
+from app.modules.classroom_holder.application.get_incidents_by_student import GetIncidentsByStudent
 from app.modules.classroom_holder.application.search_students import SearchStudents
 from app.modules.classroom_holder.application.verify_paz_y_salvo import VerifyPazYSalvo
 from app.modules.classroom_holder.schemas.request import IncidenciaCreateRequest
@@ -32,8 +33,8 @@ def crear_incidencia(
 
 @router.get("/incidencias", response_model=list[IncidenciaResponse])
 def listar_incidencias(session: SessionDep):
-    use_case = GetIncidents(session=session)
-    return use_case.execute_all()
+    use_case = GetAllIncidents(session=session)
+    return use_case.execute()
 
 
 @router.get(
@@ -41,7 +42,7 @@ def listar_incidencias(session: SessionDep):
     response_model=list[IncidenciaResponse],
 )
 def listar_incidencias_por_estudiante(estudiante_id: int, session: SessionDep):
-    use_case = GetIncidents(session=session)
+    use_case = GetIncidentsByStudent(session=session)
     return use_case.execute(estudiante_id)
 
 

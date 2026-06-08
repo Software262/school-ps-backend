@@ -43,6 +43,9 @@ class ClassroomDomainService:
         incidencia.cerrar()
         return self.repository.save(incidencia)
 
+    def listar_todas(self) -> list[IncidenciaDomain]:
+        return self.repository.find_all()
+
     def listar_por_estudiante(self, estudiante_id: int) -> list[IncidenciaDomain]:
         return self.repository.find_by_student(estudiante_id)
 
