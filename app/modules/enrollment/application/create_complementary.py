@@ -1,5 +1,4 @@
-from sqlmodel import Session
-
+from app.core.db import SessionDep
 from app.modules.enrollment.domain.service import EnrollmentService
 from app.modules.enrollment.infrastructure.repository import (
     SQLEnrollmentRepository,
@@ -9,7 +8,7 @@ from app.modules.enrollment.infrastructure.repository import (
 class CreateComplementary:
     """Caso de uso: crear un concepto complementario nuevo."""
 
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: SessionDep) -> None:
         repository = SQLEnrollmentRepository(session)
         self._service = EnrollmentService(repository)
 

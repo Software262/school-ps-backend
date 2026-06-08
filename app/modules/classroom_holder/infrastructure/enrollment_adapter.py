@@ -1,5 +1,6 @@
-from sqlmodel import Session, col, select
+from sqlmodel import col, select
 
+from app.core.db import SessionDep
 from app.modules.classroom_holder.application.contracts import (
     ClassroomEnrollmentService,
 )
@@ -10,7 +11,7 @@ from app.modules.enrollment.infrastructure.models import Estudiante, Grado
 class ClassroomEnrollmentAdapter(ClassroomEnrollmentService):
     """Adapter that implements ClassroomEnrollmentService using enrollment's DB models."""
 
-    def __init__(self, session: Session):
+    def __init__(self, session: SessionDep):
         self.session = session
 
     def buscar_estudiantes_por_nombre(self, query: str) -> list[EstudianteResumen]:

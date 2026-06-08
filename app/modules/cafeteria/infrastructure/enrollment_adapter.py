@@ -1,5 +1,6 @@
-from sqlmodel import Session, col, func, or_, select
+from sqlmodel import col, func, or_, select
 
+from app.core.db import SessionDep
 from app.modules.cafeteria.application.contracts import CafeteriaEnrollmentService
 from app.modules.cafeteria.domain.entities import GradeEntity, StudentInfoEntity
 from app.modules.enrollment.infrastructure.models import Estudiante, Grado
@@ -8,7 +9,7 @@ from app.modules.enrollment.infrastructure.models import Estudiante, Grado
 class CafeteriaEnrollmentAdapter(CafeteriaEnrollmentService):
     """Adapter that implements CafeteriaEnrollmentService using enrollment's DB models."""
 
-    def __init__(self, session: Session):
+    def __init__(self, session: SessionDep):
         self.session = session
 
     def search_active_students(

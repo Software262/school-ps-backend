@@ -1,7 +1,8 @@
 from datetime import datetime
 
-from sqlmodel import Session, col, func, or_, select
+from sqlmodel import col, func, or_, select
 
+from app.core.db import SessionDep
 from app.modules.enrollment.domain.entities import (
     ComplementaryConcept,
     ComplementaryDetail,
@@ -27,7 +28,7 @@ from app.modules.enrollment.infrastructure.models import (
 class SQLEnrollmentRepository(EnrollmentRepository):
     """Implementación concreta del repositorio usando SQLModel/PostgreSQL."""
 
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: SessionDep) -> None:
         self._session = session
 
     # === Consulta ===

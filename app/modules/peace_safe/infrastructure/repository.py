@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
 
-from sqlmodel import Session, col, select
+from sqlmodel import col, select
 
+from app.core.db import SessionDep
 from app.modules.cafeteria.infrastructure.models import Cafeteria
 from app.modules.classroom.infrastructure.models import Pupitre
 from app.modules.classroom_holder.infrastructure.models import Observador
@@ -33,7 +34,7 @@ from app.modules.tuition.infrastructure.models import Pension
 
 
 class PeaceSafeRepository(PeaceSafeRepositoryInterface):
-    def __init__(self, session: Session):
+    def __init__(self, session: SessionDep):
         self.session = session
 
     # ── Búsqueda ──────────────────────────────────────────────────────────
