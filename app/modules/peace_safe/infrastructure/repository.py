@@ -2,12 +2,15 @@ from datetime import datetime, timezone
 
 from sqlmodel import Session, col, select, text
 
+from app.modules.cafeteria.infrastructure.models import Cafeteria
 from app.modules.classroom.infrastructure.models import Pupitre
+from app.modules.classroom_holder.infrastructure.models import Observador
 from app.modules.enrollment.infrastructure.models import (
     DetalleMatricula,
-    Estudiante,
-    Periodo,
     Docente,
+    Estudiante,
+    Matricula,
+    Periodo,
 )
 from app.modules.inventory.infrastructure.models import (
     Inventario,
@@ -20,6 +23,7 @@ from app.modules.peace_safe.infrastructure.models import (
     PazYSalvo,
 )
 from app.modules.principal.infrastructure.models import RectoriaEstado
+from app.modules.tuition.infrastructure.models import Pension
 
 
 class PeaceSafeRepository:
@@ -55,179 +59,114 @@ class PeaceSafeRepository:
             select(Periodo).where(Periodo.estado == True)  # noqa: E712
         ).first()
 
-    # ── Estado de módulos para estudiante ──────────────────────────────
+    # ── Datos de módulos (solo acceso a datos) ──────────────────────────
 
-    def check_matricula(self, estudiante_id: int, periodo_id: int) -> dict:
-        row = self.session.execute(
-            text(
-                "SELECT id, estado_matricula FROM matricula "
-                "WHERE estudiante_id = :eid AND periodo_id = :pid"
-            ),
-            {"eid": estudiante_id, "pid": periodo_id},
-        ).first()
-        if not row:
-            return {"ok": True, "detalle": "Estudiante matriculado"}
-
-        # estado_matricula is boolean in DB: true = pagado, false = pendiente
-        if not row.estado_matricula:
-            return {"ok": False, "detalle": "Matrícula pendiente de pago"}
-
-        detalles = self.session.exec(
-            select(DetalleMatricula).where(
-                DetalleMatricula.matricula_id == row.id,
-                DetalleMatricula.valor_pendiente > 0,
+    def get_matricula(self, estudiante_id: int, periodo_id: int) -> Matricula | None:
+        return self.session.exec(
+            select(Matricula).where(
+                Matricula.estudiante_id == estudiante_id,
+                Matricula.periodo_id == periodo_id,
             )
-        ).all()
-        if detalles:
-            total = sum(d.valor_pendiente for d in detalles)
-            return {"ok": False, "detalle": f"Pendiente de pago: ${total:,}"}
-
-        return {"ok": True, "detalle": "Matrícula pagada"}
-
-    def check_pension(self, estudiante_id: int) -> dict:
-        row = self.session.execute(
-            text("SELECT id, estado_pension FROM pension WHERE estudiante_id = :eid"),
-            {"eid": estudiante_id},
         ).first()
-        if not row:
-            return {"ok": True, "detalle": "Sin pensión registrada"}
 
-        if not row.estado_pension:
-            return {"ok": False, "detalle": "Pensión con estado pendiente"}
-        return {"ok": True, "detalle": "Pensión al día"}
+    def get_matricula_detalles(self, matricula_id: int) -> list[DetalleMatricula]:
+        return list(
+            self.session.exec(
+                select(DetalleMatricula).where(
+                    DetalleMatricula.matricula_id == matricula_id,
+                    DetalleMatricula.valor_pendiente > 0,
+                )
+            ).all()
+        )
 
-    def check_cafeteria(self, estudiante_id: int, periodo_id: int) -> dict:
-        row = self.session.execute(
-            text(
-                "SELECT id, estado_cafeteria FROM cafeteria "
-                "WHERE estudiante_id = :eid AND periodo_id = :pid"
-            ),
-            {"eid": estudiante_id, "pid": periodo_id},
+    def get_pension(self, estudiante_id: int) -> Pension | None:
+        return self.session.exec(
+            select(Pension).where(Pension.estudiante_id == estudiante_id)
         ).first()
-        if row and not row.estado_cafeteria:
-            return {"ok": False, "detalle": "Deuda en cafetería"}
-        return {"ok": True, "detalle": "Sin deudas en cafetería"}
 
-    def check_pupitre(self, estudiante_id: int) -> dict:
-        pupitre = self.session.exec(
+    def get_cafeteria(self, estudiante_id: int, periodo_id: int) -> Cafeteria | None:
+        return self.session.exec(
+            select(Cafeteria).where(
+                Cafeteria.estudiante_id == estudiante_id,
+                Cafeteria.periodo_id == periodo_id,
+            )
+        ).first()
+
+    def get_pupitre_by_student(self, estudiante_id: int) -> Pupitre | None:
+        return self.session.exec(
             select(Pupitre).where(Pupitre.estudiante_id == estudiante_id)
         ).first()
-        if pupitre and not pupitre.estado_pupitre:
-            obs = pupitre.observacion or "Sin detalles"
-            return {"ok": False, "detalle": f"Pupitre no devuelto: {obs}"}
-        return {"ok": True, "detalle": "Pupitre en orden"}
 
-    def check_observador(self, estudiante_id: int) -> dict:
-        rows = self.session.execute(
-            text(
-                "SELECT id, tipo_incidencia FROM observador WHERE estudiante_id = :eid"
-            ),
-            {"eid": estudiante_id},
-        ).all()
-        if rows:
-            tipos = list(set(r.tipo_incidencia for r in rows))
-            return {
-                "ok": False,
-                "detalle": f"Incidencias registradas: {', '.join(tipos)} ({len(rows)})",
-            }
-        return {"ok": True, "detalle": "Sin incidencias registradas"}
+    def get_observaciones(self, estudiante_id: int) -> list[Observador]:
+        return list(
+            self.session.exec(
+                select(Observador).where(Observador.estudiante_id == estudiante_id)
+            ).all()
+        )
 
-    def _check_prestamos_y_novedades(
+    def get_loans_by_type(
         self, estudiante_id: int, tipo_nombre: str
-    ) -> dict:
+    ) -> tuple[list[Prestamo], list[Novedad]]:
         tipo = self.session.exec(
             select(TipoInventario).where(col(TipoInventario.nombre).ilike(tipo_nombre))
         ).first()
+
         if not tipo:
-            return {"ok": True, "detalle": f"Sin préstamos de {tipo_nombre}"}
+            return [], []
 
-        prestamos = self.session.exec(
-            select(Prestamo)
-            .join(Inventario)
-            .where(
-                Prestamo.estudiante_id == estudiante_id,
-                Inventario.tipo_inventario_id == tipo.id,
-            )
-        ).all()
-
-        activos = [p for p in prestamos if p.estado_prestamo]
-        if activos:
-            return {
-                "ok": False,
-                "detalle": f"{len(activos)} préstamo(s) activo(s) sin devolver",
-            }
+        prestamos = list(
+            self.session.exec(
+                select(Prestamo)
+                .join(Inventario)
+                .where(
+                    Prestamo.estudiante_id == estudiante_id,
+                    Inventario.tipo_inventario_id == tipo.id,
+                )
+            ).all()
+        )
 
         ids = [p.id for p in prestamos]
-        if ids:
-            novedades = self.session.exec(
+        if not ids:
+            return prestamos, []
+
+        novedades = list(
+            self.session.exec(
                 select(Novedad).where(
                     Novedad.prestamo_id.in_(ids),  # type: ignore[attr-defined]
                     Novedad.resuelta == False,  # noqa: E712
                 )
             ).all()
-            if novedades:
-                return {
-                    "ok": False,
-                    "detalle": f"{len(novedades)} novedad(es) pendiente(s) de resolver",
-                }
+        )
+        return prestamos, novedades
 
-        return {"ok": True, "detalle": f"Sin novedades en {tipo_nombre}"}
+    def get_training_school_details(self, estudiante_id: int) -> list:
+        return list(
+            self.session.execute(
+                text(
+                    "SELECT id, activo, estado_escuela FROM detalleescuelaformacion "
+                    "WHERE estudiante_id = :eid AND activo = true"
+                ),
+                {"eid": estudiante_id},
+            ).all()
+        )
 
-    def check_chess(self, estudiante_id: int) -> dict:
-        return self._check_prestamos_y_novedades(estudiante_id, "ajedrez")
+    def get_test_details(self, estudiante_id: int) -> list:
+        return list(
+            self.session.execute(
+                text(
+                    "SELECT id, tipo_prueba FROM detalleprueba "
+                    "WHERE estudiante_id = :eid AND estado = false"
+                ),
+                {"eid": estudiante_id},
+            ).all()
+        )
 
-    def check_band(self, estudiante_id: int) -> dict:
-        return self._check_prestamos_y_novedades(estudiante_id, "banda")
-
-    def check_sports(self, estudiante_id: int) -> dict:
-        return self._check_prestamos_y_novedades(estudiante_id, "deporte")
-
-    def check_training_schools(self, estudiante_id: int) -> dict:
-        rows = self.session.execute(
-            text(
-                "SELECT id, activo, estado_escuela FROM detalleescuelaformacion "
-                "WHERE estudiante_id = :eid AND activo = true"
-            ),
-            {"eid": estudiante_id},
-        ).all()
-
-        problemas: list[str] = []
-        for r in rows:
-            if not r.estado_escuela:
-                problemas.append(f"Escuela ID {r.id}: estado pendiente")
-
-        if problemas:
-            return {"ok": False, "detalle": "; ".join(problemas)}
-        return {"ok": True, "detalle": "Escuelas de formación al día"}
-
-    def check_tests(self, estudiante_id: int) -> dict:
-        pendientes = self.session.execute(
-            text(
-                "SELECT id, tipo_prueba FROM detalleprueba "
-                "WHERE estudiante_id = :eid AND estado = false"
-            ),
-            {"eid": estudiante_id},
-        ).all()
-        if pendientes:
-            return {
-                "ok": False,
-                "detalle": f"{len(pendientes)} prueba(s) sin pagar",
-            }
-        return {"ok": True, "detalle": "Pruebas pagadas"}
-
-    # ── Estado de módulo para docente ───────────────────────────────────
-
-    def check_rectoria(self, docente_id: int, periodo_id: int) -> dict:
-        estado = self.session.exec(
+    def get_rectoria_status(self, docente_id: int) -> RectoriaEstado | None:
+        return self.session.exec(
             select(RectoriaEstado).where(
                 RectoriaEstado.docente_id == docente_id,
             )
         ).first()
-
-        if not estado:
-            return {"ok": False, "detalle": "No tiene paz y salvo asignado en rectoría"}
-
-        return {"ok": True, "detalle": f"Paz y Salvo: {estado.motivo_estado}"}
 
     # ── Generación de paz y salvo ──────────────────────────────────────
 

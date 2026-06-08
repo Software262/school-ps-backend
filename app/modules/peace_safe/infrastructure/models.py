@@ -6,8 +6,6 @@ from app.shared.infrastructure.base import Base
 
 
 class PazYSalvo(Base, table=True):
-    __tablename__ = "pazysalvo"
-
     entidad_tipo: str = Field(max_length=20, description="estudiante | docente")
     entidad_id: int = Field(
         description="ID del estudiante o docente segun entidad_tipo"
@@ -27,8 +25,6 @@ class PazYSalvo(Base, table=True):
 
 
 class DetallePazYSalvo(Base, table=True):
-    __tablename__ = "detallepazysalvo"
-
     paz_y_salvo_id: int = Field(foreign_key="pazysalvo.id")
     modulo: str = Field(max_length=50, description="Clave del modulo")
     nombre_modulo: str = Field(max_length=100, description="Nombre para mostrar")

@@ -1,26 +1,12 @@
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlmodel import SQLModel, text
 
 from app.core.config import get_settings
-from app.core.db import engine
 from app.modules import router
 
 settings = get_settings()
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    with engine.begin() as conn:
-        conn.execute(text("DROP TABLE IF EXISTS detallepazysalvo CASCADE"))
-        conn.execute(text("DROP TABLE IF EXISTS pazysalvo CASCADE"))
-    SQLModel.metadata.create_all(engine)
-    yield
-
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
