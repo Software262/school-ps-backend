@@ -4,7 +4,9 @@ from app.modules.classroom_holder.api.dependencies import verificar_acceso_salon
 from app.modules.classroom_holder.application.close_incident import CloseIncident
 from app.modules.classroom_holder.application.create_incident import CreateIncident
 from app.modules.classroom_holder.application.get_all_incidents import GetAllIncidents
-from app.modules.classroom_holder.application.get_incidents_by_student import GetIncidentsByStudent
+from app.modules.classroom_holder.application.get_incidents_by_student import (
+    GetIncidentsByStudent,
+)
 from app.modules.classroom_holder.application.search_students import SearchStudents
 from app.modules.classroom_holder.application.verify_paz_y_salvo import VerifyPazYSalvo
 from app.modules.classroom_holder.schemas.request import IncidenciaCreateRequest
