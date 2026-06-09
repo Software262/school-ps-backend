@@ -349,7 +349,7 @@ class WebcolegiosImportRepository(WebcolegiosImportRepositoryInterface):
                     ),
                 ),
             )
-            .order_by(ImportacionAutomatica.id)
+            .order_by(col(ImportacionAutomatica.id))
         ).all()
 
     def clear_history(self) -> int:
