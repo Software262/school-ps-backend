@@ -1,4 +1,6 @@
-from sqlmodel import Session, col, select, desc
+from sqlmodel import col, desc, select
+
+from app.core.db import SessionDep
 from app.modules.classroom_holder.domain.entities import IncidenciaDomain
 from app.modules.classroom_holder.domain.enums import TipoIncidencia
 from app.modules.classroom_holder.domain.repositories import (
@@ -8,7 +10,7 @@ from app.modules.classroom_holder.infrastructure.models import Observador
 
 
 class IncidenciaRepository(IncidenciaRepositoryInterface):
-    def __init__(self, session: Session):
+    def __init__(self, session: SessionDep):
         self.session = session
 
     def _to_domain(self, model: Observador) -> IncidenciaDomain:

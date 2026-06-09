@@ -1,5 +1,6 @@
-from sqlmodel import select, Session
+from sqlmodel import select
 
+from app.core.db import SessionDep
 from app.modules.chess.infrastructure.models import (
     ChessBorrowingExtension,
     ChessNoveltyExtension,
@@ -8,7 +9,7 @@ from app.modules.inventory.infrastructure.models import Novedad, Prestamo
 
 
 class ChessRepository:
-    def __init__(self, session: Session):
+    def __init__(self, session: SessionDep):
         self.session = session
 
     def create_borrowing_extension(

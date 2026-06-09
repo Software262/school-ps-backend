@@ -1,5 +1,6 @@
-from sqlmodel import Session, select
+from sqlmodel import select
 
+from app.core.db import SessionDep
 from app.modules.auth.domain.repositories import AuthRepository
 from app.modules.auth.infrastructure.models import Usuario
 
@@ -7,7 +8,7 @@ from app.modules.auth.infrastructure.models import Usuario
 class SQLAuthRepository(AuthRepository):
     """Implementación concreta del repositorio usando SQLModel."""
 
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: SessionDep) -> None:
         self._session = session
 
     def get_user_by_credentials(

@@ -1,5 +1,6 @@
-from sqlmodel import Session, col, select
+from sqlmodel import col, select
 
+from app.core.db import SessionDep
 from app.modules.classroom.application.contracts import (
     ClassroomEnrollmentService,
 )
@@ -15,7 +16,7 @@ from app.modules.enrollment.infrastructure.models import (
 
 
 class ClassroomEnrollmentAdapter(ClassroomEnrollmentService):
-    def __init__(self, session: Session):
+    def __init__(self, session: SessionDep):
         self.session = session
 
     def get_student_by_document(self, documento: str) -> StudentEntity | None:
