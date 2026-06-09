@@ -241,7 +241,9 @@ class PeaceSafeService:
             return None
 
         grado_nombre = (
-            self.repo.get_grade_name(estudiante.grado_id) if estudiante.grado_id else None
+            self.repo.get_grade_name(estudiante.grado_id)
+            if estudiante.grado_id
+            else None
         )
 
         periodo = self.repo.get_active_period()

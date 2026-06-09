@@ -1,0 +1,38 @@
+from datetime import datetime
+
+from sqlmodel import Field
+
+from app.shared.infrastructure.base import Base
+
+
+class WebcolegiosStagingStudent(Base, table=True):
+    __tablename__ = "webcolegios_staging_student"
+
+    nombre: str | None = Field(default=None, max_length=150)
+    documento: str | None = Field(default=None, max_length=100, index=True)
+    grado_nombre: str | None = Field(default=None, max_length=100)
+    curso: str | None = Field(default=None, max_length=50)
+    sede: str | None = Field(default=None, max_length=100)
+    jornada: str | None = Field(default=None, max_length=100)
+    titular_nombre: str | None = Field(default=None, max_length=150)
+    acudiente_nombre: str | None = Field(default=None, max_length=100)
+    acudiente_telefono: str | None = Field(default=None, max_length=50)
+    acudiente_correo: str | None = Field(default=None, max_length=150)
+    raw_data: str = Field(default="")
+    created_at: datetime | None = Field(default_factory=datetime.now, nullable=False)
+    updated_at: datetime | None = Field(default_factory=datetime.now, nullable=False)
+
+
+class WebcolegiosStagingTeacher(Base, table=True):
+    __tablename__ = "webcolegios_staging_teacher"
+
+    nombre: str | None = Field(default=None, max_length=150)
+    documento: str | None = Field(default=None, max_length=100, index=True)
+    asignatura: str | None = Field(default=None, max_length=100)
+    grado_titular: str | None = Field(default=None, max_length=100)
+    curso_titular: str | None = Field(default=None, max_length=50)
+    sede: str | None = Field(default=None, max_length=100)
+    jornada: str | None = Field(default=None, max_length=100)
+    raw_data: str = Field(default="")
+    created_at: datetime | None = Field(default_factory=datetime.now, nullable=False)
+    updated_at: datetime | None = Field(default_factory=datetime.now, nullable=False)
