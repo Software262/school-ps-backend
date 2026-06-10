@@ -5,13 +5,16 @@ import time
 from pathlib import Path
 from typing import Any
 
+import pdfplumber
+from playwright.sync_api import sync_playwright
+
 from app.core.logger import setup_logger
 from app.modules.webcolegios_import.domain.entities import (
     ScrapedStudent,
     ScrapedTeacher,
     WebcolegiosScrapeResult,
 )
-from app.modules.webcolegios_import.domain.services import normalize_grade_name
+from app.modules.webcolegios_import.domain.service import normalize_grade_name
 
 ELEMENT_TIMEOUT_MS = 15_000
 DOWNLOAD_TIMEOUT_SECONDS = 45
@@ -66,14 +69,6 @@ class WebcolegiosScraperAdapter:
     def _run_with_browser(
         self, url: str, usuario: str, contrasena: str, mode: str
     ) -> WebcolegiosScrapeResult:
-        try:
-            from playwright.sync_api import sync_playwright
-        except ImportError as exc:
-            raise RuntimeError(
-                "Playwright no esta instalado. Agrega la dependencia y ejecuta "
-                "`playwright install chromium`."
-            ) from exc
-
         with tempfile.TemporaryDirectory(prefix="school_ps_webcolegios_") as temp_dir:
             with sync_playwright() as playwright:
                 browser = playwright.chromium.launch(
@@ -724,10 +719,6 @@ class WebcolegiosScraperAdapter:
         return holders
 
     def _read_pdf_pages(self, path: str) -> list[str]:
-        try:
-            import pdfplumber
-        except ImportError as exc:
-            raise RuntimeError("pdfplumber no esta instalado.") from exc
 
         with pdfplumber.open(path) as pdf:
             return [page.extract_text() or "" for page in pdf.pages]

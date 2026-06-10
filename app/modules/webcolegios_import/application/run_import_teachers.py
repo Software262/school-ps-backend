@@ -31,7 +31,7 @@ def _safe_error_message(exc: Exception, request: RunWebcolegiosImportRequest) ->
     return message
 
 
-class RunWebcolegiosImport:
+class RunWebcolegiosImportTeachers:
     def __init__(self, session: SessionDep) -> None:
         repository = WebcolegiosImportRepository(session)
         self.service = WebcolegiosImportService(repository)
@@ -40,33 +40,24 @@ class RunWebcolegiosImport:
 
     def execute(self, request: RunWebcolegiosImportRequest) -> ImportSummary:
         summary = ImportSummary()
-        logger.info("Iniciando scraping WebColegios para usuario={}", _mask_user(request.usuario))
+        logger.info("Iniciando scraping docentes WebColegios para usuario={}", _mask_user(request.usuario))
         logger.info("Limpiando staging")
         self.service.clear_staging()
         try:
-            scrape_result = self.scraper.run(
+            scrape_result = self.scraper.run_teachers(
                 url=request.url,
                 usuario=request.usuario,
                 contrasena=request.contrasena,
             )
-            summary.total_estudiantes_scrapeados = len(scrape_result.students)
             summary.total_docentes_scrapeados = len(scrape_result.teachers)
-            logger.info(
-                "Scraping retorno datos: estudiantes={}, docentes={}",
-                summary.total_estudiantes_scrapeados,
-                summary.total_docentes_scrapeados,
-            )
-            logger.info("Guardando staging estudiantes")
-            self.repository.save_staging_students(scrape_result.students)
+            logger.info("Scraping retorno datos: docentes={}", summary.total_docentes_scrapeados)
             logger.info("Guardando staging docentes")
             self.repository.save_staging_teachers(scrape_result.teachers)
-            logger.info("Validando estudiantes")
-            self.service.sync_students(summary)
             logger.info("Validando docentes")
             self.service.sync_teachers(summary)
         except Exception as exc:
             safe_error = _safe_error_message(exc, request)
-            logger.error("Error general en importacion WebColegios: {}", safe_error)
+            logger.error("Error general en importacion docentes WebColegios: {}", safe_error)
             summary.errores += 1
             self.repository.register_import_result(
                 tipo_entidad=WEBCOLEGIOS_SYSTEM_ENTITY,
@@ -89,13 +80,7 @@ class RunWebcolegiosImport:
             self.service.clear_staging()
 
         logger.info(
-            "Importacion finalizada: estudiantes_insertados={}, estudiantes_actualizados={}, "
-            "estudiantes_omitidos={}, estudiantes_pendientes={}, docentes_insertados={}, "
-            "docentes_omitidos={}, errores={}",
-            summary.estudiantes_insertados,
-            summary.estudiantes_actualizados,
-            summary.estudiantes_omitidos,
-            summary.estudiantes_pendientes,
+            "Importacion docentes finalizada: insertados={}, omitidos={}, errores={}",
             summary.docentes_insertados,
             summary.docentes_omitidos,
             summary.errores,

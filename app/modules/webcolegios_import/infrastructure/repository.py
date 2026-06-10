@@ -17,9 +17,11 @@ from app.modules.webcolegios_import.domain.entities import (
     ScrapedTeacher,
 )
 from app.modules.webcolegios_import.domain.repositories import (
+    WEBCOLEGIOS_ENTITY_TYPES,
+    WEBCOLEGIOS_STUDENT_ENTITY,
     WebcolegiosImportRepository as WebcolegiosImportRepositoryInterface,
 )
-from app.modules.webcolegios_import.domain.services import (
+from app.modules.webcolegios_import.domain.service import (
     normalize_grade_key,
     normalize_grade_name,
     normalize_person_name,
@@ -31,14 +33,6 @@ from app.modules.webcolegios_import.infrastructure.models import (
     WebcolegiosStagingTeacher,
 )
 
-WEBCOLEGIOS_STUDENT_ENTITY = "WEB_ESTUDIANTE"
-WEBCOLEGIOS_TEACHER_ENTITY = "WEB_DOCENTE"
-WEBCOLEGIOS_SYSTEM_ENTITY = "WEB_SISTEMA"
-WEBCOLEGIOS_ENTITY_TYPES = (
-    WEBCOLEGIOS_STUDENT_ENTITY,
-    WEBCOLEGIOS_TEACHER_ENTITY,
-    WEBCOLEGIOS_SYSTEM_ENTITY,
-)
 WEBCOLEGIOS_ERROR_STATES = ("ERROR", "PENDIENTE_DATOS")
 DEFAULT_GUARDIAN_NAME = "N/A"
 DEFAULT_GUARDIAN_RELATIONSHIP = "N/A"
@@ -90,11 +84,40 @@ class WebcolegiosImportRepository(WebcolegiosImportRepositoryInterface):
             )
         self.session.commit()
 
-    def get_staging_students(self) -> Sequence[WebcolegiosStagingStudent]:
-        return self.session.exec(select(WebcolegiosStagingStudent)).all()
+    def get_staging_students(self) -> list[ScrapedStudent]:
+        rows = self.session.exec(select(WebcolegiosStagingStudent)).all()
+        return [
+            ScrapedStudent(
+                nombre=row.nombre or "",
+                documento=row.documento or "",
+                grado_nombre=row.grado_nombre,
+                curso=row.curso,
+                sede=row.sede,
+                jornada=row.jornada,
+                titular_nombre=row.titular_nombre,
+                acudiente_nombre=row.acudiente_nombre,
+                acudiente_telefono=row.acudiente_telefono,
+                acudiente_correo=row.acudiente_correo,
+                raw_data=json.loads(row.raw_data) if row.raw_data else {},
+            )
+            for row in rows
+        ]
 
-    def get_staging_teachers(self) -> Sequence[WebcolegiosStagingTeacher]:
-        return self.session.exec(select(WebcolegiosStagingTeacher)).all()
+    def get_staging_teachers(self) -> list[ScrapedTeacher]:
+        rows = self.session.exec(select(WebcolegiosStagingTeacher)).all()
+        return [
+            ScrapedTeacher(
+                nombre=row.nombre or "",
+                documento=row.documento or "",
+                asignatura=row.asignatura,
+                grado_titular=row.grado_titular,
+                curso_titular=row.curso_titular,
+                sede=row.sede,
+                jornada=row.jornada,
+                raw_data=json.loads(row.raw_data) if row.raw_data else {},
+            )
+            for row in rows
+        ]
 
     def find_student_by_document(self, document: str) -> Estudiante | None:
         return self.session.exec(

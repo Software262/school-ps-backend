@@ -4,14 +4,21 @@ from typing import Any
 from fastapi import APIRouter, Query, status
 
 from app.core.db import SessionDep
-from app.modules.webcolegios_import.application.manual_load import (
-    ManualWebcolegiosLoad,
+from app.modules.webcolegios_import.application.bulk_webcolegios_load import (
+    BulkWebcolegiosLoad,
 )
 from app.modules.webcolegios_import.application.reprocess_pending_students import (
     ReprocessPendingStudents,
 )
-from app.modules.webcolegios_import.application.run_import import (
-    RunWebcolegiosImport,
+from app.modules.webcolegios_import.application.run_import import RunWebcolegiosImport
+from app.modules.webcolegios_import.application.run_import_students import (
+    RunWebcolegiosImportStudents,
+)
+from app.modules.webcolegios_import.application.run_import_teachers import (
+    RunWebcolegiosImportTeachers,
+)
+from app.modules.webcolegios_import.application.sync_staged_students import (
+    SyncStagedStudents,
 )
 from app.modules.webcolegios_import.domain.entities import ImportSummary
 from app.modules.webcolegios_import.infrastructure.repository import (
@@ -91,9 +98,7 @@ def _map_summary(summary: ImportSummary) -> RunWebcolegiosImportResponse:
 def run_webcolegios_import(
     session: SessionDep, request: RunWebcolegiosImportRequest
 ) -> RunWebcolegiosImportResponse:
-    repository = WebcolegiosImportRepository(session)
-    summary = RunWebcolegiosImport(repository).execute(request)
-    return _map_summary(summary)
+    return _map_summary(RunWebcolegiosImport(session).execute(request))
 
 
 @router.post(
@@ -104,9 +109,7 @@ def run_webcolegios_import(
 def run_webcolegios_students_import(
     session: SessionDep, request: RunWebcolegiosImportRequest
 ) -> RunWebcolegiosImportResponse:
-    repository = WebcolegiosImportRepository(session)
-    summary = RunWebcolegiosImport(repository).execute_students(request)
-    return _map_summary(summary)
+    return _map_summary(RunWebcolegiosImportStudents(session).execute(request))
 
 
 @router.post(
@@ -117,9 +120,7 @@ def run_webcolegios_students_import(
 def run_webcolegios_teachers_import(
     session: SessionDep, request: RunWebcolegiosImportRequest
 ) -> RunWebcolegiosImportResponse:
-    repository = WebcolegiosImportRepository(session)
-    summary = RunWebcolegiosImport(repository).execute_teachers(request)
-    return _map_summary(summary)
+    return _map_summary(RunWebcolegiosImportTeachers(session).execute(request))
 
 
 @router.post(
@@ -130,12 +131,7 @@ def run_webcolegios_teachers_import(
 def bulk_load_webcolegios_import(
     session: SessionDep, request: BulkWebcolegiosLoadRequest
 ) -> RunWebcolegiosImportResponse:
-    repository = WebcolegiosImportRepository(session)
-    summary = ManualWebcolegiosLoad(repository).execute_bulk(
-        tipo=request.tipo,
-        records=request.datos,
-    )
-    return _map_summary(summary)
+    return _map_summary(BulkWebcolegiosLoad(session).execute(tipo=request.tipo, records=request.datos))
 
 
 @router.post(
@@ -146,12 +142,7 @@ def bulk_load_webcolegios_import(
 def single_load_webcolegios_import(
     session: SessionDep, request: SingleWebcolegiosLoadRequest
 ) -> RunWebcolegiosImportResponse:
-    repository = WebcolegiosImportRepository(session)
-    summary = ManualWebcolegiosLoad(repository).execute_single(
-        tipo=request.tipo,
-        record=request.datos,
-    )
-    return _map_summary(summary)
+    return _map_summary(BulkWebcolegiosLoad(session).execute(tipo=request.tipo, records=[request.datos]))
 
 
 @router.post(
@@ -160,9 +151,7 @@ def single_load_webcolegios_import(
     status_code=status.HTTP_200_OK,
 )
 def sync_webcolegios_students(session: SessionDep) -> RunWebcolegiosImportResponse:
-    repository = WebcolegiosImportRepository(session)
-    summary = ManualWebcolegiosLoad(repository).sync_staged_students()
-    return _map_summary(summary)
+    return _map_summary(SyncStagedStudents(session).execute())
 
 
 @router.post(
@@ -173,9 +162,7 @@ def sync_webcolegios_students(session: SessionDep) -> RunWebcolegiosImportRespon
 def reprocess_pending_webcolegios_students(
     session: SessionDep,
 ) -> RunWebcolegiosImportResponse:
-    repository = WebcolegiosImportRepository(session)
-    summary = ReprocessPendingStudents(repository).execute()
-    return _map_summary(summary)
+    return _map_summary(ReprocessPendingStudents(session).execute())
 
 
 @router.get("/history", response_model=list[WebcolegiosImportHistoryItem])

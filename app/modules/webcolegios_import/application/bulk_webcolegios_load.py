@@ -1,64 +1,47 @@
 from typing import Any
 
-from app.modules.webcolegios_import.application.clean_temp_tables import (
-    CleanWebcolegiosTempTables,
-)
-from app.modules.webcolegios_import.application.sync_students import SyncStudents
-from app.modules.webcolegios_import.application.sync_teachers import SyncTeachers
+from app.core.db import SessionDep
 from app.modules.webcolegios_import.domain.entities import (
     ImportSummary,
     ScrapedStudent,
     ScrapedTeacher,
 )
-from app.modules.webcolegios_import.domain.repositories import (
+from app.modules.webcolegios_import.domain.service import (
+    WebcolegiosImportService,
+    clean_text,
+)
+from app.modules.webcolegios_import.infrastructure.repository import (
     WebcolegiosImportRepository,
 )
-from app.modules.webcolegios_import.domain.services import clean_text
 
 
-class ManualWebcolegiosLoad:
-    def __init__(self, repository: WebcolegiosImportRepository):
+class BulkWebcolegiosLoad:
+    def __init__(self, session: SessionDep) -> None:
+        repository = WebcolegiosImportRepository(session)
+        self.service = WebcolegiosImportService(repository)
         self.repository = repository
 
-    def execute_bulk(self, tipo: str, records: list[dict[str, Any]]) -> ImportSummary:
-        return self._execute(tipo=tipo, records=records)
-
-    def execute_single(self, tipo: str, record: dict[str, Any]) -> ImportSummary:
-        return self._execute(tipo=tipo, records=[record])
-
-    def sync_staged_students(self) -> ImportSummary:
-        summary = ImportSummary(
-            total_estudiantes_scrapeados=len(self.repository.get_staging_students())
-        )
-        try:
-            SyncStudents(self.repository).execute(summary)
-            return summary
-        finally:
-            CleanWebcolegiosTempTables(self.repository).execute()
-
-    def _execute(self, tipo: str, records: list[dict[str, Any]]) -> ImportSummary:
+    def execute(self, tipo: str, records: list[dict[str, Any]]) -> ImportSummary:
         summary = ImportSummary()
-        cleaner = CleanWebcolegiosTempTables(self.repository)
-
-        cleaner.execute()
+        self.service.clear_staging()
         try:
             if tipo == "estudiante":
                 students = [self._build_student(record) for record in records]
                 summary.total_estudiantes_scrapeados = len(students)
                 self.repository.save_staging_students(students)
-                SyncStudents(self.repository).execute(summary)
+                self.service.sync_students(summary)
                 return summary
 
             if tipo == "docente":
                 teachers = [self._build_teacher(record) for record in records]
                 summary.total_docentes_scrapeados = len(teachers)
                 self.repository.save_staging_teachers(teachers)
-                SyncTeachers(self.repository).execute(summary)
+                self.service.sync_teachers(summary)
                 return summary
 
             raise ValueError("Tipo de carga no soportado.")
         finally:
-            cleaner.execute()
+            self.service.clear_staging()
 
     def _build_student(self, record: dict[str, Any]) -> ScrapedStudent:
         return ScrapedStudent(
@@ -76,8 +59,7 @@ class ManualWebcolegiosLoad:
             )
             or None,
             acudiente_nombre=clean_text(self._get(record, "acudiente_nombre")) or None,
-            acudiente_telefono=clean_text(self._get(record, "acudiente_telefono"))
-            or None,
+            acudiente_telefono=clean_text(self._get(record, "acudiente_telefono")) or None,
             acudiente_correo=clean_text(self._get(record, "acudiente_correo")) or None,
             raw_data=record,
         )

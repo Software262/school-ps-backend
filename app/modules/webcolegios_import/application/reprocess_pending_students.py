@@ -1,35 +1,35 @@
 import json
 from typing import Any
 
-from app.modules.webcolegios_import.application.clean_temp_tables import (
-    CleanWebcolegiosTempTables,
-)
-from app.modules.webcolegios_import.application.sync_students import SyncStudents
+from app.core.db import SessionDep
 from app.modules.webcolegios_import.domain.entities import (
     ImportDetail,
     ImportSummary,
     ScrapedStudent,
 )
 from app.modules.webcolegios_import.domain.repositories import (
-    WebcolegiosImportRepository,
-)
-from app.modules.webcolegios_import.domain.services import clean_text
-from app.modules.webcolegios_import.domain.services import normalize_document
-from app.modules.webcolegios_import.infrastructure.repository import (
     WEBCOLEGIOS_STUDENT_ENTITY,
+)
+from app.modules.webcolegios_import.domain.service import (
+    WebcolegiosImportService,
+    clean_text,
+    normalize_document,
+)
+from app.modules.webcolegios_import.infrastructure.repository import (
+    WebcolegiosImportRepository,
 )
 
 
 class ReprocessPendingStudents:
-    def __init__(self, repository: WebcolegiosImportRepository):
-        self.repository = repository
+    def __init__(self, session: SessionDep) -> None:
+        self.repository = WebcolegiosImportRepository(session)
+        self.service = WebcolegiosImportService(self.repository)
 
     def execute(self) -> ImportSummary:
         pending_records = self.repository.get_pending_student_imports()
         summary = ImportSummary(total_estudiantes_scrapeados=len(pending_records))
-        cleaner = CleanWebcolegiosTempTables(self.repository)
 
-        cleaner.execute()
+        self.service.clear_staging()
         try:
             students = []
             for record in pending_records:
@@ -40,12 +40,12 @@ class ReprocessPendingStudents:
 
             if students:
                 self.repository.save_staging_students(students)
-                SyncStudents(self.repository).execute(summary)
+                self.service.sync_students(summary)
                 self._update_original_pending_records(pending_records, summary)
 
             return summary
         finally:
-            cleaner.execute()
+            self.service.clear_staging()
 
     def _build_student(self, record: Any) -> ScrapedStudent:
         payload = json.loads(record.datos)
@@ -74,8 +74,7 @@ class ReprocessPendingStudents:
             )
             or None,
             acudiente_nombre=clean_text(self._get(payload, "acudiente_nombre")) or None,
-            acudiente_telefono=clean_text(self._get(payload, "acudiente_telefono"))
-            or None,
+            acudiente_telefono=clean_text(self._get(payload, "acudiente_telefono")) or None,
             acudiente_correo=clean_text(self._get(payload, "acudiente_correo")) or None,
             raw_data=raw_data,
         )

@@ -12,9 +12,14 @@ from app.modules.webcolegios_import.domain.entities import (
     ScrapedStudent,
     ScrapedTeacher,
 )
-from app.modules.webcolegios_import.infrastructure.models import (
-    WebcolegiosStagingStudent,
-    WebcolegiosStagingTeacher,
+
+WEBCOLEGIOS_STUDENT_ENTITY = "WEB_ESTUDIANTE"
+WEBCOLEGIOS_TEACHER_ENTITY = "WEB_DOCENTE"
+WEBCOLEGIOS_SYSTEM_ENTITY = "WEB_SISTEMA"
+WEBCOLEGIOS_ENTITY_TYPES = (
+    WEBCOLEGIOS_STUDENT_ENTITY,
+    WEBCOLEGIOS_TEACHER_ENTITY,
+    WEBCOLEGIOS_SYSTEM_ENTITY,
 )
 
 
@@ -32,11 +37,11 @@ class WebcolegiosImportRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_staging_students(self) -> Sequence[WebcolegiosStagingStudent]:
+    def get_staging_students(self) -> list[ScrapedStudent]:
         raise NotImplementedError
 
     @abstractmethod
-    def get_staging_teachers(self) -> Sequence[WebcolegiosStagingTeacher]:
+    def get_staging_teachers(self) -> list[ScrapedTeacher]:
         raise NotImplementedError
 
     @abstractmethod
@@ -44,7 +49,7 @@ class WebcolegiosImportRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def find_teacher_by_document(self, document: str):
+    def find_teacher_by_document(self, document: str) -> Docente | None:
         raise NotImplementedError
 
     @abstractmethod
