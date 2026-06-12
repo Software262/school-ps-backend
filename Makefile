@@ -21,3 +21,9 @@ init:
 
 reset:
 	@uv run scripts/reset_all_modules.py
+
+set-db:
+	@uv run alembic upgrade head
+
+downgrade-all:
+	@uv run alembic downgrade base
