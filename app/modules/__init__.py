@@ -15,6 +15,7 @@ from app.modules.tests.api.routes import router as tests
 from app.modules.peace_safe.api.routes import router as peace_safe
 from app.modules.training_schools.api.routes import router as training_schools
 from app.modules.tuition.api.routes import router as tuition
+from app.modules.webcolegios_import.api.routes import router as webcolegios_import
 
 router = APIRouter(
     prefix="/api/v1",
@@ -44,4 +45,9 @@ router.include_router(
     peace_safe,
     prefix="/peace-safe",
     tags=["peace-safe"],
+)
+router.include_router(
+    webcolegios_import,
+    prefix="/webcolegios-import",
+    tags=["webcolegios-import"],
 )

@@ -17,6 +17,9 @@ from app.modules.training_schools.infrastructure import (
     models as training_schools,  # noqa: F401
 )
 from app.modules.tuition.infrastructure import models as tuition  # noqa: F401
+from app.modules.webcolegios_import.infrastructure import (
+    models as webcolegios_import,  # noqa: F401
+)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
