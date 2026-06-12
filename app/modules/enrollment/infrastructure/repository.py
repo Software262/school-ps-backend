@@ -22,6 +22,7 @@ from app.modules.enrollment.infrastructure.models import (
     PagoDetalle,
     ParametrizarMatricula,
     Periodo,
+    TipoComplementario,
 )
 
 
@@ -98,7 +99,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
             ComplementaryDetail(
                 detalle_id=det.id if det.id is not None else 0,
                 complementario_id=comp.id if comp.id is not None else 0,
-                tipo_complementario=comp.tipo_complementario,
+                tipo_complementario=comp.nombre,
                 valor=comp.valor,
                 descuento=det.descuento,
                 valor_completo=det.valor_completo,
@@ -140,14 +141,30 @@ class SQLEnrollmentRepository(EnrollmentRepository):
         return self._session.exec(statement).first() is not None
 
     def get_active_complementaries(self, year: int) -> list[tuple[int, str, int]]:
+        matricula_type = self._session.exec(
+            select(TipoComplementario).where(TipoComplementario.nombre == "Matricula")
+        ).first()
+
+        if not matricula_type or matricula_type.id is None:
+            return []
+
+        valid_type_ids = self._session.exec(
+            select(col(TipoComplementario.id)).where(
+                or_(
+                    TipoComplementario.id == matricula_type.id,
+                    TipoComplementario.sub_tipo_complementario == matricula_type.id,
+                )
+            )
+        ).all()
+
         statement = select(Complementario).where(
             Complementario.anio == year,
-            col(Complementario.uso_matricula),
+            col(Complementario.tipo_complementario_id).in_(valid_type_ids),
             Complementario.estado_complemento == "Activo",
         )
         results = self._session.exec(statement).all()
         return [
-            (comp.id, comp.tipo_complementario, comp.valor)
+            (comp.id, comp.nombre, comp.valor)
             for comp in results
             if comp.id is not None
         ]
@@ -230,7 +247,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
             (
                 det.id,
                 comp.id,
-                comp.tipo_complementario,
+                comp.nombre,
                 det.valor_pendiente,
                 det.valor_completo,
                 det.descuento,
@@ -348,18 +365,18 @@ class SQLEnrollmentRepository(EnrollmentRepository):
 
     def create_complementary(
         self,
-        tipo_complementario: str,
+        nombre: str,
+        tipo_complementario_id: int,
         anio: int,
         valor: int,
         estado: str,
-        uso_matricula: bool,
     ) -> int:
         comp = Complementario(
-            tipo_complementario=tipo_complementario,
+            nombre=nombre,
+            tipo_complementario_id=tipo_complementario_id,
             anio=anio,
             valor=valor,
             estado_complemento=estado,
-            uso_matricula=uso_matricula,
         )
         self._session.add(comp)
         self._session.commit()
@@ -693,11 +710,10 @@ class SQLEnrollmentRepository(EnrollmentRepository):
         return [
             ComplementaryConcept(
                 id=comp.id if comp.id is not None else 0,
-                tipo_complementario=comp.tipo_complementario,
+                tipo_complementario=comp.nombre,
                 anio=comp.anio,
                 valor=comp.valor,
                 estado_complemento=comp.estado_complemento,
-                uso_matricula=comp.uso_matricula,
             )
             for comp in results
         ]

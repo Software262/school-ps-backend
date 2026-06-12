@@ -193,7 +193,7 @@ async def search_students(
     description=(
         "Genera automáticamente la matrícula para un estudiante. "
         "Calcula el costo base según su grado, asigna los complementarios "
-        "activos con uso_matricula=True, y suma el primer mes de pensión."
+        "activos del tipo Matricula, y suma el primer mes de pensión."
     ),
 )
 async def register_enrollment(
@@ -333,11 +333,11 @@ async def create_complementary(
 ):
     use_case = CreateComplementary(session=session)
     comp_id = use_case.execute(
-        tipo_complementario=request.tipo_complementario,
+        nombre=request.nombre,
+        tipo_complementario_id=request.tipo_complementario_id,
         anio=request.anio,
         valor=request.valor,
         estado=request.estado_complemento,
-        uso_matricula=request.uso_matricula,
     )
     return {
         "mensaje": "Complementario creado exitosamente",
@@ -542,7 +542,6 @@ async def get_complementaries(
             anio=item.anio,
             valor=item.valor,
             estado_complemento=item.estado_complemento,
-            uso_matricula=item.uso_matricula,
         )
         for item in results
     ]

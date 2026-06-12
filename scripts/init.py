@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.core.db import engine
 from app.modules.auth.infrastructure.models import Usuario
@@ -10,11 +10,13 @@ from app.modules.enrollment.infrastructure.models import (
     Docente,
     Estudiante,
     Grado,
+    Matricula,
     ParametrizarMatricula,
     Periodo,
+    TipoComplementario,
 )
 from app.modules.inventory.infrastructure.models import TipoInventario
-from app.modules.tuition.infrastructure.models import ParametrizarPension
+from app.modules.tuition.infrastructure.models import ParametrizarPension, Pension
 
 
 def main():
@@ -38,7 +40,7 @@ def main():
         ),
     ]
 
-    types: list[TipoInventario] = [
+    tipos_inventario: list[TipoInventario] = [
         TipoInventario(nombre="banda"),
         TipoInventario(nombre="deporte"),
         TipoInventario(nombre="ajedrez"),
@@ -92,12 +94,20 @@ def main():
         ),
     ]
 
+    tipos_complementario: list[TipoComplementario] = [
+        TipoComplementario(nombre="matricula"),
+        TipoComplementario(nombre="pruebas"),
+        TipoComplementario(nombre="pupitre"),
+        TipoComplementario(nombre="escuelas_formacion"),
+    ]
+
     with Session(engine) as session:
         session.add(admin)
         session.add_all(periodos)
         session.add_all(docentes)
         session.add_all(acudientes)
-        session.add_all(types)
+        session.add_all(tipos_inventario)
+        session.add_all(tipos_complementario)
         session.flush()
 
         grados: list[Grado] = [
@@ -183,7 +193,55 @@ def main():
             )
             for estudiante in estudiantes
         ]
+
+        matriculas: list[Matricula] = [
+            Matricula(
+                para_matricula_id=session.exec(
+                    select(ParametrizarMatricula.id).where(
+                        ParametrizarMatricula.grado_id == estudiante.grado_id
+                    )
+                ).one()
+                or 1,
+                estudiante_id=estudiante.id or 1,
+                periodo_id=periodos[0].id or 1,
+                valor_total=session.exec(
+                    select(ParametrizarMatricula.valor).where(
+                        ParametrizarMatricula.grado_id == estudiante.grado_id
+                    )
+                ).one()
+                or 0,
+                fecha_registro=datetime.now(),
+                estado_matricula="pendiente",
+                valor_pendiente_base=0,
+            )
+            for estudiante in estudiantes
+        ]
+
+        pensiones: list[Pension] = [
+            Pension(
+                estudiante_id=estudiante.id or 1,
+                para_pension_id=session.exec(
+                    select(ParametrizarPension.id).where(
+                        ParametrizarPension.grado_id == estudiante.grado_id
+                    )
+                ).one()
+                or 1,
+                grado_id=estudiante.grado_id or 1,
+                valor_total=session.exec(
+                    select(ParametrizarPension.valor).where(
+                        ParametrizarPension.grado_id == estudiante.grado_id
+                    )
+                ).one(),
+                fecha_registro=datetime.now(),
+                estado_pension=False,
+            )
+            for estudiante in estudiantes
+        ]
+
         session.add_all(pupitres)
+        session.add_all(pensiones)
+        session.add_all(matriculas)
+
         session.commit()
 
 

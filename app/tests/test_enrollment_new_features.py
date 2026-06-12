@@ -1,22 +1,24 @@
-import pytest
 from datetime import datetime
-from sqlmodel import SQLModel, Session, create_engine
-from sqlalchemy import event
+
+import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
-
-from app.main import app
-from app.core.db import get_session
-from app.modules.enrollment.infrastructure.models import (
-    Grado,
-    Acudiente,
-    Estudiante,
-    Periodo,
-    ParametrizarMatricula,
-    Complementario,
-    Matricula,
-)
+from sqlalchemy import event
 from sqlalchemy.pool import StaticPool
+from sqlmodel import Session, SQLModel, create_engine
+
+from app.core.db import get_session
+from app.main import app
+from app.modules.enrollment.infrastructure.models import (
+    Acudiente,
+    Complementario,
+    Estudiante,
+    Grado,
+    Matricula,
+    ParametrizarMatricula,
+    Periodo,
+    TipoComplementario,
+)
 
 test_engine = create_engine(
     "sqlite://",
@@ -64,15 +66,18 @@ def test_manual_enrollment_success(session, client):
     session.commit()
     session.refresh(periodo)
 
-    param = ParametrizarMatricula(grado_id=grado.id, anio=2026, valor=850000)
+    param = ParametrizarMatricula(grado_id=grado.id or 1, anio=2026, valor=850000)
     session.add(param)
 
+    tipo = TipoComplementario(nombre="Matricula", estado=True)
+    session.add(tipo)
+    session.flush()
     comp = Complementario(
-        tipo_complementario="Seguro",
+        nombre="Seguro",
+        tipo_complementario_id=tipo.id or 1,
         anio=2026,
         valor=100000,
         estado_complemento="Activo",
-        uso_matricula=True,
     )
     session.add(comp)
     session.commit()
@@ -147,12 +152,12 @@ def test_payment_history_and_receipt(session, client):
     session.commit()
     session.refresh(periodo)
 
-    param = ParametrizarMatricula(grado_id=grado.id, anio=2026, valor=500000)
+    param = ParametrizarMatricula(grado_id=grado.id or 1, anio=2026, valor=500000)
     session.add(param)
 
     estudiante = Estudiante(
-        grado_id=grado.id,
-        acudiente_id=acudiente.id,
+        grado_id=grado.id or 1,
+        acudiente_id=acudiente.id or 1,
         nombre="Felipe",
         documento="123456",
         activo=True,
@@ -276,15 +281,18 @@ def test_disassociate_complementary_success(session, client):
     session.commit()
     session.refresh(periodo)
 
-    param = ParametrizarMatricula(grado_id=grado.id, anio=2026, valor=500000)
+    param = ParametrizarMatricula(grado_id=grado.id or 1, anio=2026, valor=500000)
     session.add(param)
 
+    tipo = TipoComplementario(nombre="Matricula", estado=True)
+    session.add(tipo)
+    session.flush()
     comp = Complementario(
-        tipo_complementario="Transporte",
+        nombre="Transporte",
+        tipo_complementario_id=tipo.id or 1,
         anio=2026,
         valor=150000,
         estado_complemento="Activo",
-        uso_matricula=True,
     )
     session.add(comp)
     session.commit()
@@ -292,8 +300,8 @@ def test_disassociate_complementary_success(session, client):
 
     # 2. Register student and enrollment
     estudiante = Estudiante(
-        grado_id=grado.id,
-        acudiente_id=acudiente.id,
+        grado_id=grado.id or 1,
+        acudiente_id=acudiente.id or 1,
         nombre="Estudiante Test",
         documento="987654321",
         activo=True,
@@ -326,7 +334,7 @@ def test_disassociate_complementary_success(session, client):
     assert response.json()["matricula_id"] == matricula_id
 
     # 4. Verify enrollment in DB has decreased total value
-    from app.modules.enrollment.infrastructure.models import Matricula, DetalleMatricula
+    from app.modules.enrollment.infrastructure.models import DetalleMatricula, Matricula
 
     mat = session.query(Matricula).filter(Matricula.id == matricula_id).first()
     assert mat.valor_total == 500000  # 650k - 150k
@@ -359,15 +367,18 @@ def test_disassociate_complementary_error_already_paid(session, client):
     session.commit()
     session.refresh(periodo)
 
-    param = ParametrizarMatricula(grado_id=grado.id, anio=2026, valor=500000)
+    param = ParametrizarMatricula(grado_id=grado.id or 1, anio=2026, valor=500000)
     session.add(param)
 
+    tipo = TipoComplementario(nombre="Matricula", estado=True)
+    session.add(tipo)
+    session.flush()
     comp = Complementario(
-        tipo_complementario="Almuerzo",
+        nombre="Almuerzo",
+        tipo_complementario_id=tipo.id or 1,
         anio=2026,
         valor=200000,
         estado_complemento="Activo",
-        uso_matricula=True,
     )
     session.add(comp)
     session.commit()
@@ -375,8 +386,8 @@ def test_disassociate_complementary_error_already_paid(session, client):
 
     # 2. Register student and enrollment
     estudiante = Estudiante(
-        grado_id=grado.id,
-        acudiente_id=acudiente.id,
+        grado_id=grado.id or 1,
+        acudiente_id=acudiente.id or 1,
         nombre="Estudiante Test 2",
         documento="987654322",
         activo=True,
@@ -422,19 +433,22 @@ def test_disassociate_complementary_error_already_paid(session, client):
 
 def test_get_complementaries_list(session, client):
     # 1. Seed some complementaries
+    tipo = TipoComplementario(nombre="General", estado=True)
+    session.add(tipo)
+    session.flush()
     comp1 = Complementario(
-        tipo_complementario="Banda Marcial",
+        nombre="Banda Marcial",
+        tipo_complementario_id=tipo.id or 1,
         anio=2026,
         valor=100000,
         estado_complemento="Activo",
-        uso_matricula=True,
     )
     comp2 = Complementario(
-        tipo_complementario="Club de Ajedrez",
+        nombre="Club de Ajedrez",
+        tipo_complementario_id=tipo.id or 1,
         anio=2027,
         valor=80000,
         estado_complemento="Activo",
-        uso_matricula=False,
     )
     session.add(comp1)
     session.add(comp2)

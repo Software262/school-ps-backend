@@ -58,10 +58,10 @@ class EnrollmentRepository(ABC):
     @abstractmethod
     def get_active_complementaries(self, year: int) -> list[tuple[int, str, int]]:
         """
-        Obtiene los complementarios activos con uso_matricula=True para un año.
+        Obtiene los complementarios activos del tipo Matricula para un año.
 
         Returns:
-            Lista de (complementario_id, tipo_complementario, valor).
+            Lista de (complementario_id, nombre, valor).
         """
         ...
 
@@ -178,11 +178,11 @@ class EnrollmentRepository(ABC):
     @abstractmethod
     def create_complementary(
         self,
-        tipo_complementario: str,
+        nombre: str,
+        tipo_complementario_id: int,
         anio: int,
         valor: int,
         estado: str,
-        uso_matricula: bool,
     ) -> int:
         """Crea un nuevo concepto complementario en la base de datos."""
         ...

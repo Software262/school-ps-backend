@@ -40,7 +40,10 @@ class RunWebcolegiosImportStudents:
 
     def execute(self, request: RunWebcolegiosImportRequest) -> ImportSummary:
         summary = ImportSummary()
-        logger.info("Iniciando scraping estudiantes WebColegios para usuario={}", _mask_user(request.usuario))
+        logger.info(
+            "Iniciando scraping estudiantes WebColegios para usuario={}",
+            _mask_user(request.usuario),
+        )
         logger.info("Limpiando staging")
         self.service.clear_staging()
         try:
@@ -50,14 +53,19 @@ class RunWebcolegiosImportStudents:
                 contrasena=request.contrasena,
             )
             summary.total_estudiantes_scrapeados = len(scrape_result.students)
-            logger.info("Scraping retorno datos: estudiantes={}", summary.total_estudiantes_scrapeados)
+            logger.info(
+                "Scraping retorno datos: estudiantes={}",
+                summary.total_estudiantes_scrapeados,
+            )
             logger.info("Guardando staging estudiantes")
             self.repository.save_staging_students(scrape_result.students)
             logger.info("Validando estudiantes")
             self.service.sync_students(summary)
         except Exception as exc:
             safe_error = _safe_error_message(exc, request)
-            logger.error("Error general en importacion estudiantes WebColegios: {}", safe_error)
+            logger.error(
+                "Error general en importacion estudiantes WebColegios: {}", safe_error
+            )
             summary.errores += 1
             self.repository.register_import_result(
                 tipo_entidad=WEBCOLEGIOS_SYSTEM_ENTITY,

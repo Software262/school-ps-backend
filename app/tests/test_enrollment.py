@@ -1,23 +1,25 @@
-import pytest
 from datetime import datetime
-from sqlmodel import SQLModel, Session, create_engine
-from sqlalchemy import event
+
+import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
+from sqlalchemy import event
+from sqlalchemy.pool import StaticPool
+from sqlmodel import Session, SQLModel, create_engine
 
-from app.main import app
 from app.core.db import get_session
+from app.main import app
 from app.modules.enrollment.infrastructure.models import (
-    Grado,
     Acudiente,
-    Estudiante,
-    Periodo,
-    ParametrizarMatricula,
     Complementario,
     DetalleMatricula,
+    Estudiante,
+    Grado,
     Matricula,
+    ParametrizarMatricula,
+    Periodo,
+    TipoComplementario,
 )
-from sqlalchemy.pool import StaticPool
 
 test_engine = create_engine(
     "sqlite://",
@@ -67,8 +69,8 @@ def test_student_search_and_payment_count(session, client):
     session.refresh(acudiente)
 
     estudiante = Estudiante(
-        grado_id=grado.id,
-        acudiente_id=acudiente.id,
+        grado_id=grado.id or 1,
+        acudiente_id=acudiente.id or 1,
         nombre="Felipe Gomez",
         documento="10987654321",
         activo=True,
@@ -86,7 +88,7 @@ def test_student_search_and_payment_count(session, client):
     session.commit()
     session.refresh(periodo)
 
-    param = ParametrizarMatricula(grado_id=grado.id, anio=2026, valor=1500000)
+    param = ParametrizarMatricula(grado_id=grado.id or 1, anio=2026, valor=1500000)
     session.add(param)
     session.commit()
     session.refresh(param)
@@ -193,8 +195,8 @@ def test_directed_payment_with_duplicate_complementarios(session, client):
     session.commit()
 
     estudiante = Estudiante(
-        grado_id=grado.id,
-        acudiente_id=acudiente.id,
+        grado_id=grado.id or 1,
+        acudiente_id=acudiente.id or 1,
         nombre="Felipe Gomez",
         documento="10987654321",
         activo=True,
@@ -209,24 +211,27 @@ def test_directed_payment_with_duplicate_complementarios(session, client):
     session.add(periodo)
     session.commit()
 
-    param = ParametrizarMatricula(grado_id=grado.id, anio=2026, valor=1500000)
+    param = ParametrizarMatricula(grado_id=grado.id or 1, anio=2026, valor=1500000)
     session.add(param)
     session.commit()
 
+    tipo = TipoComplementario(nombre="Matricula", estado=True)
+    session.add(tipo)
+    session.flush()
     comp = Complementario(
-        tipo_complementario="Seguro",
+        nombre="Seguro",
+        tipo_complementario_id=tipo.id or 1,
         anio=2026,
         valor=100000,
         estado_complemento="Activo",
-        uso_matricula=True,
     )
     session.add(comp)
     session.commit()
 
     matricula = Matricula(
-        para_matricula_id=param.id,
-        estudiante_id=estudiante.id,
-        periodo_id=periodo.id,
+        para_matricula_id=param.id or 1,
+        estudiante_id=estudiante.id or 1,
+        periodo_id=periodo.id or 1,
         valor_total=1700000,
         fecha_registro=datetime.now(),
         estado_matricula="pendiente",
@@ -236,8 +241,8 @@ def test_directed_payment_with_duplicate_complementarios(session, client):
     session.commit()
 
     det1 = DetalleMatricula(
-        matricula_id=matricula.id,
-        complementario_id=comp.id,
+        matricula_id=matricula.id or 1,
+        complementario_id=comp.id or 1,
         cuota=1,
         descuento=0,
         valor_completo=100000,
@@ -245,8 +250,8 @@ def test_directed_payment_with_duplicate_complementarios(session, client):
         fecha_abono=datetime.now(),
     )
     det2 = DetalleMatricula(
-        matricula_id=matricula.id,
-        complementario_id=comp.id,
+        matricula_id=matricula.id or 1,
+        complementario_id=comp.id or 1,
         cuota=2,
         descuento=0,
         valor_completo=100000,

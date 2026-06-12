@@ -59,7 +59,8 @@ class BulkWebcolegiosLoad:
             )
             or None,
             acudiente_nombre=clean_text(self._get(record, "acudiente_nombre")) or None,
-            acudiente_telefono=clean_text(self._get(record, "acudiente_telefono")) or None,
+            acudiente_telefono=clean_text(self._get(record, "acudiente_telefono"))
+            or None,
             acudiente_correo=clean_text(self._get(record, "acudiente_correo")) or None,
             raw_data=record,
         )

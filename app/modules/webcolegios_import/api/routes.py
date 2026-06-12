@@ -131,7 +131,9 @@ def run_webcolegios_teachers_import(
 def bulk_load_webcolegios_import(
     session: SessionDep, request: BulkWebcolegiosLoadRequest
 ) -> RunWebcolegiosImportResponse:
-    return _map_summary(BulkWebcolegiosLoad(session).execute(tipo=request.tipo, records=request.datos))
+    return _map_summary(
+        BulkWebcolegiosLoad(session).execute(tipo=request.tipo, records=request.datos)
+    )
 
 
 @router.post(
@@ -142,7 +144,9 @@ def bulk_load_webcolegios_import(
 def single_load_webcolegios_import(
     session: SessionDep, request: SingleWebcolegiosLoadRequest
 ) -> RunWebcolegiosImportResponse:
-    return _map_summary(BulkWebcolegiosLoad(session).execute(tipo=request.tipo, records=[request.datos]))
+    return _map_summary(
+        BulkWebcolegiosLoad(session).execute(tipo=request.tipo, records=[request.datos])
+    )
 
 
 @router.post(
