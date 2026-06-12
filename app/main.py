@@ -6,8 +6,6 @@ from app.modules import router
 
 settings = get_settings()
 
-from app.modules import router
-
 app = FastAPI()
 
 app.add_middleware(
