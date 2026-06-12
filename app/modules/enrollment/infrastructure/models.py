@@ -116,7 +116,7 @@ class DetalleMatricula(Base, table=True):
     descuento: int = Field(ge=0)
     valor_completo: int = Field(ge=0)
     valor_pendiente: int = Field(ge=0)
-    fecha_abono: datetime = Field()
+    fecha_abono: datetime = Field(nullable=False)
 
 
 class Pago(Base, table=True):
