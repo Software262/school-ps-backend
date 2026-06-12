@@ -196,20 +196,24 @@ def main():
 
         matriculas: list[Matricula] = [
             Matricula(
-                para_matricula_id=session.exec(
-                    select(ParametrizarMatricula.id).where(
-                        ParametrizarMatricula.grado_id == estudiante.grado_id
-                    )
-                ).one()
-                or 1,
+                para_matricula_id=int(
+                    session.exec(
+                        select(ParametrizarMatricula.id).where(
+                            ParametrizarMatricula.grado_id == estudiante.grado_id
+                        )
+                    ).one()
+                    or 1
+                ),
                 estudiante_id=estudiante.id or 1,
                 periodo_id=periodos[0].id or 1,
-                valor_total=session.exec(
-                    select(ParametrizarMatricula.valor).where(
-                        ParametrizarMatricula.grado_id == estudiante.grado_id
-                    )
-                ).one()
-                or 0,
+                valor_total=int(
+                    session.exec(
+                        select(ParametrizarMatricula.valor).where(
+                            ParametrizarMatricula.grado_id == estudiante.grado_id
+                        )
+                    ).one()
+                    or 0
+                ),
                 fecha_registro=datetime.now(),
                 estado_matricula="pendiente",
                 valor_pendiente_base=0,
@@ -220,18 +224,23 @@ def main():
         pensiones: list[Pension] = [
             Pension(
                 estudiante_id=estudiante.id or 1,
-                para_pension_id=session.exec(
-                    select(ParametrizarPension.id).where(
-                        ParametrizarPension.grado_id == estudiante.grado_id
-                    )
-                ).one()
-                or 1,
+                para_pension_id=int(
+                    session.exec(
+                        select(ParametrizarPension.id).where(
+                            ParametrizarPension.grado_id == estudiante.grado_id
+                        )
+                    ).one()
+                    or 1
+                ),
                 grado_id=estudiante.grado_id or 1,
-                valor_total=session.exec(
-                    select(ParametrizarPension.valor).where(
-                        ParametrizarPension.grado_id == estudiante.grado_id
-                    )
-                ).one(),
+                valor_total=int(
+                    session.exec(
+                        select(ParametrizarPension.valor).where(
+                            ParametrizarPension.grado_id == estudiante.grado_id
+                        )
+                    ).one()
+                )
+                or 1,
                 fecha_registro=datetime.now(),
                 estado_pension=False,
             )
