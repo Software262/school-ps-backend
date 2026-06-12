@@ -13,7 +13,8 @@ class Inventario(Base, table=True):
     tipo_inventario_id: int = Field(foreign_key="tipoinventario.id")
     nombre: str = Field(nullable=False, max_length=50)
     cantidad: int = Field(nullable=False)
-    estado_objeto: str = Field(nullable=False, max_length=50)
+    prestado: int = Field(default=0, nullable=False)
+    mantenimiento: int = Field(default=0, nullable=False)
     observacion: str | None = Field(max_length=400)
 
 
