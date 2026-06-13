@@ -1,6 +1,20 @@
 from pydantic import BaseModel
 
 
+class StockStateResponse(BaseModel):
+    estado: str
+    cantidad: int
+
+
+class GetInventoryItemResponse(BaseModel):
+    id: int
+    tipo_inventario_id: int
+    nombre: str
+    cantidad_total: int
+    observacion: str | None
+    stocks: list[StockStateResponse]
+
+
 class CreateTypeInventoryResponse(BaseModel):
     id: int
     nombre: str

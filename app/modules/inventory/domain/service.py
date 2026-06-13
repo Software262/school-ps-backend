@@ -15,6 +15,10 @@ from app.modules.inventory.schemas.request import (
     UpdateCompleteItemRequest,
     UpdateSingleItemRequest,
 )
+from app.modules.inventory.schemas.response import (
+    GetInventoryItemResponse,
+    StockStateResponse,
+)
 from app.shared.utils.filter_pagination import calculate_offset
 
 
@@ -30,21 +34,39 @@ class InventoryService:
     async def get_inventory(self, filter_pagination: FilterPaginationInventory):
         offset = calculate_offset(filter_pagination.page, filter_pagination.limit)
 
-        if not filter_pagination.item_type:
-            return await self.repository.get_items_filter_pagination(
-                offset=offset, limit=filter_pagination.limit, type_id=None
+        type_id = None
+        if filter_pagination.item_type:
+            type_id = await self.repository.get_type_id_by_name(
+                filter_pagination.item_type
+            )
+            if type_id is None:
+                return 0, []
+
+        count, inventarios = await self.repository.get_items_filter_pagination(
+            offset=offset, limit=filter_pagination.limit, type_id=type_id
+        )
+
+        inv_ids = [inv.id for inv in inventarios if inv.id is not None]
+        stock_rows = await self.repository.get_stocks_by_item_ids(inv_ids)
+
+        stocks_by_item: dict[int, list[StockStateResponse]] = {}
+        for stock, estado in stock_rows:
+            stocks_by_item.setdefault(stock.inventario_id, []).append(
+                StockStateResponse(estado=estado.nombre, cantidad=stock.cantidad)
             )
 
-        type_id = await self.repository.get_type_id_by_name(filter_pagination.item_type)
-
-        if type_id is None:
-            return 0, []
-
-        return await self.repository.get_items_filter_pagination(
-            offset=offset,
-            limit=filter_pagination.limit,
-            type_id=type_id,
-        )
+        return count, [
+            GetInventoryItemResponse(
+                id=inv.id,
+                tipo_inventario_id=inv.tipo_inventario_id,
+                nombre=inv.nombre,
+                cantidad_total=inv.cantidad_total,
+                observacion=inv.observacion,
+                stocks=stocks_by_item.get(inv.id, []),
+            )
+            for inv in inventarios
+            if inv.id is not None
+        ]
 
     async def get_types_inventory(
         self, filter_pagination: FilterPaginationTypesInventory

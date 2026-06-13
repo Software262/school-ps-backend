@@ -27,7 +27,13 @@ class InventoryRepository(ABC):
     @abstractmethod
     async def get_items_filter_pagination(
         self, offset: int, limit: int, type_id: int | None
-    ) -> tuple[int, Sequence[Inventario]]:
+    ) -> tuple[int, list[Inventario]]:
+        pass
+
+    @abstractmethod
+    async def get_stocks_by_item_ids(
+        self, item_ids: list[int]
+    ) -> list[tuple[InventarioStock, EstadoInventario]]:
         pass
 
     @abstractmethod

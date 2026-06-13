@@ -41,15 +41,35 @@ class InventoryRepository(InventoryRepositoryInterface):
 
     async def get_items_filter_pagination(
         self, offset: int, limit: int, type_id: int | None
-    ):
-        query = select(Inventario).offset(offset).limit(limit)
-        query_count = select(func.count(col(Inventario.id)))
+    ) -> tuple[int, list[Inventario]]:
+        inv_query = select(Inventario).offset(offset).limit(limit)
+        count_query = select(func.count(col(Inventario.id)))
 
         if type_id is not None:
-            query = query.where(Inventario.tipo_inventario_id == type_id)
-            query_count = query_count.where(Inventario.tipo_inventario_id == type_id)
+            inv_query = inv_query.where(Inventario.tipo_inventario_id == type_id)
+            count_query = count_query.where(Inventario.tipo_inventario_id == type_id)
 
-        return self.session.exec(query_count).one(), self.session.exec(query).all()
+        return self.session.exec(count_query).one(), list(
+            self.session.exec(inv_query).all()
+        )
+
+    async def get_stocks_by_item_ids(
+        self, item_ids: list[int]
+    ) -> list[tuple[InventarioStock, EstadoInventario]]:
+        if not item_ids:
+            return []
+
+        return list(
+            self.session.exec(
+                select(InventarioStock, EstadoInventario)
+                .join(
+                    EstadoInventario,
+                    col(InventarioStock.estado_inventario_id)
+                    == col(EstadoInventario.id),
+                )
+                .where(col(InventarioStock.inventario_id).in_(item_ids))
+            ).all()
+        )
 
     async def create_item(self, item_data: CreateItemRequest):
         new_item = Inventario(
