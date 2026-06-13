@@ -1,7 +1,11 @@
 from typing import Sequence
 
 from app.modules.inventory.application.contracts import InventoryEnrollmentService
-from app.modules.inventory.domain.entities import Borrowing
+from app.modules.inventory.domain.entities import (
+    Borrowing,
+    GetInventoryItem,
+    StockState,
+)
 from app.modules.inventory.domain.repositories import InventoryRepository
 from app.modules.inventory.infrastructure.models import Prestamo
 from app.modules.inventory.schemas.request import (
@@ -14,10 +18,6 @@ from app.modules.inventory.schemas.request import (
     ReturnBorrowRequest,
     UpdateCompleteItemRequest,
     UpdateSingleItemRequest,
-)
-from app.modules.inventory.schemas.response import (
-    GetInventoryItemResponse,
-    StockStateResponse,
 )
 from app.shared.utils.filter_pagination import calculate_offset
 
@@ -49,14 +49,14 @@ class InventoryService:
         inv_ids = [inv.id for inv in inventarios if inv.id is not None]
         stock_rows = await self.repository.get_stocks_by_item_ids(inv_ids)
 
-        stocks_by_item: dict[int, list[StockStateResponse]] = {}
+        stocks_by_item: dict[int, list[StockState]] = {}
         for stock, estado in stock_rows:
             stocks_by_item.setdefault(stock.inventario_id, []).append(
-                StockStateResponse(estado=estado.nombre, cantidad=stock.cantidad)
+                StockState(estado=estado.nombre, cantidad=stock.cantidad)
             )
 
         return count, [
-            GetInventoryItemResponse(
+            GetInventoryItem(
                 id=inv.id,
                 tipo_inventario_id=inv.tipo_inventario_id,
                 nombre=inv.nombre,
