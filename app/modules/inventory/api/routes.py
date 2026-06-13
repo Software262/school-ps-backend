@@ -71,6 +71,15 @@ async def create_item(session: SessionDep, create_item_request: CreateItemReques
     create_item_app = CreateItemInventory(session=session)
     data = await create_item_app.execute(create_item_request)
 
+    if not data:
+        return Response(
+            data=None,
+            message="Error al crear el articulo",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            success=False,
+            details={"message": "Error al crear el articulo"},
+        ).to_dict()
+
     if not data.id:
         return Response(
             data=None,
@@ -93,8 +102,7 @@ async def create_item(session: SessionDep, create_item_request: CreateItemReques
         data=CreateItemInventoryResponse(
             id=data.id,
             nombre=data.nombre,
-            cantidad=data.cantidad,
-            estado_objeto=data.estado_objeto,
+            cantidad_total=data.cantidad_total,
             observacion=data.observacion,
         ),
         message="Articulo creado exitosamente",
@@ -204,8 +212,7 @@ async def update_item(
         data=UpdateItemInventoryResponse(
             id=data.id,
             nombre=data.nombre,
-            cantidad=data.cantidad,
-            estado_objeto=data.estado_objeto,
+            cantidad_total=data.cantidad_total,
             observacion=data.observacion,
         ),
         message="Articulo actualizado exitosamente",
@@ -332,8 +339,7 @@ async def edit_item(
         data=UpdateItemInventoryResponse(
             id=data.id,
             nombre=data.nombre,
-            cantidad=data.cantidad,
-            estado_objeto=data.estado_objeto,
+            cantidad_total=data.cantidad_total,
             observacion=data.observacion,
         ),
         message="Articulo editado exitosamente",

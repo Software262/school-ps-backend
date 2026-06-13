@@ -29,7 +29,7 @@ class InventoryRepository(ABC):
         pass
 
     @abstractmethod
-    async def create_item(self, item_data: CreateItemRequest) -> Inventario:
+    async def create_item(self, item_data: CreateItemRequest) -> Inventario | None:
         pass
 
     @abstractmethod

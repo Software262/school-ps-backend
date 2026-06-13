@@ -89,7 +89,7 @@ class InventoryService:
             if not student.activo:
                 return None
 
-        if borrow_data.cantidad > item.cantidad:
+        if borrow_data.cantidad > item.cantidad_total:
             return None
 
         if not item.id:
@@ -100,9 +100,9 @@ class InventoryService:
         if not borrow:
             return None
 
-        item.cantidad -= borrow_data.cantidad
+        item.cantidad_total -= borrow_data.cantidad
 
-        await self.repository.update_amount_item(item.id, item.cantidad)
+        await self.repository.update_amount_item(item.id, item.cantidad_total)
 
         return borrow
 
@@ -133,9 +133,9 @@ class InventoryService:
         if borrow.cantidad != borrow_data.cantidad:
             return None
 
-        item.cantidad += borrow_data.cantidad
+        item.cantidad_total += borrow_data.cantidad
 
-        await self.repository.update_amount_item(item.id, item.cantidad)
+        await self.repository.update_amount_item(item.id, item.cantidad_total)
 
         return await self.repository.return_borrow(
             borrow_id=borrow_id, borrow_data=borrow_data

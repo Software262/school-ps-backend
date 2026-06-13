@@ -9,16 +9,14 @@ class CreateTypeInventoryResponse(BaseModel):
 class CreateItemInventoryResponse(BaseModel):
     id: int
     nombre: str
-    cantidad: int
-    estado_objeto: str
+    cantidad_total: int
     observacion: str | None
 
 
 class UpdateItemInventoryResponse(BaseModel):
     id: int
     nombre: str
-    cantidad: int
-    estado_objeto: str
+    cantidad_total: int
     observacion: str | None
 
 

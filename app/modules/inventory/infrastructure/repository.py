@@ -8,7 +8,9 @@ from app.modules.inventory.domain.repositories import (
     InventoryRepository as InventoryRepositoryInterface,
 )
 from app.modules.inventory.infrastructure.models import (
+    EstadoInventario,
     Inventario,
+    InventarioStock,
     Novedad,
     Prestamo,
     TipoInventario,
@@ -53,12 +55,58 @@ class InventoryRepository(InventoryRepositoryInterface):
         new_item = Inventario(
             tipo_inventario_id=item_data.tipo_inventario_id,
             nombre=item_data.nombre,
-            cantidad=item_data.cantidad,
-            estado_objeto=item_data.estado_objeto,
+            cantidad_total=item_data.cantidad_total,
             observacion=item_data.observacion,
         )
 
         self.session.add(new_item)
+        self.session.flush()
+
+        available_state_id = self.session.exec(
+            select(col(EstadoInventario.id)).where(
+                col(EstadoInventario.nombre) == "Disponible"
+            )
+        ).first()
+
+        borrow_estado_id = self.session.exec(
+            select(col(EstadoInventario.id)).where(
+                col(EstadoInventario.nombre) == "Prestado"
+            )
+        ).first()
+
+        maintenance_state_id = self.session.exec(
+            select(col(EstadoInventario.id)).where(
+                col(EstadoInventario.nombre) == "Mantenimiento"
+            )
+        ).first()
+
+        if (
+            not new_item.id
+            or not available_state_id
+            or not maintenance_state_id
+            or not borrow_estado_id
+        ):
+            return None
+
+        inventarioStocks: list[InventarioStock] = [
+            InventarioStock(
+                inventario_id=new_item.id,
+                estado_inventario_id=available_state_id,
+                cantidad=item_data.cantidad_total,
+            ),
+            InventarioStock(
+                inventario_id=new_item.id,
+                estado_inventario_id=maintenance_state_id,
+                cantidad=0,
+            ),
+            InventarioStock(
+                inventario_id=new_item.id,
+                estado_inventario_id=borrow_estado_id,
+                cantidad=0,
+            ),
+        ]
+
+        self.session.add_all(inventarioStocks)
         self.session.commit()
         self.session.refresh(new_item)
 
@@ -86,8 +134,7 @@ class InventoryRepository(InventoryRepositoryInterface):
     async def update_item(self, item: Inventario, item_data: UpdateCompleteItemRequest):
         item.tipo_inventario_id = item_data.tipo_inventario_id
         item.nombre = item_data.nombre
-        item.cantidad = item_data.cantidad
-        item.estado_objeto = item_data.estado_objeto
+        item.cantidad_total = item_data.cantidad_total
         item.observacion = item_data.observacion
 
         self.session.add(item)
@@ -106,6 +153,7 @@ class InventoryRepository(InventoryRepositoryInterface):
             fecha_devolucion=None,
             observacion=borrow_data.observacion,
         )
+
         self.session.add(new_borrow)
         self.session.commit()
         self.session.refresh(new_borrow)
@@ -185,19 +233,16 @@ class InventoryRepository(InventoryRepositoryInterface):
     async def create_items_batch(self, create_items_data: list[InventoryItemRequest]):
         inventory: list[Inventario] = []
         for _, data in enumerate(create_items_data):
-            item: Inventario = Inventario(
-                tipo_inventario_id=data.tipo_inventario_id,
-                cantidad=data.cantidad,
-                nombre=data.nombre,
-                estado_objeto=data.estado_objeto,
-                observacion=data.observacion,
+            item = await self.create_item(
+                item_data=CreateItemRequest(
+                    tipo_inventario_id=data.tipo_inventario_id,
+                    nombre=data.nombre,
+                    cantidad_total=data.cantidad_total,
+                    observacion=data.observacion,
+                )
             )
-
-            self.session.add(item)
-            self.session.commit()
-            self.session.refresh(item)
-
-            inventory.append(item)
+            if item:
+                inventory.append(item)
 
         return inventory
 
@@ -226,10 +271,12 @@ class InventoryRepository(InventoryRepositoryInterface):
         item = self.session.exec(
             select(Inventario).where(Inventario.id == item_id)
         ).one()
+
         item.estado_objeto = estado
         self.session.add(item)
         self.session.commit()
         self.session.refresh(item)
+
         return item
 
     async def update_borrow_observacion(
