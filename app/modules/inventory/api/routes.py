@@ -14,6 +14,7 @@ from app.modules.inventory.application.create_type_inventory import CreateTypeIn
 from app.modules.inventory.application.edit_single_item import EditSingleItem
 from app.modules.inventory.application.get_borrowings import GetBorrowings
 from app.modules.inventory.application.get_items_inventory import GetItemsInventory
+from app.modules.inventory.application.get_statics import GetStatsInventory
 from app.modules.inventory.application.get_type_by_name import GetTypeByName
 from app.modules.inventory.application.get_types_inventory import GetTypesInventory
 from app.modules.inventory.application.return_borrowing import ReturnBorrowing
@@ -33,6 +34,7 @@ from app.modules.inventory.schemas.response import (
     CreateItemBorrowingResponse,
     CreateItemInventoryResponse,
     CreateTypeInventoryResponse,
+    GetInventoryStatsResponse,
     ReturnItemBorrowingResponse,
     UpdateItemInventoryResponse,
 )
@@ -64,6 +66,31 @@ async def get_inventory(
         )
         .to_dict()
     )
+
+
+@router.get("/stats")
+async def get_stats_inventory(
+    session: SessionDep, type_name: Literal["banda", "deporte", "ajedrez"]
+):
+    stats_app = GetStatsInventory(session=session)
+    (
+        total_items,
+        available_items,
+        borrowed_items,
+        maintenance_items,
+    ) = await stats_app.execute(type_name=type_name)
+
+    return Response(
+        data=GetInventoryStatsResponse(
+            total_items=total_items,
+            total_disponibles=available_items,
+            total_prestados=borrowed_items,
+            total_mantenimiento=maintenance_items,
+        ).model_dump(),
+        message="Estadísticas obtenidas exitosamente",
+        status_code=status.HTTP_200_OK,
+        details={"message": "Estadísticas obtenidas exitosamente"},
+    ).to_dict()
 
 
 @router.post("/items")

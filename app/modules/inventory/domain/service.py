@@ -50,9 +50,9 @@ class InventoryService:
         stock_rows = await self.repository.get_stocks_by_item_ids(inv_ids)
 
         stocks_by_item: dict[int, list[StockState]] = {}
-        for stock, estado in stock_rows:
+        for stock, state in stock_rows:
             stocks_by_item.setdefault(stock.inventario_id, []).append(
-                StockState(estado=estado.nombre, cantidad=stock.cantidad)
+                StockState(estado=state.nombre, cantidad=stock.cantidad)
             )
 
         return count, [
@@ -67,6 +67,33 @@ class InventoryService:
             for inv in inventarios
             if inv.id is not None
         ]
+
+    async def get_statics(self, type_name: str):
+        ids = await self.repository.get_all_inventory(type_name=type_name)
+
+        inv_ids: list[int] = []
+        amount_inventory: int = 0
+        for id, amount in ids:
+            if id is not None:
+                inv_ids.append(id)
+                amount_inventory += amount
+
+        stock_rows = await self.repository.get_stocks_by_item_ids(list(inv_ids))
+
+        count_available = 0
+        count_borrowed = 0
+        count_maintenance = 0
+        for stock, state in stock_rows:
+            if state.nombre == "disponible":
+                count_available += stock.cantidad
+
+            if state.nombre == "prestado":
+                count_borrowed += stock.cantidad
+
+            if state.nombre == "mantenimiento":
+                count_maintenance += stock.cantidad
+
+        return amount_inventory, count_available, count_borrowed, count_maintenance
 
     async def get_types_inventory(
         self, filter_pagination: FilterPaginationTypesInventory

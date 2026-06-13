@@ -41,7 +41,7 @@ class InventoryRepository(InventoryRepositoryInterface):
 
     async def get_items_filter_pagination(
         self, offset: int, limit: int, type_id: int | None
-    ) -> tuple[int, list[Inventario]]:
+    ):
         inv_query = select(Inventario).offset(offset).limit(limit)
         count_query = select(func.count(col(Inventario.id)))
 
@@ -49,27 +49,34 @@ class InventoryRepository(InventoryRepositoryInterface):
             inv_query = inv_query.where(Inventario.tipo_inventario_id == type_id)
             count_query = count_query.where(Inventario.tipo_inventario_id == type_id)
 
-        return self.session.exec(count_query).one(), list(
-            self.session.exec(inv_query).all()
-        )
+        return self.session.exec(count_query).one(), self.session.exec(inv_query).all()
 
-    async def get_stocks_by_item_ids(
-        self, item_ids: list[int]
-    ) -> list[tuple[InventarioStock, EstadoInventario]]:
+    async def get_stocks_by_item_ids(self, item_ids: list[int]):
         if not item_ids:
             return []
 
-        return list(
-            self.session.exec(
-                select(InventarioStock, EstadoInventario)
-                .join(
-                    EstadoInventario,
-                    col(InventarioStock.estado_inventario_id)
-                    == col(EstadoInventario.id),
-                )
-                .where(col(InventarioStock.inventario_id).in_(item_ids))
-            ).all()
-        )
+        return self.session.exec(
+            select(InventarioStock, EstadoInventario)
+            .join(
+                EstadoInventario,
+                col(InventarioStock.estado_inventario_id) == col(EstadoInventario.id),
+            )
+            .where(col(InventarioStock.inventario_id).in_(item_ids))
+        ).all()
+
+    async def get_all_inventory(
+        self, type_name: str
+    ) -> Sequence[tuple[int | None, int]]:
+        type_id = await self.get_type_id_by_name(item_type=type_name)
+
+        if not type_id:
+            return []
+
+        return self.session.exec(
+            select(col(Inventario.id), col(Inventario.cantidad_total)).where(
+                col(Inventario.tipo_inventario_id) == type_id
+            )
+        ).all()
 
     async def create_item(self, item_data: CreateItemRequest):
         new_item = Inventario(

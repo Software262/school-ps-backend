@@ -36,3 +36,10 @@ class ReturnItemBorrowingResponse(BaseModel):
     cantidad: int
     estado_prestamo: bool
     observacion: str
+
+
+class GetInventoryStatsResponse(BaseModel):
+    total_items: int
+    total_disponibles: int
+    total_prestados: int
+    total_mantenimiento: int
