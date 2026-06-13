@@ -2,7 +2,9 @@ from abc import ABC, abstractmethod
 from typing import Sequence
 
 from app.modules.inventory.infrastructure.models import (
+    EstadoInventario,
     Inventario,
+    InventarioStock,
     Novedad,
     Prestamo,
     TipoInventario,
@@ -54,6 +56,26 @@ class InventoryRepository(ABC):
     async def update_item(
         self, item: Inventario, item_data: UpdateCompleteItemRequest
     ) -> Inventario:
+        pass
+
+    @abstractmethod
+    async def get_state_by_id(self, state_id: int) -> EstadoInventario | None:
+        pass
+
+    @abstractmethod
+    async def get_state_id_by_name(self, state_name: str) -> int | None:
+        pass
+
+    @abstractmethod
+    async def get_inventory_stock(
+        self, state_id: int, item_id: int
+    ) -> InventarioStock | None:
+        pass
+
+    @abstractmethod
+    async def set_amount_stock_category(
+        self, item_id: int, amount: int, category_name: str
+    ) -> None:
         pass
 
     @abstractmethod

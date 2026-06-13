@@ -78,6 +78,9 @@ class InventoryService:
         if not item:
             return None
 
+        if not item.id:
+            return None
+
         if self.service:
             student = self.service.get_student_by_id(
                 student_id=borrow_data.estudiante_id
@@ -89,20 +92,50 @@ class InventoryService:
             if not student.activo:
                 return None
 
-        if borrow_data.cantidad > item.cantidad_total:
+        available_state_id = await self.repository.get_state_id_by_name("disponible")
+
+        if not available_state_id:
             return None
 
-        if not item.id:
+        inventory_available_stock = await self.repository.get_inventory_stock(
+            state_id=available_state_id,
+            item_id=item.id,
+        )
+
+        if not inventory_available_stock:
             return None
 
-        borrow = await self.repository.create_borrow(borrow_data)
-
-        if not borrow:
+        if inventory_available_stock.cantidad < borrow_data.cantidad:
             return None
 
-        item.cantidad_total -= borrow_data.cantidad
+        borrow_state_id = await self.repository.get_state_id_by_name("prestado")
 
-        await self.repository.update_amount_item(item.id, item.cantidad_total)
+        if not borrow_state_id:
+            return None
+
+        inventory_stock = await self.repository.get_inventory_stock(
+            state_id=borrow_state_id,
+            item_id=item.id,
+        )
+
+        if not inventory_stock:
+            return None
+
+        await self.repository.set_amount_stock_category(
+            item_id=item.id,
+            amount=(inventory_available_stock.cantidad - borrow_data.cantidad),
+            category_name="disponible",
+        )
+
+        await self.repository.set_amount_stock_category(
+            item_id=item.id,
+            amount=(inventory_stock.cantidad + borrow_data.cantidad),
+            category_name="prestado",
+        )
+
+        borrow = await self.repository.create_borrow(
+            borrow_data=borrow_data,
+        )
 
         return borrow
 
@@ -133,13 +166,42 @@ class InventoryService:
         if borrow.cantidad != borrow_data.cantidad:
             return None
 
-        item.cantidad_total += borrow_data.cantidad
-
-        await self.repository.update_amount_item(item.id, item.cantidad_total)
-
-        return await self.repository.return_borrow(
+        borrow = await self.repository.return_borrow(
             borrow_id=borrow_id, borrow_data=borrow_data
         )
+
+        available = "disponible"
+        borrowed = "prestado"
+
+        type_available_id = await self.repository.get_state_id_by_name(available)
+        type_borrowed_id = await self.repository.get_state_id_by_name(borrowed)
+
+        if not type_available_id or not type_borrowed_id:
+            return None
+
+        stock_available = await self.repository.get_inventory_stock(
+            state_id=type_available_id, item_id=item.id
+        )
+        stock_borrowed = await self.repository.get_inventory_stock(
+            state_id=type_borrowed_id, item_id=item.id
+        )
+
+        if not stock_available or not stock_borrowed:
+            return None
+
+        await self.repository.set_amount_stock_category(
+            item_id=item.id,
+            amount=(stock_available.cantidad + borrow_data.cantidad),
+            category_name=available,
+        )
+
+        await self.repository.set_amount_stock_category(
+            item_id=item.id,
+            amount=(stock_borrowed.cantidad - borrow_data.cantidad),
+            category_name=borrowed,
+        )
+
+        return borrow
 
     async def format_borrowing(self, borrowings: Sequence[Prestamo]):
         result: list[Borrowing] = []

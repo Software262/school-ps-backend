@@ -62,23 +62,9 @@ class InventoryRepository(InventoryRepositoryInterface):
         self.session.add(new_item)
         self.session.flush()
 
-        available_state_id = self.session.exec(
-            select(col(EstadoInventario.id)).where(
-                col(EstadoInventario.nombre) == "Disponible"
-            )
-        ).first()
-
-        borrow_estado_id = self.session.exec(
-            select(col(EstadoInventario.id)).where(
-                col(EstadoInventario.nombre) == "Prestado"
-            )
-        ).first()
-
-        maintenance_state_id = self.session.exec(
-            select(col(EstadoInventario.id)).where(
-                col(EstadoInventario.nombre) == "Mantenimiento"
-            )
-        ).first()
+        available_state_id = await self.get_state_id_by_name("disponible")
+        borrow_estado_id = await self.get_state_id_by_name("prestado")
+        maintenance_state_id = await self.get_state_id_by_name("mantenimiento")
 
         if (
             not new_item.id
@@ -143,6 +129,28 @@ class InventoryRepository(InventoryRepositoryInterface):
 
         return item
 
+    async def get_state_by_id(self, state_id: int):
+        return self.session.exec(
+            select(EstadoInventario).where(col(EstadoInventario.id) == state_id)
+        ).first()
+
+    async def get_state_id_by_name(self, state_name: str):
+        result = self.session.exec(
+            select(col(EstadoInventario.id)).where(
+                col(EstadoInventario.nombre) == state_name.lower()
+            )
+        ).first()
+
+        return result
+
+    async def get_inventory_stock(self, state_id: int, item_id: int):
+        return self.session.exec(
+            select(InventarioStock).where(
+                col(InventarioStock.estado_inventario_id) == state_id,
+                col(InventarioStock.inventario_id) == item_id,
+            )
+        ).first()
+
     async def create_borrow(self, borrow_data: CreateBorrowRequest):
         new_borrow = Prestamo(
             inventario_id=borrow_data.inventario_id,
@@ -183,6 +191,31 @@ class InventoryRepository(InventoryRepositoryInterface):
 
         return item
 
+    async def set_amount_stock_category(
+        self, item_id: int, amount: int, category_name: str
+    ):
+        type_id = await self.get_state_id_by_name(category_name)
+
+        if not type_id:
+            return None
+
+        inventory_stock = self.session.exec(
+            select(InventarioStock).where(
+                InventarioStock.inventario_id == item_id,
+                InventarioStock.estado_inventario_id == type_id,
+            )
+        ).one()
+
+        if not inventory_stock:
+            return None
+
+        inventory_stock.cantidad = amount
+
+        self.session.add(inventory_stock)
+        self.session.commit()
+
+        return None
+
     async def get_borrowing(self, borrow_id: int) -> Prestamo | None:
         borrow = self.session.exec(
             select(Prestamo).where(Prestamo.id == borrow_id)
@@ -193,15 +226,20 @@ class InventoryRepository(InventoryRepositoryInterface):
     async def return_borrow(self, borrow_id: int, borrow_data: ReturnBorrowRequest):
         borrow = self.session.exec(
             select(Prestamo).where(
-                Prestamo.id == borrow_id
-                and Prestamo.inventario_id == borrow_data.inventario_id
-                and Prestamo.estudiante_id == borrow_data.estudiante_id
+                Prestamo.id == borrow_id,
+                Prestamo.inventario_id == borrow_data.inventario_id,
+                Prestamo.estudiante_id == borrow_data.estudiante_id,
             )
-        ).one()
+        ).first()
+
+        if borrow is None:
+            raise ValueError("Prestamo no encontrado")
+
         borrow.fecha_devolucion = datetime.now()
         borrow.estado_prestamo = False
         borrow.cantidad = borrow_data.cantidad
         borrow.observacion = borrow_data.observacion
+
         self.session.add(borrow)
         self.session.commit()
         self.session.refresh(borrow)
@@ -232,6 +270,7 @@ class InventoryRepository(InventoryRepositoryInterface):
 
     async def create_items_batch(self, create_items_data: list[InventoryItemRequest]):
         inventory: list[Inventario] = []
+
         for _, data in enumerate(create_items_data):
             item = await self.create_item(
                 item_data=CreateItemRequest(
