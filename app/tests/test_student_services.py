@@ -1,20 +1,21 @@
 import pytest
-from sqlmodel import SQLModel, Session, create_engine
-from sqlalchemy import event
-from sqlalchemy.pool import StaticPool
 from fastapi import status
 from fastapi.testclient import TestClient
+from sqlalchemy import event
+from sqlalchemy.pool import StaticPool
+from sqlmodel import Session, SQLModel, create_engine
 
-from app.main import app
 from app.core.db import get_session
+from app.main import app
+from app.modules.enrollment.domain.service import StudentService
 from app.modules.enrollment.infrastructure.models import (
-    Grado,
     Acudiente,
-    Estudiante,
     Complementario,
+    Estudiante,
+    Grado,
+    TipoComplementario,
 )
 from app.modules.enrollment.infrastructure.repository import SQLEnrollmentRepository
-from app.modules.enrollment.domain.service import StudentService
 from app.modules.enrollment.schemas.response import StudentResponse
 
 test_engine = create_engine(
@@ -59,6 +60,10 @@ def test_student_service_all_functionalities(session):
     session.add(acudiente)
     session.commit()
     session.refresh(acudiente)
+
+    assert acudiente.id is not None
+    assert grado_10.id is not None
+    assert grado_11.id is not None
 
     # Seed base data: Estudiantes
     est1 = Estudiante(
@@ -135,7 +140,7 @@ def test_student_service_all_functionalities(session):
     assert len(res_page2) == 1
 
     # Test 2: Servicio de Información por Lote (get_students_bulk)
-    bulk_res = student_service.get_students_bulk([est1.id, est3.id])
+    bulk_res = student_service.get_students_bulk([est1.id or 1, est3.id or 3])
     assert len(bulk_res) == 2
     assert {s.nombre for s in bulk_res} == {"Juan Andres Cepeda", "Felipe Martinez"}
     assert {s.grado_nombre for s in bulk_res} == {"Décimo", "Once"}
@@ -149,7 +154,7 @@ def test_student_service_all_functionalities(session):
     assert {g.nombre for g in all_grades} == {"Décimo", "Once"}
 
     # Test 4: get_student_by_id (Obtener entidad Estudiante cruda por ID)
-    raw_est = student_service.get_student_by_id(est1.id)
+    raw_est = student_service.get_student_by_id(est1.id or 1)
     assert raw_est is not None
     assert raw_est.nombre == "Juan Andres Cepeda"
     assert raw_est.documento == "1005777888"
@@ -199,6 +204,10 @@ def test_student_endpoints(session, client):
     session.add(acudiente)
     session.commit()
     session.refresh(acudiente)
+
+    assert acudiente.id is not None
+    assert grado_10.id is not None
+    assert grado_11.id is not None
 
     # Seed base data: Estudiantes
     est1 = Estudiante(
@@ -264,33 +273,39 @@ def test_student_endpoints(session, client):
 
 def test_get_complementary_concepts_endpoint(session, client):
     # Seed complementary concepts
+    tipo = TipoComplementario(nombre="General", estado=True)
+    session.add(tipo)
+    session.flush()
+
+    assert tipo.id is not None
+
     c1 = Complementario(
-        tipo_complementario="Seguro Estudiantil",
+        nombre="Seguro Estudiantil",
+        tipo_complementario_id=tipo.id,
         anio=2026,
         valor=50000,
         estado_complemento="Activo",
-        uso_matricula=True,
     )
     c2 = Complementario(
-        tipo_complementario="Sistematización",
+        nombre="Sistematización",
+        tipo_complementario_id=tipo.id,
         anio=2026,
         valor=30000,
         estado_complemento="Activo",
-        uso_matricula=False,
     )
     c3 = Complementario(
-        tipo_complementario="Pensión Especial",
+        nombre="Pensión Especial",
+        tipo_complementario_id=tipo.id,
         anio=2026,
         valor=100000,
         estado_complemento="Inactivo",  # Inactive
-        uso_matricula=True,
     )
     c4 = Complementario(
-        tipo_complementario="Derechos de Grado",
+        nombre="Derechos de Grado",
+        tipo_complementario_id=tipo.id,
         anio=2025,  # Different year
         valor=80000,
         estado_complemento="Activo",
-        uso_matricula=True,
     )
     session.add_all([c1, c2, c3, c4])
     session.commit()

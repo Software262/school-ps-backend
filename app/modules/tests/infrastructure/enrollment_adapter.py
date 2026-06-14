@@ -1,4 +1,4 @@
-from sqlmodel import col, select
+from sqlmodel import col, or_, select
 
 from app.core.db import SessionDep
 from app.modules.enrollment.infrastructure.models import (
@@ -6,6 +6,7 @@ from app.modules.enrollment.infrastructure.models import (
     Estudiante,
     Grado,
     Periodo,
+    TipoComplementario,
 )
 from app.modules.tests.application.contracts import EnrollmentDataService
 from app.modules.tests.domain.entities import (
@@ -84,16 +85,32 @@ class EnrollmentAdapter(EnrollmentDataService):
         )
 
     async def get_available_tests(self) -> list[ComplementarioEntity]:
-        results = self.session.exec(
-            select(Complementario)
-            .where(Complementario.estado_complemento == "Activo")
-            .where(col(Complementario.uso_matricula).is_(False))
-        ).all()
+        matricula_type = self.session.exec(
+            select(TipoComplementario).where(TipoComplementario.nombre == "Matricula")
+        ).first()
 
+        stmt = select(Complementario).where(
+            Complementario.estado_complemento == "Activo"
+        )
+
+        if matricula_type and matricula_type.id is not None:
+            matricula_ids = self.session.exec(
+                select(col(TipoComplementario.id)).where(
+                    or_(
+                        TipoComplementario.id == matricula_type.id,
+                        TipoComplementario.sub_tipo_complementario == matricula_type.id,
+                    )
+                )
+            ).all()
+            stmt = stmt.where(
+                col(Complementario.tipo_complementario_id).not_in(matricula_ids)
+            )
+
+        results = self.session.exec(stmt).all()
         return [
             ComplementarioEntity(
                 id=c.id or 0,
-                tipo_complementario=c.tipo_complementario,
+                tipo_complementario=c.nombre,
                 valor=c.valor,
                 anio=c.anio,
             )
@@ -110,7 +127,7 @@ class EnrollmentAdapter(EnrollmentDataService):
 
         return ComplementarioEntity(
             id=comp.id or 0,
-            tipo_complementario=comp.tipo_complementario,
+            tipo_complementario=comp.nombre,
             valor=comp.valor,
             anio=comp.anio,
         )
@@ -121,7 +138,7 @@ class EnrollmentAdapter(EnrollmentDataService):
         model = self.session.get(Complementario, comp.id)
 
         if model:
-            model.tipo_complementario = comp.tipo_complementario
+            model.nombre = comp.tipo_complementario
             model.valor = comp.valor
             self.session.add(model)
             self.session.commit()
@@ -129,7 +146,7 @@ class EnrollmentAdapter(EnrollmentDataService):
 
             return ComplementarioEntity(
                 id=model.id or 0,
-                tipo_complementario=model.tipo_complementario,
+                tipo_complementario=model.nombre,
                 valor=model.valor,
                 anio=model.anio,
             )

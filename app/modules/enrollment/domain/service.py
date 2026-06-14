@@ -97,7 +97,7 @@ class EnrollmentService:
         Genera la matrícula automáticamente para un estudiante.
 
         1. Busca costo base por grado del estudiante
-        2. Asigna complementarios activos con uso_matricula=True
+        2. Asigna complementarios activos del tipo Matricula
         4. Crea registro Matricula + DetalleMatricula
         """
         if not self.repo.period_exists(period_id):
@@ -502,18 +502,18 @@ class EnrollmentService:
 
     def create_complementary(
         self,
-        tipo_complementario: str,
+        nombre: str,
+        tipo_complementario_id: int,
         anio: int,
         valor: int,
         estado: str,
-        uso_matricula: bool,
     ) -> int:
         return self.repo.create_complementary(
-            tipo_complementario=tipo_complementario,
+            nombre=nombre,
+            tipo_complementario_id=tipo_complementario_id,
             anio=anio,
             valor=valor,
             estado=estado,
-            uso_matricula=uso_matricula,
         )
 
     def find_or_create_student(

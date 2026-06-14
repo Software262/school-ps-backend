@@ -26,11 +26,10 @@ class EnrollmentAdapter(EnrollmentDataService):
         return [
             ProgramInfo(
                 id=c.id if c.id is not None else 0,
-                tipo_complementario=c.tipo_complementario,
+                tipo_complementario=c.nombre,
                 anio=c.anio,
                 valor=c.valor,
                 estado_complemento=c.estado_complemento,
-                uso_matricula=c.uso_matricula,
             )
             for c in rows
         ]

@@ -7,7 +7,11 @@ from alembic import context
 from app.core.config import get_settings
 from app.modules.auth.infrastructure import models as auth  # noqa: F401
 from app.modules.cafeteria.infrastructure import models as cafeteria  # noqa: F401
+from app.modules.chess.infrastructure import models as chess  # noqa: F401
 from app.modules.classroom.infrastructure import models as classroom  # noqa: F401
+from app.modules.classroom_holder.infrastructure import (
+    models as classroom_holder,  # noqa: F401
+)
 from app.modules.enrollment.infrastructure import models as enrollment  # noqa: F401
 from app.modules.inventory.infrastructure import models as inventory  # noqa: F401
 from app.modules.peace_safe.infrastructure import models as peace_safe  # noqa: F401

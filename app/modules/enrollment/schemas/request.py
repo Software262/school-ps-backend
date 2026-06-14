@@ -100,16 +100,13 @@ class DirectedPaymentRequest(BaseModel):
 class ComplementaryCreateRequest(BaseModel):
     """Solicitud para crear un nuevo concepto complementario."""
 
-    tipo_complementario: str = Field(
+    nombre: str = Field(
         max_length=50, description="Nombre del concepto (ej: Banda Marcial)"
     )
+    tipo_complementario_id: int = Field(description="ID del tipo de complementario")
     anio: int = Field(description="Año al que aplica este cobro")
     valor: int = Field(gt=0, description="Costo total del concepto")
     estado_complemento: str = Field(max_length=50, description="Estado (ej: Activo)")
-    uso_matricula: bool = Field(
-        default=False,
-        description="Si es True, se asigna automáticamente a las matrículas nuevas",
-    )
 
 
 class AssignComplementaryRequest(BaseModel):

@@ -24,13 +24,11 @@ def seed_tests() -> None:
 
         # Seleccionar las dos pruebas solicitadas
         c1 = session.exec(
-            select(Complementario).where(
-                Complementario.tipo_complementario == "Prueba Saber 10"
-            )
+            select(Complementario).where(Complementario.nombre == "Prueba Saber 10")
         ).first()
         c2 = session.exec(
             select(Complementario).where(
-                Complementario.tipo_complementario == "Simulacro ICFES 2024"
+                Complementario.nombre == "Simulacro ICFES 2024"
             )
         ).first()
 

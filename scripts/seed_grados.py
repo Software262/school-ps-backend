@@ -7,6 +7,7 @@ from app.modules.enrollment.infrastructure.models import (
     Estudiante,
     Periodo,
     Complementario,
+    TipoComplementario,
 )
 
 
@@ -16,7 +17,7 @@ def seed_grados():
         # Limpiar datos previos si existen
         session.execute(
             text(
-                "TRUNCATE TABLE estudiante, acudiente, grado, periodo, complementario, detalleprueba CASCADE"
+                "TRUNCATE TABLE estudiante, acudiente, grado, periodo, complementario, tipocomplementario, detalleprueba CASCADE"
             )
         )
         session.commit()
@@ -103,19 +104,22 @@ def seed_grados():
         session.add_all([p1, p2])
 
         # 6. Crear SOLO las 2 pruebas solicitadas: Prueba ICFES y Simulacro
+        tipo_prueba = TipoComplementario(nombre="Prueba", estado=True)
+        session.add(tipo_prueba)
+        session.flush()
         c1 = Complementario(
-            tipo_complementario="Prueba ICFES",
+            nombre="Prueba ICFES",
+            tipo_complementario_id=tipo_prueba.id,
             anio=2026,
             valor=45000,
             estado_complemento="Activo",
-            uso_matricula=False,
         )
         c2 = Complementario(
-            tipo_complementario="Simulacro",
+            nombre="Simulacro",
+            tipo_complementario_id=tipo_prueba.id,
             anio=2026,
             valor=25000,
             estado_complemento="Activo",
-            uso_matricula=False,
         )
         session.add_all([c1, c2])
 
