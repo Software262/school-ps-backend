@@ -1,6 +1,18 @@
 from fastapi import APIRouter, HTTPException, Query, status
 
 from app.core.db import SessionDep
+from app.modules.training_schools.application.create_complementario import (
+    CreateComplementario,
+)
+from app.modules.training_schools.application.create_tipo_complementario import (
+    CreateTipoComplementario,
+)
+from app.modules.training_schools.application.delete_complementario import (
+    DeleteComplementario,
+)
+from app.modules.training_schools.application.delete_tipo_complementario import (
+    DeleteTipoComplementario,
+)
 from app.modules.training_schools.application.enroll_student import EnrollStudent
 from app.modules.training_schools.application.get_enrollments_detail import (
     GetEnrollmentsDetail,
@@ -8,20 +20,20 @@ from app.modules.training_schools.application.get_enrollments_detail import (
 from app.modules.training_schools.application.get_paz_y_salvo import GetPazYSalvo
 from app.modules.training_schools.application.get_periods import GetPeriods
 from app.modules.training_schools.application.get_programs import GetPrograms
-from app.modules.training_schools.application.manage_complementarios import (
-    CreateComplementario,
-    DeleteComplementario,
+from app.modules.training_schools.application.list_complementarios import (
     ListComplementarios,
-    UpdateComplementario,
 )
-from app.modules.training_schools.application.manage_tipos_complementario import (
-    CreateTipoComplementario,
-    DeleteTipoComplementario,
+from app.modules.training_schools.application.list_tipos_complementario import (
     ListTiposComplementario,
-    UpdateTipoComplementario,
 )
 from app.modules.training_schools.application.register_payment import RegisterPayment
 from app.modules.training_schools.application.search_students import SearchStudents
+from app.modules.training_schools.application.update_complementario import (
+    UpdateComplementario,
+)
+from app.modules.training_schools.application.update_tipo_complementario import (
+    UpdateTipoComplementario,
+)
 from app.modules.training_schools.application.withdraw_student import WithdrawStudent
 from app.modules.training_schools.schemas.request import (
     CreateComplementarioRequest,
