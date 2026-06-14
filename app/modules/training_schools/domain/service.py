@@ -177,6 +177,12 @@ class TrainingSchoolService:
             raise ValueError(
                 "El nombre del tipo de complementario debe tener al menos 2 caracteres."
             )
+        nombre = nombre.strip()
+        tipos = await self.enrollment.list_tipos_complementario()
+        if any(tipo.nombre.lower() == nombre.lower() for tipo in tipos):
+            raise ValueError(
+                f"Ya existe un tipo de complementario con el nombre '{nombre}'."
+            )
         if sub_tipo_complementario is not None:
             padre = await self.enrollment.get_tipo_complementario(
                 sub_tipo_complementario
@@ -184,7 +190,7 @@ class TrainingSchoolService:
             if not padre:
                 raise ValueError("El tipo de complementario padre no existe.")
         return await self.enrollment.create_tipo_complementario(
-            nombre=nombre.strip(), sub_tipo_complementario=sub_tipo_complementario
+            nombre=nombre, sub_tipo_complementario=sub_tipo_complementario
         )
 
     async def update_tipo_complementario(
@@ -197,10 +203,20 @@ class TrainingSchoolService:
         existing = await self.enrollment.get_tipo_complementario(tipo_id)
         if not existing:
             raise ValueError("Tipo de complementario no encontrado.")
-        if nombre is not None and len(nombre.strip()) < 2:
-            raise ValueError(
-                "El nombre del tipo de complementario debe tener al menos 2 caracteres."
-            )
+        if nombre is not None:
+            if len(nombre.strip()) < 2:
+                raise ValueError(
+                    "El nombre del tipo de complementario debe tener al menos 2 caracteres."
+                )
+            nombre = nombre.strip()
+            tipos = await self.enrollment.list_tipos_complementario()
+            if any(
+                tipo.id != tipo_id and tipo.nombre.lower() == nombre.lower()
+                for tipo in tipos
+            ):
+                raise ValueError(
+                    f"Ya existe un tipo de complementario con el nombre '{nombre}'."
+                )
         if sub_tipo_complementario is not None:
             if sub_tipo_complementario == tipo_id:
                 raise ValueError(

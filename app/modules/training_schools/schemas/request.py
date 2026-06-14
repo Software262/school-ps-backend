@@ -39,7 +39,7 @@ class UpdateTipoComplementarioRequest(BaseModel):
 class CreateComplementarioRequest(BaseModel):
     nombre: str = Field(..., min_length=2, max_length=50)
     anio: int = Field(..., ge=2000)
-    valor: int = Field(..., ge=0)
+    valor: int = Field(..., ge=0, le=2_147_483_647)
     estado_complemento: str = Field(..., min_length=1, max_length=50)
     tipo_complementario_id: int = Field(..., ge=1)
 
@@ -47,6 +47,6 @@ class CreateComplementarioRequest(BaseModel):
 class UpdateComplementarioRequest(BaseModel):
     nombre: str | None = Field(default=None, min_length=2, max_length=50)
     anio: int | None = Field(default=None, ge=2000)
-    valor: int | None = Field(default=None, ge=0)
+    valor: int | None = Field(default=None, ge=0, le=2_147_483_647)
     estado_complemento: str | None = Field(default=None, min_length=1, max_length=50)
     tipo_complementario_id: int | None = Field(default=None, ge=1)
