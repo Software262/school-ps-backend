@@ -3,30 +3,28 @@ from typing import Annotated
 from fastapi import APIRouter, Query, status
 
 from app.core.db import SessionDep
-
-from app.modules.sports.application.create_item import CreateItemDeportes
-from app.modules.sports.application.update_item import UpdateItemDeportes
+from app.modules.inventory.schemas.response import (
+    CreateItemBorrowingResponse,
+    ReturnItemBorrowingResponse,
+    UpdateItemInventoryResponse,
+)
 from app.modules.sports.application.create_borrowing import CreateBorrowingDeportes
+from app.modules.sports.application.create_item import CreateItemDeportes
 from app.modules.sports.application.edit_single import EditItemDeportes
 from app.modules.sports.application.get_borrowing import GetBorrowingsDeportes
 from app.modules.sports.application.get_items import (
     GetItemsDeportes,
 )
 from app.modules.sports.application.return_borrowing import ReturnBorrowingDeportes
-
+from app.modules.sports.application.update_item import UpdateItemDeportes
 from app.modules.sports.schemas.request import (
+    CreateSportBorrowRequest,
     CreateSportItemRequest,
     FilterPaginationBorrowingDeportes,
     FilterPaginationDeportes,
+    ReturnSportBorrowRequest,
     UpdateItemDeportesComplete,
     UpdateItemDeportesSingle,
-    ReturnSportBorrowRequest,
-    CreateSportBorrowRequest,
-)
-from app.modules.inventory.schemas.response import (
-    CreateItemBorrowingResponse,
-    UpdateItemInventoryResponse,
-    ReturnItemBorrowingResponse,
 )
 from app.shared.utils.response import Response
 
@@ -91,8 +89,7 @@ async def update_sport_item(
         data=UpdateItemInventoryResponse(
             id=data.id,
             nombre=data.nombre,
-            cantidad=data.cantidad,
-            estado_objeto=data.estado_objeto,
+            cantidad_total=data.cantidad_total,
             observacion=data.observacion,
         ),
         message="Articulo deportivo actualizado exitosamente",
@@ -118,8 +115,7 @@ async def edit_sport_item(
         data=UpdateItemInventoryResponse(
             id=data.id,
             nombre=data.nombre,
-            cantidad=data.cantidad,
-            estado_objeto=data.estado_objeto,
+            cantidad_total=data.cantidad_total,
             observacion=data.observacion,
         ),
         message="Articulo deportivo editado exitosamente",

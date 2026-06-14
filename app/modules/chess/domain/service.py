@@ -1,14 +1,14 @@
 from app.modules.chess.infrastructure.repository import ChessRepository
+from app.modules.chess.schemas.request import (
+    CreateChessBorrowRequest,
+    ResolveBorrowNoveltyRequest,
+    ResolveChessNoveltyRequest,
+    ReturnChessBorrowRequest,
+)
 from app.modules.inventory.infrastructure.repository import InventoryRepository
 from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     ReturnBorrowRequest,
-)
-from app.modules.chess.schemas.request import (
-    CreateChessBorrowRequest,
-    ReturnChessBorrowRequest,
-    ResolveChessNoveltyRequest,
-    ResolveBorrowNoveltyRequest,
 )
 
 
@@ -40,10 +40,10 @@ class ChessService:
                 "message": f"El ítem seleccionado (Categoría {item.tipo_inventario_id}) no pertenece a la categoría de ajedrez (ID {tipo_ajedrez.id}).",
             }
 
-        if item.cantidad < data.cantidad:
+        if item.cantidad_total < data.cantidad:
             return {
                 "error": "BAD_REQUEST",
-                "message": f"No hay suficientes tableros disponibles. Solicitados: {data.cantidad}, Stock actual: {item.cantidad}",
+                "message": f"No hay suficientes tableros disponibles. Solicitados: {data.cantidad}, Stock actual: {item.cantidad_total}",
             }
 
         est_id = data.estudiante_id if data.estudiante_id else 1
@@ -86,7 +86,7 @@ class ChessService:
             if item.id is None:
                 raise ValueError("El item de inventario no tiene un ID válido")
             await self.inventory_repo.update_amount_item(
-                item.id, item.cantidad + prestamo.cantidad
+                item.id, item.cantidad_total + prestamo.cantidad
             )
 
         novedad_creada = False

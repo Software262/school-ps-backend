@@ -1,18 +1,24 @@
 from typing import Sequence
 
 from app.modules.inventory.application.contracts import InventoryEnrollmentService
-from app.modules.inventory.domain.entities import Borrowing
+from app.modules.inventory.domain.entities import (
+    Borrowing,
+    GetInventoryItem,
+    StockState,
+)
 from app.modules.inventory.domain.repositories import InventoryRepository
 from app.modules.inventory.infrastructure.models import Prestamo
 from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     CreateItemRequest,
     CreateTypeInventoryRequest,
+    FilterPaginationBorrowings,
     FilterPaginationInventory,
     FilterPaginationTypesInventory,
     InventoryItemRequest,
     ReturnBorrowRequest,
     UpdateCompleteItemRequest,
+    UpdateSingleItemExtenseRequest,
     UpdateSingleItemRequest,
 )
 from app.shared.utils.filter_pagination import calculate_offset
@@ -26,25 +32,76 @@ class InventoryService:
     ):
         self.repository = repository
         self.service = enrollment
+        self.available_states = "disponible"
+        self.borrowed_states = "prestado"
+        self.maintenance_states = "mantenimiento"
 
     async def get_inventory(self, filter_pagination: FilterPaginationInventory):
         offset = calculate_offset(filter_pagination.page, filter_pagination.limit)
 
-        if not filter_pagination.item_type:
-            return await self.repository.get_items_filter_pagination(
-                offset=offset, limit=filter_pagination.limit, type_id=None
+        type_id = None
+        if filter_pagination.item_type:
+            type_id = await self.repository.get_type_id_by_name(
+                filter_pagination.item_type
             )
+            if type_id is None:
+                return 0, []
 
-        type_id = await self.repository.get_type_id_by_name(filter_pagination.item_type)
-
-        if type_id is None:
-            return 0, []
-
-        return await self.repository.get_items_filter_pagination(
+        count, inventarios = await self.repository.get_items_filter_pagination(
             offset=offset,
             limit=filter_pagination.limit,
             type_id=type_id,
+            q=filter_pagination.q,
         )
+
+        inv_ids = [inv.id for inv in inventarios if inv.id is not None]
+        stock_rows = await self.repository.get_stocks_by_item_ids(inv_ids)
+
+        stocks_by_item: dict[int, list[StockState]] = {}
+        for stock, state in stock_rows:
+            stocks_by_item.setdefault(stock.inventario_id, []).append(
+                StockState(estado=state.nombre, cantidad=stock.cantidad)
+            )
+
+        return count, [
+            GetInventoryItem(
+                id=inv.id,
+                tipo_inventario_id=inv.tipo_inventario_id,
+                nombre=inv.nombre,
+                cantidad_total=inv.cantidad_total,
+                observacion=inv.observacion,
+                stocks=stocks_by_item.get(inv.id, []),
+            )
+            for inv in inventarios
+            if inv.id is not None
+        ]
+
+    async def get_statics(self, type_name: str):
+        ids = await self.repository.get_all_inventory(type_name=type_name)
+
+        inv_ids: list[int] = []
+        amount_inventory: int = 0
+        for id, amount in ids:
+            if id is not None:
+                inv_ids.append(id)
+                amount_inventory += amount
+
+        stock_rows = await self.repository.get_stocks_by_item_ids(list(inv_ids))
+
+        count_available = 0
+        count_borrowed = 0
+        count_maintenance = 0
+        for stock, state in stock_rows:
+            if state.nombre == self.available_states:
+                count_available += stock.cantidad
+
+            if state.nombre == self.borrowed_states:
+                count_borrowed += stock.cantidad
+
+            if state.nombre == self.maintenance_states:
+                count_maintenance += stock.cantidad
+
+        return amount_inventory, count_available, count_borrowed, count_maintenance
 
     async def get_types_inventory(
         self, filter_pagination: FilterPaginationTypesInventory
@@ -78,36 +135,130 @@ class InventoryService:
         if not item:
             return None
 
-        if self.service:
-            student = self.service.get_student_by_id(
-                student_id=borrow_data.estudiante_id
-            )
-
-            if not student:
-                return None
-
-            if not student.activo:
-                return None
-
-        if borrow_data.cantidad > item.cantidad:
-            return None
-
         if not item.id:
             return None
 
-        borrow = await self.repository.create_borrow(borrow_data)
+        student = self.service.get_student_by_id(student_id=borrow_data.estudiante_id)
 
-        if not borrow:
+        if not student:
             return None
 
-        item.cantidad -= borrow_data.cantidad
+        if not student.activo:
+            return None
 
-        await self.repository.update_amount_item(item.id, item.cantidad)
+        available_state_id = await self.repository.get_state_id_by_name(
+            self.available_states
+        )
+
+        if not available_state_id:
+            return None
+
+        inventory_available_stock = await self.repository.get_inventory_stock(
+            state_id=available_state_id,
+            item_id=item.id,
+        )
+
+        if not inventory_available_stock:
+            return None
+
+        if inventory_available_stock.cantidad < borrow_data.cantidad:
+            return None
+
+        borrow_state_id = await self.repository.get_state_id_by_name(
+            self.borrowed_states
+        )
+
+        if not borrow_state_id:
+            return None
+
+        inventory_stock = await self.repository.get_inventory_stock(
+            state_id=borrow_state_id,
+            item_id=item.id,
+        )
+
+        if not inventory_stock:
+            return None
+
+        await self.repository.set_amount_stock_category(
+            item_id=item.id,
+            amount=(inventory_available_stock.cantidad - borrow_data.cantidad),
+            category_name=self.available_states,
+        )
+
+        await self.repository.set_amount_stock_category(
+            item_id=item.id,
+            amount=(inventory_stock.cantidad + borrow_data.cantidad),
+            category_name=self.borrowed_states,
+        )
+
+        borrow = await self.repository.create_borrow(
+            borrow_data=borrow_data,
+        )
 
         return borrow
 
-    async def edit_item(self, item_id: int, item_data: UpdateSingleItemRequest):
-        return await self.repository.edit_item(id=item_id, item_data=item_data)
+    async def edit_item(self, item_id: int, item_data: UpdateSingleItemExtenseRequest):
+        item = await self.repository.get_item_by_id(item_id)
+        if not item:
+            return None
+
+        base_fields = ("tipo_inventario_id", "nombre", "cantidad_total", "observacion")
+        set_fields = {
+            k: v
+            for k, v in item_data.model_dump(exclude_unset=True).items()
+            if k in base_fields
+        }
+        data = UpdateSingleItemRequest(**set_fields)
+
+        stock_fields = (
+            item_data.cantidad_disponible,
+            item_data.cantidad_mantenimiento,
+        )
+        any_stock_provided = any(f is not None for f in stock_fields)
+        stock_rows = await self.repository.get_stocks_by_item_ids([item_id])
+        current: dict[str, int] = {
+            state.nombre: (stock.cantidad or 0) for stock, state in stock_rows
+        }
+        prest = current.get(self.borrowed_states, 0)
+
+        if any_stock_provided or item_data.cantidad_total is not None:
+            cantidad_total = (
+                item_data.cantidad_total
+                if item_data.cantidad_total is not None
+                else item.cantidad_total
+            )
+
+            disp = (
+                item_data.cantidad_disponible
+                if item_data.cantidad_disponible is not None
+                else current.get(self.available_states, 0)
+            )
+            mant = (
+                item_data.cantidad_mantenimiento
+                if item_data.cantidad_mantenimiento is not None
+                else current.get(self.maintenance_states, 0)
+            )
+
+            if disp + prest + mant != cantidad_total:
+                return None
+
+        update = await self.repository.edit_item(id=item_id, item_data=data)
+
+        if update and item_data.cantidad_disponible is not None:
+            await self.repository.set_amount_stock_category(
+                item_id=item_id,
+                amount=item_data.cantidad_disponible,
+                category_name=self.available_states,
+            )
+
+        if update and item_data.cantidad_mantenimiento is not None:
+            await self.repository.set_amount_stock_category(
+                item_id=item_id,
+                amount=item_data.cantidad_mantenimiento,
+                category_name=self.maintenance_states,
+            )
+
+        return update
 
     async def return_borrow(self, borrow_id: int, borrow_data: ReturnBorrowRequest):
         item = await self.repository.get_item_by_id(borrow_data.inventario_id)
@@ -133,19 +284,49 @@ class InventoryService:
         if borrow.cantidad != borrow_data.cantidad:
             return None
 
-        item.cantidad += borrow_data.cantidad
-
-        await self.repository.update_amount_item(item.id, item.cantidad)
-
-        return await self.repository.return_borrow(
+        borrow = await self.repository.return_borrow(
             borrow_id=borrow_id, borrow_data=borrow_data
         )
+
+        type_available_id = await self.repository.get_state_id_by_name(
+            self.available_states
+        )
+        type_borrowed_id = await self.repository.get_state_id_by_name(
+            self.borrowed_states
+        )
+
+        if not type_available_id or not type_borrowed_id:
+            return None
+
+        stock_available = await self.repository.get_inventory_stock(
+            state_id=type_available_id, item_id=item.id
+        )
+        stock_borrowed = await self.repository.get_inventory_stock(
+            state_id=type_borrowed_id, item_id=item.id
+        )
+
+        if not stock_available or not stock_borrowed:
+            return None
+
+        await self.repository.set_amount_stock_category(
+            item_id=item.id,
+            amount=(stock_available.cantidad + borrow_data.cantidad),
+            category_name=self.available_states,
+        )
+
+        await self.repository.set_amount_stock_category(
+            item_id=item.id,
+            amount=(stock_borrowed.cantidad - borrow_data.cantidad),
+            category_name=self.borrowed_states,
+        )
+
+        return borrow
 
     async def format_borrowing(self, borrowings: Sequence[Prestamo]):
         result: list[Borrowing] = []
 
         for p in borrowings:
-            if p.id is None or self.service is None:
+            if p.id is None:
                 continue
 
             item = await self.repository.get_item_by_id(p.inventario_id)
@@ -176,30 +357,26 @@ class InventoryService:
         return result
 
     async def get_borrowings(
-        self, filter_pagination: FilterPaginationInventory, active: bool | None
+        self,
+        filter_pagination: FilterPaginationBorrowings,
     ):
         offset = calculate_offset(filter_pagination.page, filter_pagination.limit)
 
-        if not filter_pagination.item_type:
-            count, borrowings = await self.repository.get_borrowings_pagination(
-                offset=offset,
-                limit=filter_pagination.limit,
-                active=active,
-                type_id=None,
+        type_id: int | None = None
+        if filter_pagination.item_type:
+            type_id = await self.repository.get_type_id_by_name(
+                filter_pagination.item_type
             )
 
-            return count, (await self.format_borrowing(borrowings=borrowings))
-
-        type_id = await self.repository.get_type_id_by_name(filter_pagination.item_type)
-
-        if type_id is None:
-            return 0, []
+            if type_id is None:
+                return 0, []
 
         count, borrowings = await self.repository.get_borrowings_pagination(
             offset=offset,
             limit=filter_pagination.limit,
-            active=active,
+            active=filter_pagination.active,
             type_id=type_id,
+            q=filter_pagination.q,
         )
 
         return count, (await self.format_borrowing(borrowings=borrowings))
