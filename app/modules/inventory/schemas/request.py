@@ -44,6 +44,18 @@ class UpdateSingleItemRequest(BaseModel):
     observacion: str | None = Field(None, description="Observación del item")
 
 
+class UpdateSingleItemExtenseRequest(UpdateSingleItemRequest):
+    cantidad_disponible: int | None = Field(
+        None, ge=0, description="Cantidad disponible del item"
+    )
+    cantidad_prestado: int | None = Field(
+        None, ge=0, description="Cantidad prestada del item"
+    )
+    cantidad_mantenimiento: int | None = Field(
+        None, ge=0, description="Cantidad en mantenimiento del item"
+    )
+
+
 class UpdateCompleteItemRequest(BaseModel):
     tipo_inventario_id: int = Field(
         ge=1, description="ID del tipo de inventario al que pertenece el item"

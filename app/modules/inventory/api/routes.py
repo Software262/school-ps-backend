@@ -28,7 +28,7 @@ from app.modules.inventory.schemas.request import (
     FilterPaginationTypesInventory,
     ReturnBorrowRequest,
     UpdateCompleteItemRequest,
-    UpdateSingleItemRequest,
+    UpdateSingleItemExtenseRequest,
 )
 from app.modules.inventory.schemas.response import (
     CreateItemBorrowingResponse,
@@ -339,7 +339,9 @@ async def return_borrowing(
 
 @router.patch("/items/{item_id}")
 async def edit_item(
-    session: SessionDep, item_id: int, update_item_request: UpdateSingleItemRequest
+    session: SessionDep,
+    item_id: int,
+    update_item_request: UpdateSingleItemExtenseRequest,
 ):
     edit_item_app = EditSingleItem(session=session)
     data = await edit_item_app.execute(item_id, update_item_request)

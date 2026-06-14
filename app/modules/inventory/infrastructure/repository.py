@@ -207,8 +207,8 @@ class InventoryRepository(InventoryRepositoryInterface):
 
     async def edit_item(self, id: int, item_data: UpdateSingleItemRequest):
         item = self.session.exec(select(Inventario).where(Inventario.id == id)).one()
-
         update_data = item_data.model_dump(exclude_unset=True)
+
         for field, value in update_data.items():
             setattr(item, field, value)
 

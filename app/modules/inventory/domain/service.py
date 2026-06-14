@@ -17,6 +17,7 @@ from app.modules.inventory.schemas.request import (
     InventoryItemRequest,
     ReturnBorrowRequest,
     UpdateCompleteItemRequest,
+    UpdateSingleItemExtenseRequest,
     UpdateSingleItemRequest,
 )
 from app.shared.utils.filter_pagination import calculate_offset
@@ -188,8 +189,40 @@ class InventoryService:
 
         return borrow
 
-    async def edit_item(self, item_id: int, item_data: UpdateSingleItemRequest):
-        return await self.repository.edit_item(id=item_id, item_data=item_data)
+    async def edit_item(self, item_id: int, item_data: UpdateSingleItemExtenseRequest):
+        base_fields = ("tipo_inventario_id", "nombre", "cantidad_total", "observacion")
+        set_fields = {
+            k: v
+            for k, v in item_data.model_dump(exclude_unset=True).items()
+            if k in base_fields
+        }
+
+        data = UpdateSingleItemRequest(**set_fields)
+
+        update = await self.repository.edit_item(id=item_id, item_data=data)
+
+        if update and item_data.cantidad_disponible:
+            await self.repository.set_amount_stock_category(
+                item_id=item_id,
+                amount=item_data.cantidad_disponible,
+                category_name="disponible",
+            )
+
+        if update and item_data.cantidad_prestado:
+            await self.repository.set_amount_stock_category(
+                item_id=item_id,
+                amount=item_data.cantidad_prestado,
+                category_name="prestado",
+            )
+
+        if update and item_data.cantidad_mantenimiento:
+            await self.repository.set_amount_stock_category(
+                item_id=item_id,
+                amount=item_data.cantidad_mantenimiento,
+                category_name="mantenimiento",
+            )
+
+        return update
 
     async def return_borrow(self, borrow_id: int, borrow_data: ReturnBorrowRequest):
         item = await self.repository.get_item_by_id(borrow_data.inventario_id)
