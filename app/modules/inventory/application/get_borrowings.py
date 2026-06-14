@@ -16,5 +16,4 @@ class GetBorrowings:
     async def execute(self, filter_pagination: FilterPaginationBorrowings):
         return await self.service.get_borrowings(
             filter_pagination=filter_pagination,
-            active=filter_pagination.active,
         )

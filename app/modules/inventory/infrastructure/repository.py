@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Sequence
 
-from sqlmodel import col, func, select
+from sqlmodel import col, func, or_, select
 
 from app.core.db import SessionDep
 from app.modules.inventory.domain.repositories import (
@@ -40,7 +40,7 @@ class InventoryRepository(InventoryRepositoryInterface):
         return result.id
 
     async def get_items_filter_pagination(
-        self, offset: int, limit: int, type_id: int | None
+        self, offset: int, limit: int, type_id: int | None, q: str | None
     ):
         inv_query = select(Inventario).offset(offset).limit(limit)
         count_query = select(func.count(col(Inventario.id)))
@@ -48,6 +48,20 @@ class InventoryRepository(InventoryRepositoryInterface):
         if type_id is not None:
             inv_query = inv_query.where(Inventario.tipo_inventario_id == type_id)
             count_query = count_query.where(Inventario.tipo_inventario_id == type_id)
+
+        if q is not None:
+            inv_query = inv_query.where(
+                or_(
+                    col(Inventario.nombre).ilike(f"%{q.lower()}%"),
+                    col(Inventario.observacion).ilike(f"%{q.lower()}%"),
+                )
+            )
+            count_query = count_query.where(
+                or_(
+                    col(Inventario.nombre).ilike(f"%{q.lower()}%"),
+                    col(Inventario.observacion).ilike(f"%{q.lower()}%"),
+                )
+            )
 
         return self.session.exec(count_query).one(), self.session.exec(inv_query).all()
 
@@ -243,7 +257,7 @@ class InventoryRepository(InventoryRepositoryInterface):
 
         return None
 
-    async def get_borrowing(self, borrow_id: int) -> Prestamo | None:
+    async def get_borrowing(self, borrow_id: int):
         borrow = self.session.exec(
             select(Prestamo).where(Prestamo.id == borrow_id)
         ).first()
@@ -274,8 +288,13 @@ class InventoryRepository(InventoryRepositoryInterface):
         return borrow
 
     async def get_borrowings_pagination(
-        self, offset: int, limit: int, active: bool | None, type_id: int | None
-    ) -> tuple[int, Sequence[Prestamo]]:
+        self,
+        offset: int,
+        limit: int,
+        active: bool | None,
+        type_id: int | None,
+        q: str | None,
+    ):
         query = select(Prestamo)
         query_count = select(func.count(col(Prestamo.id)))
 
@@ -289,6 +308,14 @@ class InventoryRepository(InventoryRepositoryInterface):
             )
             query_count = query_count.join(Inventario).where(
                 Inventario.tipo_inventario_id == type_id
+            )
+
+        if q is not None:
+            query = query.join(Inventario).where(
+                col(Inventario.nombre).ilike(f"%{q.lower()}%")
+            )
+            query_count = query_count.join(Inventario).where(
+                col(Inventario.nombre).ilike(f"%{q.lower()}%")
             )
 
         return self.session.exec(query_count).one(), self.session.exec(
@@ -312,7 +339,7 @@ class InventoryRepository(InventoryRepositoryInterface):
 
         return inventory
 
-    async def create_novedad(self, prestamo_id: int, descripcion: str) -> Novedad:
+    async def create_novedad(self, prestamo_id: int, descripcion: str):
         nueva_novedad = Novedad(
             prestamo_id=prestamo_id, descripcion=descripcion, resuelta=False
         )
@@ -321,19 +348,19 @@ class InventoryRepository(InventoryRepositoryInterface):
         self.session.refresh(nueva_novedad)
         return nueva_novedad
 
-    async def finalize_chess_return(self, borrow: Prestamo, item: Inventario) -> None:
+    async def finalize_chess_return(self, borrow: Prestamo, item: Inventario):
         self.session.add(borrow)
         self.session.add(item)
         self.session.commit()
         self.session.refresh(borrow)
         self.session.refresh(item)
 
-    async def get_novedad_by_borrow_id(self, prestamo_id: int) -> Novedad | None:
+    async def get_novedad_by_borrow_id(self, prestamo_id: int):
         return self.session.exec(
             select(Novedad).where(Novedad.prestamo_id == prestamo_id)
         ).first()
 
-    async def update_item_estado(self, item_id: int, estado: str) -> Inventario:
+    async def update_item_estado(self, item_id: int, estado: str):
         item = self.session.exec(
             select(Inventario).where(Inventario.id == item_id)
         ).one()
@@ -345,9 +372,7 @@ class InventoryRepository(InventoryRepositoryInterface):
 
         return item
 
-    async def update_borrow_observacion(
-        self, prestamo_id: int, observacion: str
-    ) -> Prestamo:
+    async def update_borrow_observacion(self, prestamo_id: int, observacion: str):
         prestamo = self.session.exec(
             select(Prestamo).where(Prestamo.id == prestamo_id)
         ).one()

@@ -12,10 +12,12 @@ class FilterPaginationTypesInventory(FilterPagination):
 
 class FilterPaginationInventory(FilterPagination):
     item_type: Literal["banda", "deporte", "ajedrez"] | None = None
+    q: str | None = Field(None, description="Buscar por nombre o observación")
 
 
 class FilterPaginationBorrowings(FilterPaginationInventory):
     active: bool | None = None
+    q: str | None = Field(None, description="Buscar por nombre articulo")
 
 
 class CreateTypeInventoryRequest(BaseModel):
@@ -47,9 +49,6 @@ class UpdateSingleItemRequest(BaseModel):
 class UpdateSingleItemExtenseRequest(UpdateSingleItemRequest):
     cantidad_disponible: int | None = Field(
         None, ge=0, description="Cantidad disponible del item"
-    )
-    cantidad_prestado: int | None = Field(
-        None, ge=0, description="Cantidad prestada del item"
     )
     cantidad_mantenimiento: int | None = Field(
         None, ge=0, description="Cantidad en mantenimiento del item"

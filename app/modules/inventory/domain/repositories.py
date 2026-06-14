@@ -26,7 +26,7 @@ class InventoryRepository(ABC):
 
     @abstractmethod
     async def get_items_filter_pagination(
-        self, offset: int, limit: int, type_id: int | None
+        self, offset: int, limit: int, type_id: int | None, q: str | None
     ) -> tuple[int, Sequence[Inventario]]:
         pass
 
@@ -116,7 +116,12 @@ class InventoryRepository(ABC):
 
     @abstractmethod
     async def get_borrowings_pagination(
-        self, offset: int, limit: int, active: bool | None, type_id: int | None
+        self,
+        offset: int,
+        limit: int,
+        active: bool | None,
+        type_id: int | None,
+        q: str | None,
     ) -> tuple[int, Sequence[Prestamo]]:
         pass
 

@@ -15,7 +15,7 @@ from app.modules.enrollment.infrastructure.models import (
     Periodo,
     TipoComplementario,
 )
-from app.modules.inventory.infrastructure.models import TipoInventario
+from app.modules.inventory.infrastructure.models import EstadoInventario, TipoInventario
 from app.modules.tuition.infrastructure.models import ParametrizarPension, Pension
 
 
@@ -44,6 +44,12 @@ def main():
         TipoInventario(nombre="banda"),
         TipoInventario(nombre="deporte"),
         TipoInventario(nombre="ajedrez"),
+    ]
+
+    estados_inventario: list[EstadoInventario] = [
+        EstadoInventario(nombre="disponible"),
+        EstadoInventario(nombre="prestado"),
+        EstadoInventario(nombre="mantenimiento"),
     ]
 
     docentes: list[Docente] = [
@@ -108,6 +114,7 @@ def main():
         session.add_all(acudientes)
         session.add_all(tipos_inventario)
         session.add_all(tipos_complementario)
+        session.add_all(estados_inventario)
         session.flush()
 
         grados: list[Grado] = [
