@@ -295,26 +295,20 @@ class InventoryRepository(InventoryRepositoryInterface):
         type_id: int | None,
         q: str | None,
     ):
-        query = select(Prestamo)
-        query_count = select(func.count(col(Prestamo.id)))
+        query = select(Prestamo).join(Inventario)
+        query_count = select(func.count(col(Prestamo.id))).join(Inventario)
 
         if active is not None:
             query = query.where(Prestamo.estado_prestamo == active)
             query_count = query_count.where(Prestamo.estado_prestamo == active)
 
         if type_id is not None:
-            query = query.join(Inventario).where(
-                Inventario.tipo_inventario_id == type_id
-            )
-            query_count = query_count.join(Inventario).where(
-                Inventario.tipo_inventario_id == type_id
-            )
+            query = query.where(Inventario.tipo_inventario_id == type_id)
+            query_count = query_count.where(Inventario.tipo_inventario_id == type_id)
 
         if q is not None:
-            query = query.join(Inventario).where(
-                col(Inventario.nombre).ilike(f"%{q.lower()}%")
-            )
-            query_count = query_count.join(Inventario).where(
+            query = query.where(col(Inventario.nombre).ilike(f"%{q.lower()}%"))
+            query_count = query_count.where(
                 col(Inventario.nombre).ilike(f"%{q.lower()}%")
             )
 
