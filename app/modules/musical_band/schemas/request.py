@@ -8,7 +8,7 @@ from app.modules.inventory.schemas.request import (
     FilterPaginationBorrowings,
     FilterPaginationInventory,
     ReturnBorrowRequest,
-    UpdateSingleItemRequest,
+    UpdateSingleItemExtenseRequest,
 )
 
 
@@ -36,7 +36,7 @@ class CreateInstrumentRequest(CreateItemRequest):
     pass
 
 
-class UpdateItemMusicalBand(UpdateSingleItemRequest):
+class UpdateItemMusicalBand(UpdateSingleItemExtenseRequest):
     pass
 
 

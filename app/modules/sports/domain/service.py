@@ -8,7 +8,7 @@ from app.modules.inventory.schemas.request import (
     CreateItemRequest,
     ReturnBorrowRequest,
     UpdateCompleteItemRequest,
-    UpdateSingleItemRequest,
+    UpdateSingleItemExtenseRequest,
 )
 
 
@@ -52,7 +52,7 @@ class SportsService(InventoryService):
         await self.validate_sport_type(item_data.tipo_inventario_id)
         return await super().update_item(item_id=item_id, item_data=item_data)
 
-    async def edit_item(self, item_id: int, item_data: UpdateSingleItemRequest):
+    async def edit_item(self, item_id: int, item_data: UpdateSingleItemExtenseRequest):
         if item_data.tipo_inventario_id is not None:
             await self.validate_sport_type(item_data.tipo_inventario_id)
         return await super().edit_item(item_id=item_id, item_data=item_data)

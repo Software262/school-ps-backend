@@ -31,6 +31,9 @@ class InventoryService:
     ):
         self.repository = repository
         self.service = enrollment
+        self.available_states = "disponible"
+        self.borrowed_states = "prestado"
+        self.maintenance_states = "mantenimiento"
 
     async def get_inventory(self, filter_pagination: FilterPaginationInventory):
         offset = calculate_offset(filter_pagination.page, filter_pagination.limit)
@@ -85,13 +88,13 @@ class InventoryService:
         count_borrowed = 0
         count_maintenance = 0
         for stock, state in stock_rows:
-            if state.nombre == "disponible":
+            if state.nombre == self.available_states:
                 count_available += stock.cantidad
 
-            if state.nombre == "prestado":
+            if state.nombre == self.borrowed_states:
                 count_borrowed += stock.cantidad
 
-            if state.nombre == "mantenimiento":
+            if state.nombre == self.maintenance_states:
                 count_maintenance += stock.cantidad
 
         return amount_inventory, count_available, count_borrowed, count_maintenance
@@ -142,7 +145,9 @@ class InventoryService:
             if not student.activo:
                 return None
 
-        available_state_id = await self.repository.get_state_id_by_name("disponible")
+        available_state_id = await self.repository.get_state_id_by_name(
+            self.available_states
+        )
 
         if not available_state_id:
             return None
@@ -158,7 +163,9 @@ class InventoryService:
         if inventory_available_stock.cantidad < borrow_data.cantidad:
             return None
 
-        borrow_state_id = await self.repository.get_state_id_by_name("prestado")
+        borrow_state_id = await self.repository.get_state_id_by_name(
+            self.borrowed_states
+        )
 
         if not borrow_state_id:
             return None
@@ -174,13 +181,13 @@ class InventoryService:
         await self.repository.set_amount_stock_category(
             item_id=item.id,
             amount=(inventory_available_stock.cantidad - borrow_data.cantidad),
-            category_name="disponible",
+            category_name=self.available_states,
         )
 
         await self.repository.set_amount_stock_category(
             item_id=item.id,
             amount=(inventory_stock.cantidad + borrow_data.cantidad),
-            category_name="prestado",
+            category_name=self.borrowed_states,
         )
 
         borrow = await self.repository.create_borrow(
@@ -205,21 +212,21 @@ class InventoryService:
             await self.repository.set_amount_stock_category(
                 item_id=item_id,
                 amount=item_data.cantidad_disponible,
-                category_name="disponible",
+                category_name=self.available_states,
             )
 
         if update and item_data.cantidad_prestado:
             await self.repository.set_amount_stock_category(
                 item_id=item_id,
                 amount=item_data.cantidad_prestado,
-                category_name="prestado",
+                category_name=self.borrowed_states,
             )
 
         if update and item_data.cantidad_mantenimiento:
             await self.repository.set_amount_stock_category(
                 item_id=item_id,
                 amount=item_data.cantidad_mantenimiento,
-                category_name="mantenimiento",
+                category_name=self.maintenance_states,
             )
 
         return update
@@ -252,11 +259,12 @@ class InventoryService:
             borrow_id=borrow_id, borrow_data=borrow_data
         )
 
-        available = "disponible"
-        borrowed = "prestado"
-
-        type_available_id = await self.repository.get_state_id_by_name(available)
-        type_borrowed_id = await self.repository.get_state_id_by_name(borrowed)
+        type_available_id = await self.repository.get_state_id_by_name(
+            self.available_states
+        )
+        type_borrowed_id = await self.repository.get_state_id_by_name(
+            self.borrowed_states
+        )
 
         if not type_available_id or not type_borrowed_id:
             return None
@@ -274,13 +282,13 @@ class InventoryService:
         await self.repository.set_amount_stock_category(
             item_id=item.id,
             amount=(stock_available.cantidad + borrow_data.cantidad),
-            category_name=available,
+            category_name=self.available_states,
         )
 
         await self.repository.set_amount_stock_category(
             item_id=item.id,
             amount=(stock_borrowed.cantidad - borrow_data.cantidad),
-            category_name=borrowed,
+            category_name=self.borrowed_states,
         )
 
         return borrow
