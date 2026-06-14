@@ -1,12 +1,14 @@
+from app.modules.inventory.application.contracts import InventoryEnrollmentService
 from app.modules.inventory.domain.repositories import InventoryRepository
 from app.modules.inventory.domain.service import InventoryService
 
 
 from app.modules.inventory.schemas.request import (
+    CreateBorrowRequest,
     CreateItemRequest,
     ReturnBorrowRequest,
     UpdateCompleteItemRequest,
-    UpdateSingleItemRequest,
+    UpdateSingleItemExtenseRequest,
 )
 
 
@@ -23,8 +25,10 @@ class SportItemNotFound(Exception):
 
 
 class SportsService(InventoryService):
-    def __init__(self, repository: InventoryRepository):
-        super().__init__(repository=repository)
+    def __init__(
+        self, repository: InventoryRepository, enrollment: InventoryEnrollmentService
+    ):
+        super().__init__(repository=repository, enrollment=enrollment)
 
     async def validate_sport_type(self, tipo_inventario_id: int):
 
@@ -48,7 +52,7 @@ class SportsService(InventoryService):
         await self.validate_sport_type(item_data.tipo_inventario_id)
         return await super().update_item(item_id=item_id, item_data=item_data)
 
-    async def edit_item(self, item_id: int, item_data: UpdateSingleItemRequest):
+    async def edit_item(self, item_id: int, item_data: UpdateSingleItemExtenseRequest):
         if item_data.tipo_inventario_id is not None:
             await self.validate_sport_type(item_data.tipo_inventario_id)
         return await super().edit_item(item_id=item_id, item_data=item_data)
@@ -56,3 +60,10 @@ class SportsService(InventoryService):
     async def return_borrow(self, borrow_id: int, borrow_data: ReturnBorrowRequest):
         await self.validate_sport_type(borrow_data.inventario_id)
         return await super().return_borrow(borrow_id=borrow_id, borrow_data=borrow_data)
+
+    async def create_borrow(self, borrow_data: CreateBorrowRequest):
+        item = await self.repository.get_item_by_id(borrow_data.inventario_id)
+        if not item:
+            return None
+        await self.validate_sport_type(item.tipo_inventario_id)
+        return await super().create_borrow(borrow_data=borrow_data)

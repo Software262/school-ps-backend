@@ -14,6 +14,7 @@ from app.modules.inventory.application.create_type_inventory import CreateTypeIn
 from app.modules.inventory.application.edit_single_item import EditSingleItem
 from app.modules.inventory.application.get_borrowings import GetBorrowings
 from app.modules.inventory.application.get_items_inventory import GetItemsInventory
+from app.modules.inventory.application.get_statics import GetStatsInventory
 from app.modules.inventory.application.get_type_by_name import GetTypeByName
 from app.modules.inventory.application.get_types_inventory import GetTypesInventory
 from app.modules.inventory.application.return_borrowing import ReturnBorrowing
@@ -27,12 +28,13 @@ from app.modules.inventory.schemas.request import (
     FilterPaginationTypesInventory,
     ReturnBorrowRequest,
     UpdateCompleteItemRequest,
-    UpdateSingleItemRequest,
+    UpdateSingleItemExtenseRequest,
 )
 from app.modules.inventory.schemas.response import (
     CreateItemBorrowingResponse,
     CreateItemInventoryResponse,
     CreateTypeInventoryResponse,
+    GetInventoryStatsResponse,
     ReturnItemBorrowingResponse,
     UpdateItemInventoryResponse,
 )
@@ -48,7 +50,7 @@ async def get_inventory(
     filter_pagination_query: Annotated[FilterPaginationInventory, Query()],
 ):
     inventory_app = GetItemsInventory(session=session)
-    data = await inventory_app.execute(filter_pagination=filter_pagination_query)
+    total, data = await inventory_app.execute(filter_pagination=filter_pagination_query)
 
     return (
         Response(
@@ -58,10 +60,37 @@ async def get_inventory(
             details={"message": "Inventario obtenido exitosamente"},
         )
         .filterPagination(
-            page=filter_pagination_query.page, limit=filter_pagination_query.limit
+            page=filter_pagination_query.page,
+            limit=filter_pagination_query.limit,
+            total=total,
         )
         .to_dict()
     )
+
+
+@router.get("/stats")
+async def get_stats_inventory(
+    session: SessionDep, type_name: Literal["banda", "deporte", "ajedrez"]
+):
+    stats_app = GetStatsInventory(session=session)
+    (
+        total_items,
+        available_items,
+        borrowed_items,
+        maintenance_items,
+    ) = await stats_app.execute(type_name=type_name)
+
+    return Response(
+        data=GetInventoryStatsResponse(
+            total_items=total_items,
+            total_disponibles=available_items,
+            total_prestados=borrowed_items,
+            total_mantenimiento=maintenance_items,
+        ).model_dump(),
+        message="Estadísticas obtenidas exitosamente",
+        status_code=status.HTTP_200_OK,
+        details={"message": "Estadísticas obtenidas exitosamente"},
+    ).to_dict()
 
 
 @router.post("/items")
@@ -69,11 +98,12 @@ async def create_item(session: SessionDep, create_item_request: CreateItemReques
     create_item_app = CreateItemInventory(session=session)
     data = await create_item_app.execute(create_item_request)
 
-    if not data.id:
+    if not data:
         return Response(
             data=None,
             message="Error al crear el articulo",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            success=False,
             details={"message": "Error al crear el articulo"},
         ).to_dict()
 
@@ -82,6 +112,16 @@ async def create_item(session: SessionDep, create_item_request: CreateItemReques
             data=None,
             message="Error al crear el articulo",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            success=False,
+            details={"message": "Error al crear el articulo"},
+        ).to_dict()
+
+    if not data.id:
+        return Response(
+            data=None,
+            message="Error al crear el articulo",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            success=False,
             details={"message": "Error al crear el articulo"},
         ).to_dict()
 
@@ -89,8 +129,7 @@ async def create_item(session: SessionDep, create_item_request: CreateItemReques
         data=CreateItemInventoryResponse(
             id=data.id,
             nombre=data.nombre,
-            cantidad=data.cantidad,
-            estado_objeto=data.estado_objeto,
+            cantidad_total=data.cantidad_total,
             observacion=data.observacion,
         ),
         message="Articulo creado exitosamente",
@@ -111,6 +150,7 @@ async def create_type_inventory(
             data=None,
             message="Error al crear el tipo de inventario",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            success=False,
             details={"message": "Error al crear el tipo de inventario"},
         ).to_dict()
 
@@ -128,7 +168,7 @@ async def get_types_inventory(
     filter_pagination_query: Annotated[FilterPaginationTypesInventory, Query()],
 ):
     inventory_app = GetTypesInventory(session=session)
-    data = await inventory_app.execute(filter_pagination=filter_pagination_query)
+    total, data = await inventory_app.execute(filter_pagination=filter_pagination_query)
 
     return (
         Response(
@@ -138,7 +178,9 @@ async def get_types_inventory(
             details={"message": "tipos de inventario obtenido exitosamente"},
         )
         .filterPagination(
-            page=filter_pagination_query.page, limit=filter_pagination_query.limit
+            page=filter_pagination_query.page,
+            limit=filter_pagination_query.limit,
+            total=total,
         )
         .to_dict()
     )
@@ -155,6 +197,7 @@ async def get_types_by_name(
         return Response(
             data=data,
             message="tipo de inventario no existente",
+            success=False,
             status_code=status.HTTP_400_BAD_REQUEST,
             details={"message": "tipo de inventario no existente"},
         ).to_dict()
@@ -179,6 +222,7 @@ async def update_item(
             data=None,
             message="Error al actualizar el articulo",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            success=False,
             details={"message": "Error al actualizar el articulo"},
         ).to_dict()
 
@@ -187,6 +231,7 @@ async def update_item(
             data=None,
             message="Error al actualizar el articulo",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            success=False,
             details={"message": "Error al actualizar el articulo"},
         ).to_dict()
 
@@ -194,8 +239,7 @@ async def update_item(
         data=UpdateItemInventoryResponse(
             id=data.id,
             nombre=data.nombre,
-            cantidad=data.cantidad,
-            estado_objeto=data.estado_objeto,
+            cantidad_total=data.cantidad_total,
             observacion=data.observacion,
         ),
         message="Articulo actualizado exitosamente",
@@ -215,6 +259,7 @@ async def create_borrowing(session: SessionDep, borrow_data: CreateBorrowRequest
             data=None,
             message="Error al crear el prestamo",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            success=False,
             details={"message": "Error al crear el prestamo"},
         ).to_dict()
 
@@ -223,6 +268,7 @@ async def create_borrowing(session: SessionDep, borrow_data: CreateBorrowRequest
             data=None,
             message="Error al crear el prestamo",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            success=False,
             details={"message": "Error al crear el prestamo"},
         ).to_dict()
 
@@ -254,6 +300,7 @@ async def return_borrowing(
             data=None,
             message="Error al devolver el prestamo",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            success=False,
             details={"message": "Error al devolver el prestamo"},
         ).to_dict()
 
@@ -262,6 +309,7 @@ async def return_borrowing(
             data=None,
             message="Error al devolver el prestamo",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            success=False,
             details={"message": "Error al devolver el prestamo"},
         ).to_dict()
 
@@ -270,6 +318,7 @@ async def return_borrowing(
             data=None,
             message="Error al devolver el prestamo",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            success=False,
             details={"message": "Error al devolver el prestamo"},
         ).to_dict()
 
@@ -290,7 +339,9 @@ async def return_borrowing(
 
 @router.patch("/items/{item_id}")
 async def edit_item(
-    session: SessionDep, item_id: int, update_item_request: UpdateSingleItemRequest
+    session: SessionDep,
+    item_id: int,
+    update_item_request: UpdateSingleItemExtenseRequest,
 ):
     edit_item_app = EditSingleItem(session=session)
     data = await edit_item_app.execute(item_id, update_item_request)
@@ -300,6 +351,7 @@ async def edit_item(
             data=None,
             message="Error al editar el articulo",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            success=False,
             details={"message": "Error al editar el articulo"},
         ).to_dict()
 
@@ -308,6 +360,7 @@ async def edit_item(
             data=None,
             message="Error al editar el articulo",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            success=False,
             details={"message": "Error al editar el articulo"},
         ).to_dict()
 
@@ -315,8 +368,7 @@ async def edit_item(
         data=UpdateItemInventoryResponse(
             id=data.id,
             nombre=data.nombre,
-            cantidad=data.cantidad,
-            estado_objeto=data.estado_objeto,
+            cantidad_total=data.cantidad_total,
             observacion=data.observacion,
         ),
         message="Articulo editado exitosamente",
@@ -331,7 +383,9 @@ async def get_borrowings(
     filter_pagination_query: Annotated[FilterPaginationBorrowings, Query()],
 ):
     get_borrowings_app = GetBorrowings(session=session)
-    data = await get_borrowings_app.execute(filter_pagination=filter_pagination_query)
+    total, data = await get_borrowings_app.execute(
+        filter_pagination=filter_pagination_query
+    )
 
     return (
         Response(
@@ -341,7 +395,9 @@ async def get_borrowings(
             details={"message": "Lista de préstamos obtenida exitosamente"},
         )
         .filterPagination(
-            page=filter_pagination_query.page, limit=filter_pagination_query.limit
+            page=filter_pagination_query.page,
+            limit=filter_pagination_query.limit,
+            total=total,
         )
         .to_dict()
     )
@@ -358,6 +414,7 @@ async def upload_items_file(
         return Response(
             data=None,
             message="Archivo invalido solamente se aceptan csv o excel",
+            success=False,
             status_code=status.HTTP_400_BAD_REQUEST,
             details={},
         ).to_dict()

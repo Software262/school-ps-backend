@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlmodel import Field
+from sqlmodel import Field, UniqueConstraint
 
 from app.shared.infrastructure.base import Base
 
@@ -12,9 +12,24 @@ class TipoInventario(Base, table=True):
 class Inventario(Base, table=True):
     tipo_inventario_id: int = Field(foreign_key="tipoinventario.id")
     nombre: str = Field(nullable=False, max_length=50)
-    cantidad: int = Field(nullable=False)
-    estado_objeto: str = Field(nullable=False, max_length=50)
+    cantidad_total: int = Field(nullable=False, default=0)
     observacion: str | None = Field(max_length=400)
+
+
+class EstadoInventario(Base, table=True):
+    nombre: str = Field(nullable=False, unique=True, max_length=50)
+
+
+class InventarioStock(Base, table=True):
+    inventario_id: int = Field(foreign_key="inventario.id")
+    estado_inventario_id: int = Field(foreign_key="estadoinventario.id")
+    cantidad: int = Field(ge=0, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "inventario_id", "estado_inventario_id", name="uq_inventario_estado"
+        ),
+    )
 
 
 class Prestamo(Base, table=True):

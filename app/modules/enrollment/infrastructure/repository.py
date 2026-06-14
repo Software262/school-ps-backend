@@ -1,13 +1,18 @@
 from datetime import datetime
 
-from sqlmodel import col, Session, select
+from sqlmodel import col, func, or_, select
 
+from app.core.db import SessionDep
 from app.modules.enrollment.domain.entities import (
+    ComplementaryConcept,
     ComplementaryDetail,
+    GradeInfo,
+    StudentGeneralInfo,
     StudentInfo,
 )
 from app.modules.enrollment.domain.repositories import EnrollmentRepository
 from app.modules.enrollment.infrastructure.models import (
+    Acudiente,
     Complementario,
     DetalleMatricula,
     Estudiante,
@@ -16,13 +21,15 @@ from app.modules.enrollment.infrastructure.models import (
     Pago,
     PagoDetalle,
     ParametrizarMatricula,
+    Periodo,
+    TipoComplementario,
 )
 
 
 class SQLEnrollmentRepository(EnrollmentRepository):
     """Implementación concreta del repositorio usando SQLModel/PostgreSQL."""
 
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: SessionDep) -> None:
         self._session = session
 
     # === Consulta ===
@@ -30,7 +37,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
     def get_student_by_id(self, student_id: int) -> StudentInfo | None:
         statement = (
             select(Estudiante, Grado)
-            .join(Grado, Estudiante.grado_id == Grado.id)  # type: ignore[arg-type]
+            .join(Grado, col(Estudiante.grado_id) == col(Grado.id))
             .where(Estudiante.id == student_id)
         )
         result = self._session.exec(statement).first()
@@ -65,7 +72,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
             select(Matricula)
             .join(
                 ParametrizarMatricula,
-                Matricula.para_matricula_id == ParametrizarMatricula.id,  # type: ignore[arg-type]
+                col(Matricula.para_matricula_id) == col(ParametrizarMatricula.id),
             )
             .where(
                 Matricula.estudiante_id == student_id,
@@ -75,14 +82,14 @@ class SQLEnrollmentRepository(EnrollmentRepository):
         matricula = self._session.exec(statement).first()
 
         if matricula is None:
-            return None, "sin_abono", [], 0, 0
+            return None, "pendiente", [], 0, 0
 
         # Obtener detalles con complementarios
         detail_statement = (
             select(DetalleMatricula, Complementario)
             .join(
                 Complementario,
-                DetalleMatricula.complementario_id == Complementario.id,  # type: ignore[arg-type]
+                col(DetalleMatricula.complementario_id) == col(Complementario.id),
             )
             .where(DetalleMatricula.matricula_id == matricula.id)
         )
@@ -92,7 +99,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
             ComplementaryDetail(
                 detalle_id=det.id if det.id is not None else 0,
                 complementario_id=comp.id if comp.id is not None else 0,
-                tipo_complementario=comp.tipo_complementario,
+                tipo_complementario=comp.nombre,
                 valor=comp.valor,
                 descuento=det.descuento,
                 valor_completo=det.valor_completo,
@@ -124,7 +131,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
             select(Matricula)
             .join(
                 ParametrizarMatricula,
-                Matricula.para_matricula_id == ParametrizarMatricula.id,  # type: ignore[arg-type]
+                col(Matricula.para_matricula_id) == col(ParametrizarMatricula.id),
             )
             .where(
                 Matricula.estudiante_id == student_id,
@@ -134,17 +141,37 @@ class SQLEnrollmentRepository(EnrollmentRepository):
         return self._session.exec(statement).first() is not None
 
     def get_active_complementaries(self, year: int) -> list[tuple[int, str, int]]:
+        matricula_type = self._session.exec(
+            select(TipoComplementario).where(TipoComplementario.nombre == "Matricula")
+        ).first()
+
+        if not matricula_type or matricula_type.id is None:
+            return []
+
+        valid_type_ids = self._session.exec(
+            select(col(TipoComplementario.id)).where(
+                or_(
+                    TipoComplementario.id == matricula_type.id,
+                    TipoComplementario.sub_tipo_complementario == matricula_type.id,
+                )
+            )
+        ).all()
+
         statement = select(Complementario).where(
             Complementario.anio == year,
-            Complementario.uso_matricula == True,  # noqa: E712
+            col(Complementario.tipo_complementario_id).in_(valid_type_ids),
             Complementario.estado_complemento == "Activo",
         )
         results = self._session.exec(statement).all()
         return [
-            (comp.id, comp.tipo_complementario, comp.valor)
+            (comp.id, comp.nombre, comp.valor)
             for comp in results
             if comp.id is not None
         ]
+
+    def period_exists(self, period_id: int) -> bool:
+        statement = select(Periodo).where(Periodo.id == period_id)
+        return self._session.exec(statement).first() is not None
 
     def create_enrollment(
         self,
@@ -161,7 +188,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
             periodo_id=period_id,
             valor_total=valor_total,
             fecha_registro=datetime.now(),
-            estado_matricula="sin_abono",
+            estado_matricula="pendiente",
             valor_pendiente_base=base_cost,
         )
         self._session.add(matricula)
@@ -211,7 +238,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
             select(DetalleMatricula, Complementario)
             .join(
                 Complementario,
-                DetalleMatricula.complementario_id == Complementario.id,  # type: ignore[arg-type]
+                col(DetalleMatricula.complementario_id) == col(Complementario.id),
             )
             .where(DetalleMatricula.matricula_id == matricula_id)
         )
@@ -220,7 +247,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
             (
                 det.id,
                 comp.id,
-                comp.tipo_complementario,
+                comp.nombre,
                 det.valor_pendiente,
                 det.valor_completo,
                 det.descuento,
@@ -273,12 +300,21 @@ class SQLEnrollmentRepository(EnrollmentRepository):
         self._session.flush()
 
     def update_complementary_pending(
-        self, matricula_id: int, complementario_id: int, new_pending: int
+        self,
+        matricula_id: int,
+        complementario_id: int,
+        new_pending: int,
+        detalle_id: int | None = None,
     ) -> None:
-        statement = select(DetalleMatricula).where(
-            DetalleMatricula.matricula_id == matricula_id,
-            DetalleMatricula.complementario_id == complementario_id,
-        )
+        if detalle_id is not None:
+            statement = select(DetalleMatricula).where(
+                DetalleMatricula.id == detalle_id
+            )
+        else:
+            statement = select(DetalleMatricula).where(
+                DetalleMatricula.matricula_id == matricula_id,
+                DetalleMatricula.complementario_id == complementario_id,
+            )
         det = self._session.exec(statement).one()
         det.valor_pendiente = new_pending
         self._session.add(det)
@@ -289,7 +325,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
         mat = self._session.exec(statement).one()
         mat.estado_matricula = status
         self._session.add(mat)
-        self._session.flush()
+        self._session.commit()
 
     def enrollment_has_payments(self, matricula_id: int) -> bool:
         """Retorna True si existe al menos un pago registrado para esta matrícula."""
@@ -329,18 +365,18 @@ class SQLEnrollmentRepository(EnrollmentRepository):
 
     def create_complementary(
         self,
-        tipo_complementario: str,
+        nombre: str,
+        tipo_complementario_id: int,
         anio: int,
         valor: int,
         estado: str,
-        uso_matricula: bool,
     ) -> int:
         comp = Complementario(
-            tipo_complementario=tipo_complementario,
+            nombre=nombre,
+            tipo_complementario_id=tipo_complementario_id,
             anio=anio,
             valor=valor,
             estado_complemento=estado,
-            uso_matricula=uso_matricula,
         )
         self._session.add(comp)
         self._session.commit()
@@ -406,7 +442,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
                 fecha_activo=datetime.now(),
             )
             self._session.add(estudiante)
-            self._session.commit()
+            self._session.flush()
             self._session.refresh(estudiante)
         else:
             if (
@@ -416,7 +452,7 @@ class SQLEnrollmentRepository(EnrollmentRepository):
                 estudiante.grado_id = grado_id
                 estudiante.acudiente_id = acudiente_id
                 self._session.add(estudiante)
-                self._session.commit()
+                self._session.flush()
 
         assert estudiante.id is not None
         return estudiante.id
@@ -426,24 +462,258 @@ class SQLEnrollmentRepository(EnrollmentRepository):
         results = self._session.exec(statement).all()
         return len(results)
 
+    def get_total_paid(self, matricula_id: int) -> int:
+        statement = select(Pago).where(Pago.matricula_id == matricula_id)
+        results = self._session.exec(statement).all()
+        return sum(p.monto_total for p in results)
+
     def get_payments(self, matricula_id: int) -> list[Pago]:
         statement = select(Pago).where(Pago.matricula_id == matricula_id)
         return list(self._session.exec(statement).all())
 
     def search_students(
-        self, documento: str | None, nombre: str | None
+        self,
+        documento: str | None,
+        nombre: str | None,
+        query: str | None = None,
     ) -> list[tuple[Estudiante, Grado]]:
         statement = select(Estudiante, Grado).join(
             Grado,
             col(Estudiante.grado_id) == col(Grado.id),
         )
+
+        search_terms = []
+        if query:
+            search_terms.append(query.strip().lower())
         if documento:
-            doc_norm = documento.strip().lower()
-            statement = statement.where(
-                col(Estudiante.documento).ilike(f"%{doc_norm}%")
-            )
+            search_terms.append(documento.strip().lower())
         if nombre:
-            nom_norm = nombre.strip().lower()
-            statement = statement.where(col(Estudiante.nombre).ilike(f"%{nom_norm}%"))
+            search_terms.append(nombre.strip().lower())
+
+        # Eliminar términos vacíos y duplicados
+        search_terms = list(set([t for t in search_terms if t]))
+
+        for term in search_terms:
+            statement = statement.where(
+                or_(
+                    col(Estudiante.documento).ilike(f"%{term}%"),
+                    col(Estudiante.nombre).ilike(f"%{term}%"),
+                )
+            )
 
         return list(self._session.exec(statement).all())
+
+    def search_active_students(
+        self, query: str | None, grado_id: int | None, limit: int, offset: int
+    ) -> list[StudentGeneralInfo]:
+        statement = (
+            select(Estudiante, Grado)
+            .join(
+                Grado,
+                col(Estudiante.grado_id) == col(Grado.id),
+            )
+            .where(col(Estudiante.activo))
+        )
+
+        if query:
+            q_norm = f"%{query.strip().lower()}%"
+            statement = statement.where(
+                or_(
+                    func.lower(Estudiante.nombre).like(q_norm),
+                    func.lower(Estudiante.documento).like(q_norm),
+                )
+            )
+        if grado_id is not None:
+            statement = statement.where(col(Estudiante.grado_id) == grado_id)
+
+        statement = statement.offset(offset).limit(limit)
+        results = self._session.exec(statement).all()
+        return [
+            StudentGeneralInfo(
+                id=est.id,
+                nombre=est.nombre,
+                documento=est.documento,
+                grado_nombre=gr.nombre,
+            )
+            for est, gr in results
+            if est.id is not None
+        ]
+
+    def get_students_bulk(self, student_ids: list[int]) -> list[StudentGeneralInfo]:
+        statement = (
+            select(Estudiante, Grado)
+            .join(Grado, col(Estudiante.grado_id) == col(Grado.id))
+            .where(col(Estudiante.id).in_(student_ids))
+        )
+        results = self._session.exec(statement).all()
+        return [
+            StudentGeneralInfo(
+                id=est.id,
+                nombre=est.nombre,
+                documento=est.documento,
+                grado_nombre=gr.nombre,
+            )
+            for est, gr in results
+            if est.id is not None
+        ]
+
+    def get_all_grades(self) -> list[GradeInfo]:
+        statement = select(Grado).order_by(col(Grado.nombre))
+        results = self._session.exec(statement).all()
+        return [
+            GradeInfo(id=gr.id, nombre=gr.nombre) for gr in results if gr.id is not None
+        ]
+
+    def get_student_entity_by_id(self, student_id: int) -> Estudiante | None:
+        statement = select(Estudiante).where(col(Estudiante.id) == student_id)
+        return self._session.exec(statement).first()
+
+    def get_student_entities_by_grade(self, grado_id: int) -> list[Estudiante]:
+        statement = select(Estudiante).where(col(Estudiante.grado_id) == grado_id)
+        return list(self._session.exec(statement).all())
+
+    def get_all_complementaries_by_year(self, year: int) -> list[Complementario]:
+        statement = select(Complementario).where(
+            col(Complementario.anio) == year,
+            col(Complementario.estado_complemento) == "Activo",
+        )
+        return list(self._session.exec(statement).all())
+
+    # === Nuevas Consultas y Acciones ===
+
+    def get_grade_by_name(self, name: str) -> int | None:
+        statement = select(Grado).where(col(Grado.nombre).ilike(name.strip()))
+        grade = self._session.exec(statement).first()
+        return grade.id if grade else None
+
+    def get_acudiente_by_name(self, name: str) -> int | None:
+        statement = select(Acudiente).where(col(Acudiente.nombre).ilike(name.strip()))
+        acudiente = self._session.exec(statement).first()
+        return acudiente.id if acudiente else None
+
+    def create_acudiente(
+        self, nombre: str, parentesco: str, telefono: str, correo: str
+    ) -> int:
+        acudiente = Acudiente(
+            nombre=nombre.strip(),
+            parentesco=parentesco.strip(),
+            telefono=telefono.strip(),
+            correo=correo.strip(),
+        )
+        self._session.add(acudiente)
+        self._session.flush()
+        assert acudiente.id is not None
+        return acudiente.id
+
+    def get_payments_by_matricula(self, matricula_id: int) -> list:
+        statement = (
+            select(Pago)
+            .where(Pago.matricula_id == matricula_id)
+            .order_by(col(Pago.fecha_pago).desc())
+        )
+        return list(self._session.exec(statement).all())
+
+    def get_payment_by_id(self, pago_id: int) -> tuple | None:
+        statement = select(Pago).where(Pago.id == pago_id)
+        pago = self._session.exec(statement).first()
+        if pago:
+            return (
+                pago.id,
+                pago.matricula_id,
+                pago.codigo_talonario,
+                pago.monto_total,
+                pago.fecha_pago,
+                pago.observacion,
+            )
+        return None
+
+    def get_payment_details(self, pago_id: int) -> list[tuple[str, int | None, int]]:
+        statement = select(
+            PagoDetalle.concepto,
+            PagoDetalle.complementario_id,
+            PagoDetalle.monto_aplicado,
+        ).where(PagoDetalle.pago_id == pago_id)
+        details = self._session.exec(statement).all()
+        return [
+            (
+                str(concepto),
+                int(comp_id) if comp_id is not None else None,
+                int(monto),
+            )
+            for concepto, comp_id, monto in details
+        ]
+
+    def get_payment_receipt_data(
+        self, pago_id: int
+    ) -> tuple[Pago, Matricula, Estudiante, Grado, Acudiente] | None:
+        statement = (
+            select(Pago, Matricula, Estudiante, Grado)
+            .join(Matricula, col(Pago.matricula_id) == col(Matricula.id))
+            .join(Estudiante, col(Matricula.estudiante_id) == col(Estudiante.id))
+            .join(Grado, col(Estudiante.grado_id) == col(Grado.id))
+            .where(Pago.id == pago_id)
+        )
+        result = self._session.exec(statement).first()
+        if result is None:
+            return None
+
+        pago, matricula, estudiante, grado = result
+
+        acudiente_stmt = select(Acudiente).where(
+            Acudiente.id == estudiante.acudiente_id
+        )
+
+        acudiente = self._session.exec(acudiente_stmt).first()
+
+        if acudiente is None:
+            return None
+
+        return pago, matricula, estudiante, grado, acudiente
+
+    def get_detalle_matricula(self, detalle_id: int) -> tuple | None:
+        statement = select(DetalleMatricula).where(DetalleMatricula.id == detalle_id)
+        det = self._session.exec(statement).first()
+        if det is None:
+            return None
+        return (
+            det.id,
+            det.matricula_id,
+            det.valor_completo,
+            det.descuento,
+            det.valor_pendiente,
+        )
+
+    def delete_detalle_matricula(self, detalle_id: int) -> None:
+        statement = select(DetalleMatricula).where(DetalleMatricula.id == detalle_id)
+        det = self._session.exec(statement).first()
+        if det:
+            self._session.delete(det)
+            self._session.commit()
+
+    def decrease_enrollment_total_value(self, matricula_id: int, amount: int) -> None:
+        statement = select(Matricula).where(Matricula.id == matricula_id)
+        mat = self._session.exec(statement).first()
+        if mat:
+            mat.valor_total -= amount
+            self._session.add(mat)
+            self._session.commit()
+
+    def get_all_complementaries(
+        self, year: int | None = None
+    ) -> list[ComplementaryConcept]:
+        statement = select(Complementario).where(
+            Complementario.estado_complemento == "Activo"
+        )
+        if year is not None:
+            statement = statement.where(Complementario.anio == year)
+        results = self._session.exec(statement).all()
+        return [
+            ComplementaryConcept(
+                id=comp.id if comp.id is not None else 0,
+                tipo_complementario=comp.nombre,
+                anio=comp.anio,
+                valor=comp.valor,
+                estado_complemento=comp.estado_complemento,
+            )
+            for comp in results
+        ]

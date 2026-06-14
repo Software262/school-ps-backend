@@ -12,10 +12,12 @@ class FilterPaginationTypesInventory(FilterPagination):
 
 class FilterPaginationInventory(FilterPagination):
     item_type: Literal["banda", "deporte", "ajedrez"] | None = None
+    q: str | None = Field(None, description="Buscar por nombre o observación")
 
 
 class FilterPaginationBorrowings(FilterPaginationInventory):
     active: bool | None = None
+    q: str | None = Field(None, description="Buscar por nombre articulo")
 
 
 class CreateTypeInventoryRequest(BaseModel):
@@ -29,10 +31,7 @@ class CreateItemRequest(BaseModel):
         ge=1, description="ID del tipo de inventario al que pertenece el item"
     )
     nombre: str = Field(min_length=2, max_length=100, description="Nombre del item")
-    cantidad: int = Field(ge=1, description="Cantidad del item")
-    estado_objeto: str = Field(
-        min_length=2, max_length=100, description="Estado del objeto"
-    )
+    cantidad_total: int = Field(ge=1, description="Cantidad del item")
     observacion: str | None = Field(None, description="Observación del item")
 
 
@@ -43,11 +42,17 @@ class UpdateSingleItemRequest(BaseModel):
     nombre: str | None = Field(
         None, min_length=2, max_length=100, description="Nombre del item"
     )
-    cantidad: int | None = Field(None, ge=0, description="Cantidad del item")
-    estado_objeto: str | None = Field(
-        None, min_length=2, max_length=100, description="Estado del objeto"
-    )
+    cantidad_total: int | None = Field(None, ge=0, description="Cantidad del item")
     observacion: str | None = Field(None, description="Observación del item")
+
+
+class UpdateSingleItemExtenseRequest(UpdateSingleItemRequest):
+    cantidad_disponible: int | None = Field(
+        None, ge=0, description="Cantidad disponible del item"
+    )
+    cantidad_mantenimiento: int | None = Field(
+        None, ge=0, description="Cantidad en mantenimiento del item"
+    )
 
 
 class UpdateCompleteItemRequest(BaseModel):
@@ -55,10 +60,7 @@ class UpdateCompleteItemRequest(BaseModel):
         ge=1, description="ID del tipo de inventario al que pertenece el item"
     )
     nombre: str = Field(min_length=2, max_length=100, description="Nombre del item")
-    cantidad: int = Field(ge=0, description="Cantidad del item")
-    estado_objeto: str = Field(
-        min_length=2, max_length=100, description="Estado del objeto"
-    )
+    cantidad_total: int = Field(ge=0, description="Cantidad del item")
     observacion: str | None = Field(None, description="Observación del item")
 
 
@@ -86,6 +88,5 @@ class ReturnBorrowRequest(BaseModel):
 class InventoryItemRequest(BaseModel):
     tipo_inventario_id: int = Field(gt=0)
     nombre: str = Field(min_length=2)
-    cantidad: int = Field(gt=0)
-    estado_objeto: str = Field(min_length=2)
+    cantidad_total: int = Field(gt=0)
     observacion: str | None = Field(default=None)

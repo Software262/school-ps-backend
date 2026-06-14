@@ -2,7 +2,9 @@ from abc import ABC, abstractmethod
 from typing import Sequence
 
 from app.modules.inventory.infrastructure.models import (
+    EstadoInventario,
     Inventario,
+    InventarioStock,
     Novedad,
     Prestamo,
     TipoInventario,
@@ -24,12 +26,24 @@ class InventoryRepository(ABC):
 
     @abstractmethod
     async def get_items_filter_pagination(
-        self, offset: int, limit: int, type_id: int | None
-    ) -> Sequence[Inventario]:
+        self, offset: int, limit: int, type_id: int | None, q: str | None
+    ) -> tuple[int, Sequence[Inventario]]:
         pass
 
     @abstractmethod
-    async def create_item(self, item_data: CreateItemRequest) -> Inventario:
+    async def get_stocks_by_item_ids(
+        self, item_ids: list[int]
+    ) -> Sequence[tuple[InventarioStock, EstadoInventario]]:
+        pass
+
+    @abstractmethod
+    async def get_all_inventory(
+        self, type_name: str
+    ) -> Sequence[tuple[int | None, int]]:
+        pass
+
+    @abstractmethod
+    async def create_item(self, item_data: CreateItemRequest) -> Inventario | None:
         pass
 
     @abstractmethod
@@ -39,7 +53,7 @@ class InventoryRepository(ABC):
     @abstractmethod
     async def get_types_inventory_filter_pagination(
         self, offset: int, limit: int
-    ) -> Sequence[TipoInventario]:
+    ) -> tuple[int, Sequence[TipoInventario]]:
         pass
 
     @abstractmethod
@@ -54,6 +68,26 @@ class InventoryRepository(ABC):
     async def update_item(
         self, item: Inventario, item_data: UpdateCompleteItemRequest
     ) -> Inventario:
+        pass
+
+    @abstractmethod
+    async def get_state_by_id(self, state_id: int) -> EstadoInventario | None:
+        pass
+
+    @abstractmethod
+    async def get_state_id_by_name(self, state_name: str) -> int | None:
+        pass
+
+    @abstractmethod
+    async def get_inventory_stock(
+        self, state_id: int, item_id: int
+    ) -> InventarioStock | None:
+        pass
+
+    @abstractmethod
+    async def set_amount_stock_category(
+        self, item_id: int, amount: int, category_name: str
+    ) -> None:
         pass
 
     @abstractmethod
@@ -82,8 +116,13 @@ class InventoryRepository(ABC):
 
     @abstractmethod
     async def get_borrowings_pagination(
-        self, offset: int, limit: int, active: bool | None, type_id: int | None
-    ) -> Sequence[Prestamo]:
+        self,
+        offset: int,
+        limit: int,
+        active: bool | None,
+        type_id: int | None,
+        q: str | None,
+    ) -> tuple[int, Sequence[Prestamo]]:
         pass
 
     @abstractmethod
@@ -98,4 +137,12 @@ class InventoryRepository(ABC):
 
     @abstractmethod
     async def finalize_chess_return(self, borrow: Prestamo, item: Inventario) -> None:
+        pass
+
+    @abstractmethod
+    async def get_novedad_by_borrow_id(self, prestamo_id: int) -> Novedad | None:
+        pass
+
+    @abstractmethod
+    async def update_item_estado(self, item_id: int, estado: str) -> Inventario:
         pass

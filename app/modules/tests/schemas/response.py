@@ -9,7 +9,7 @@ class CreateTestDetailResponse(BaseModel):
     complementario_id: int
     tipo_prueba: str
     created_at: datetime | None
-    estado: bool
+    estado: str
 
 
 class UpdateTestDetailResponse(BaseModel):
@@ -18,4 +18,4 @@ class UpdateTestDetailResponse(BaseModel):
     complementario_id: int
     tipo_prueba: str
     created_at: datetime | None
-    estado: bool
+    estado: str

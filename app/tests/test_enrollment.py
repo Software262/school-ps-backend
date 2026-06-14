@@ -1,20 +1,25 @@
-import pytest
 from datetime import datetime
-from sqlmodel import SQLModel, Session, create_engine
-from sqlalchemy import event
+
+import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
-
-from app.main import app
-from app.core.db import get_session
-from app.modules.enrollment.infrastructure.models import (
-    Grado,
-    Acudiente,
-    Estudiante,
-    Periodo,
-    ParametrizarMatricula,
-)
+from sqlalchemy import event
 from sqlalchemy.pool import StaticPool
+from sqlmodel import Session, SQLModel, create_engine
+
+from app.core.db import get_session
+from app.main import app
+from app.modules.enrollment.infrastructure.models import (
+    Acudiente,
+    Complementario,
+    DetalleMatricula,
+    Estudiante,
+    Grado,
+    Matricula,
+    ParametrizarMatricula,
+    Periodo,
+    TipoComplementario,
+)
 
 test_engine = create_engine(
     "sqlite://",
@@ -64,8 +69,8 @@ def test_student_search_and_payment_count(session, client):
     session.refresh(acudiente)
 
     estudiante = Estudiante(
-        grado_id=grado.id,
-        acudiente_id=acudiente.id,
+        grado_id=grado.id or 1,
+        acudiente_id=acudiente.id or 1,
         nombre="Felipe Gomez",
         documento="10987654321",
         activo=True,
@@ -83,7 +88,7 @@ def test_student_search_and_payment_count(session, client):
     session.commit()
     session.refresh(periodo)
 
-    param = ParametrizarMatricula(grado_id=grado.id, anio=2026, valor=1500000)
+    param = ParametrizarMatricula(grado_id=grado.id or 1, anio=2026, valor=1500000)
     session.add(param)
     session.commit()
     session.refresh(param)
@@ -133,7 +138,7 @@ def test_student_search_and_payment_count(session, client):
     assert response_after.status_code == status.HTTP_200_OK
     student_item_after = response_after.json()["estudiantes"][0]
     assert student_item_after["matricula_registrada"] is True
-    assert student_item_after["estado_matricula"] == "sin_abono"
+    assert student_item_after["estado_matricula"] == "pendiente"
     assert student_item_after["pagos_realizados"] == 0
     assert student_item_after["saldo_pendiente"] == 1500000
 
@@ -174,3 +179,134 @@ def test_student_search_and_payment_count(session, client):
     assert student_item2["estado_matricula"] == "parcial"
     assert student_item2["pagos_realizados"] == 1
     assert student_item2["saldo_pendiente"] == 1000000
+
+
+def test_directed_payment_with_duplicate_complementarios(session, client):
+    # 1. Seed base data
+    grado = Grado(nombre="Décimo")
+    acudiente = Acudiente(
+        nombre="Carlos Gomez",
+        parentesco="Padre",
+        telefono="3112223344",
+        correo="carlos@gmail.com",
+    )
+    session.add(grado)
+    session.add(acudiente)
+    session.commit()
+
+    estudiante = Estudiante(
+        grado_id=grado.id or 1,
+        acudiente_id=acudiente.id or 1,
+        nombre="Felipe Gomez",
+        documento="10987654321",
+        activo=True,
+        fecha_activo=datetime.now(),
+    )
+    session.add(estudiante)
+    session.commit()
+
+    periodo = Periodo(
+        periodo_electivo=datetime.now(), estado=True, fecha=datetime.now()
+    )
+    session.add(periodo)
+    session.commit()
+
+    param = ParametrizarMatricula(grado_id=grado.id or 1, anio=2026, valor=1500000)
+    session.add(param)
+    session.commit()
+
+    tipo = TipoComplementario(nombre="Matricula", estado=True)
+    session.add(tipo)
+    session.flush()
+    comp = Complementario(
+        nombre="Seguro",
+        tipo_complementario_id=tipo.id or 1,
+        anio=2026,
+        valor=100000,
+        estado_complemento="Activo",
+    )
+    session.add(comp)
+    session.commit()
+
+    matricula = Matricula(
+        para_matricula_id=param.id or 1,
+        estudiante_id=estudiante.id or 1,
+        periodo_id=periodo.id or 1,
+        valor_total=1700000,
+        fecha_registro=datetime.now(),
+        estado_matricula="pendiente",
+        valor_pendiente_base=1500000,
+    )
+    session.add(matricula)
+    session.commit()
+
+    det1 = DetalleMatricula(
+        matricula_id=matricula.id or 1,
+        complementario_id=comp.id or 1,
+        cuota=1,
+        descuento=0,
+        valor_completo=100000,
+        valor_pendiente=100000,
+        fecha_abono=datetime.now(),
+    )
+    det2 = DetalleMatricula(
+        matricula_id=matricula.id or 1,
+        complementario_id=comp.id or 1,
+        cuota=2,
+        descuento=0,
+        valor_completo=100000,
+        valor_pendiente=100000,
+        fecha_abono=datetime.now(),
+    )
+    session.add(det1)
+    session.add(det2)
+    session.commit()
+    session.refresh(det1)
+    session.refresh(det2)
+
+    # 1. Pago dirigido especificando detalle_id (det2.id)
+    payment_payload1 = {
+        "matricula_id": matricula.id,
+        "codigo_talonario": "TAL-99901",
+        "observacion": "Pago dirigido a cuota 2",
+        "asignaciones": [
+            {
+                "concepto": f"complementario_{comp.id}",
+                "complementario_id": comp.id,
+                "detalle_id": det2.id,
+                "monto": 40000,
+            }
+        ],
+    }
+    response1 = client.post(
+        "/api/v1/enrollment/payments/directed", json=payment_payload1
+    )
+    assert response1.status_code == status.HTTP_201_CREATED
+
+    session.refresh(det1)
+    session.refresh(det2)
+    assert det1.valor_pendiente == 100000
+    assert det2.valor_pendiente == 60000
+
+    # 2. Pago dirigido sin especificar detalle_id (debe caer en el primer detalle pendiente, det1)
+    payment_payload2 = {
+        "matricula_id": matricula.id,
+        "codigo_talonario": "TAL-99902",
+        "observacion": "Pago dirigido sin detalle_id",
+        "asignaciones": [
+            {
+                "concepto": f"complementario_{comp.id}",
+                "complementario_id": comp.id,
+                "monto": 30000,
+            }
+        ],
+    }
+    response2 = client.post(
+        "/api/v1/enrollment/payments/directed", json=payment_payload2
+    )
+    assert response2.status_code == status.HTTP_201_CREATED
+
+    session.refresh(det1)
+    session.refresh(det2)
+    assert det1.valor_pendiente == 70000
+    assert det2.valor_pendiente == 60000

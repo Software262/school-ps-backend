@@ -2,7 +2,15 @@ from abc import ABC, abstractmethod
 
 from app.modules.enrollment.domain.entities import (
     ComplementaryDetail,
+    GradeInfo,
+    StudentGeneralInfo,
     StudentInfo,
+    ComplementaryConcept,
+)
+from app.modules.enrollment.infrastructure.models import (
+    Complementario,
+    Estudiante,
+    Pago,
 )
 
 
@@ -31,7 +39,7 @@ class EnrollmentRepository(ABC):
         Returns:
             Tuple de (matricula_id, estado_matricula, lista_complementarios,
                        pendiente_base, valor_total).
-            Si no existe matrícula, retorna (None, 'sin_abono', [], 0, 0).
+            Si no existe matrícula, retorna (None, 'pendiente', [], 0, 0).
         """
         ...
 
@@ -50,11 +58,16 @@ class EnrollmentRepository(ABC):
     @abstractmethod
     def get_active_complementaries(self, year: int) -> list[tuple[int, str, int]]:
         """
-        Obtiene los complementarios activos con uso_matricula=True para un año.
+        Obtiene los complementarios activos del tipo Matricula para un año.
 
         Returns:
-            Lista de (complementario_id, tipo_complementario, valor).
+            Lista de (complementario_id, nombre, valor).
         """
+        ...
+
+    @abstractmethod
+    def period_exists(self, period_id: int) -> bool:
+        """Verifica si un periodo existe en la base de datos."""
         ...
 
     @abstractmethod
@@ -141,14 +154,18 @@ class EnrollmentRepository(ABC):
 
     @abstractmethod
     def update_complementary_pending(
-        self, matricula_id: int, complementario_id: int, new_pending: int
+        self,
+        matricula_id: int,
+        complementario_id: int,
+        new_pending: int,
+        detalle_id: int | None = None,
     ) -> None:
         """Actualiza el valor_pendiente de un detalle_matricula."""
         ...
 
     @abstractmethod
     def update_enrollment_status(self, matricula_id: int, status: str) -> None:
-        """Actualiza el estado_matricula (sin_abono / parcial / paz_y_salvo)."""
+        """Actualiza el estado_matricula (pendiente / parcial / paz_y_salvo)."""
         ...
 
     @abstractmethod
@@ -161,11 +178,11 @@ class EnrollmentRepository(ABC):
     @abstractmethod
     def create_complementary(
         self,
-        tipo_complementario: str,
+        nombre: str,
+        tipo_complementario_id: int,
         anio: int,
         valor: int,
         estado: str,
-        uso_matricula: bool,
     ) -> int:
         """Crea un nuevo concepto complementario en la base de datos."""
         ...
@@ -224,11 +241,113 @@ class EnrollmentRepository(ABC):
         ...
 
     @abstractmethod
+    def get_total_paid(self, matricula_id: int) -> int:
+        """Retorna la suma total de pagos registrados para una matrícula."""
+        ...
+
+    @abstractmethod
     def get_payments(self, matricula_id: int) -> list:
         """Retorna la lista de pagos registrados para una matrícula."""
         ...
 
     @abstractmethod
-    def search_students(self, documento: str | None, nombre: str | None) -> list[tuple]:
-        """Busca estudiantes por coincidencia parcial en documento o nombre."""
+    def search_students(
+        self,
+        documento: str | None,
+        nombre: str | None,
+        query: str | None = None,
+    ) -> list[tuple]:
+        """Busca estudiantes por coincidencia parcial en documento, nombre o consulta general."""
+        ...
+
+    @abstractmethod
+    def search_active_students(
+        self, query: str | None, grado_id: int | None, limit: int, offset: int
+    ) -> list[StudentGeneralInfo]:
+        """Busca estudiantes activos con filtros opcionales de query y grado, con paginación."""
+        ...
+
+    @abstractmethod
+    def get_students_bulk(self, student_ids: list[int]) -> list[StudentGeneralInfo]:
+        """Obtiene información resumida de un lote de IDs de estudiantes."""
+        ...
+
+    @abstractmethod
+    def get_all_grades(self) -> list[GradeInfo]:
+        """Obtiene la lista de todos los grados académicos."""
+        ...
+
+    @abstractmethod
+    def get_student_entity_by_id(self, student_id: int) -> Estudiante | None:
+        """Obtiene el objeto/entidad Estudiante crudo por su ID."""
+        ...
+
+    @abstractmethod
+    def get_student_entities_by_grade(self, grado_id: int) -> list[Estudiante]:
+        """Obtiene la lista de entidades Estudiante crudas por grado ID."""
+        ...
+
+    @abstractmethod
+    def get_all_complementaries_by_year(self, year: int) -> list[Complementario]:
+        """Obtiene todos los conceptos complementarios activos por año."""
+
+    # === Nuevas Consultas y Acciones ===
+
+    @abstractmethod
+    def get_grade_by_name(self, name: str) -> int | None:
+        """Busca un grado por su nombre (insensible a mayúsculas). Retorna su ID."""
+        ...
+
+    @abstractmethod
+    def get_acudiente_by_name(self, name: str) -> int | None:
+        """Busca un acudiente por su nombre. Retorna su ID."""
+        ...
+
+    @abstractmethod
+    def create_acudiente(
+        self, nombre: str, parentesco: str, telefono: str, correo: str
+    ) -> int:
+        """Crea un acudiente y retorna su ID."""
+        ...
+
+    @abstractmethod
+    def get_payments_by_matricula(self, matricula_id: int) -> list[Pago]:
+        """Retorna todos los pagos (Pago) de una matrícula."""
+        ...
+
+    @abstractmethod
+    def get_payment_by_id(self, pago_id: int) -> tuple | None:
+        """Retorna un pago por su ID como tupla."""
+        ...
+
+    @abstractmethod
+    def get_payment_details(self, pago_id: int) -> list[tuple[str, int | None, int]]:
+        """Retorna los detalles de un pago como lista de (concepto, complementario_id, monto_aplicado)."""
+        ...
+
+    @abstractmethod
+    def get_payment_receipt_data(self, pago_id: int) -> tuple | None:
+        """Retorna los datos crudos del recibo (Pago, Matricula, Estudiante, Grado, Acudiente) como tupla."""
+        ...
+
+    @abstractmethod
+    def get_detalle_matricula(self, detalle_id: int) -> tuple | None:
+        """Obtiene un detalle de matrícula por su ID."""
+        ...
+
+    @abstractmethod
+    def delete_detalle_matricula(self, detalle_id: int) -> None:
+        """Elimina un detalle de matrícula de la base de datos."""
+        ...
+
+    @abstractmethod
+    def decrease_enrollment_total_value(self, matricula_id: int, amount: int) -> None:
+        """Disminuye el valor total de una matrícula."""
+        ...
+
+    @abstractmethod
+    def get_all_complementaries(
+        self, year: int | None = None
+    ) -> list[ComplementaryConcept]:
+        """Obtiene todos los conceptos complementarios registrados, opcionalmente filtrados por año."""
         ...

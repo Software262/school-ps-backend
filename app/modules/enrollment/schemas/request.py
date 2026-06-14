@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class RegisterEnrollmentRequest(BaseModel):
@@ -73,6 +73,10 @@ class ConceptoAsignacion(BaseModel):
         default=None,
         description="ID del complementario (obligatorio si concepto='complementario')",
     )
+    detalle_id: int | None = Field(
+        default=None,
+        description="ID del detalle de matrícula (opcional)",
+    )
     monto: int = Field(gt=0, description="Monto a aplicar a este concepto")
 
 
@@ -96,16 +100,13 @@ class DirectedPaymentRequest(BaseModel):
 class ComplementaryCreateRequest(BaseModel):
     """Solicitud para crear un nuevo concepto complementario."""
 
-    tipo_complementario: str = Field(
+    nombre: str = Field(
         max_length=50, description="Nombre del concepto (ej: Banda Marcial)"
     )
+    tipo_complementario_id: int = Field(description="ID del tipo de complementario")
     anio: int = Field(description="Año al que aplica este cobro")
     valor: int = Field(gt=0, description="Costo total del concepto")
     estado_complemento: str = Field(max_length=50, description="Estado (ej: Activo)")
-    uso_matricula: bool = Field(
-        default=False,
-        description="Si es True, se asigna automáticamente a las matrículas nuevas",
-    )
 
 
 class AssignComplementaryRequest(BaseModel):
@@ -115,3 +116,46 @@ class AssignComplementaryRequest(BaseModel):
     descuento: int = Field(
         default=0, ge=0, description="Descuento a aplicar (en pesos)"
     )
+
+
+class ManualEnrollmentRequest(BaseModel):
+    """Solicitud para matricular manualmente a un estudiante."""
+
+    documento: str = Field(
+        min_length=3,
+        max_length=50,
+        description="Documento o ID de identificación del estudiante",
+    )
+    nombre: str = Field(
+        min_length=3,
+        max_length=100,
+        description="Nombre completo del estudiante",
+    )
+    grado: str = Field(
+        min_length=1,
+        max_length=50,
+        description="ID del grado o nombre del grado",
+    )
+    nombre_acudiente: str = Field(
+        min_length=3,
+        max_length=100,
+        description="Nombre completo del acudiente",
+    )
+    periodo_id: int = Field(description="ID del periodo académico")
+    anio: int = Field(description="Año de la matrícula")
+
+    @field_validator("documento")
+    @classmethod
+    def validate_documento(cls, v: str) -> str:
+        if not v.strip().isdigit():
+            raise ValueError(
+                "El documento / ID del estudiante debe contener únicamente números"
+            )
+        return v
+
+    @field_validator("nombre", "nombre_acudiente")
+    @classmethod
+    def validate_names(cls, v: str) -> str:
+        if any(char.isdigit() for char in v):
+            raise ValueError("Los nombres no pueden contener números")
+        return v
