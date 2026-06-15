@@ -11,8 +11,8 @@ class TipoInventario(Base, table=True):
 
 class Inventario(Base, table=True):
     tipo_inventario_id: int = Field(foreign_key="tipoinventario.id")
-    nombre: str = Field(nullable=False, max_length=50)
-    cantidad_total: int = Field(nullable=False, default=0)
+    nombre: str = Field(nullable=False, max_length=50, unique=True, index=True)
+    cantidad_total: int = Field(nullable=False, default=0, index=True, ge=0)
     observacion: str | None = Field(max_length=400)
 
 

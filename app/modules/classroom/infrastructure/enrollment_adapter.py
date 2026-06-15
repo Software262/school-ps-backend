@@ -5,10 +5,12 @@ from app.modules.classroom.application.contracts import (
     ClassroomEnrollmentService,
 )
 from app.modules.classroom.domain.entities import (
+    ComplementarioEntity,
     GradeEntity,
     StudentEntity,
 )
 from app.modules.enrollment.infrastructure.models import (
+    Complementario,
     Docente,
     Estudiante,
     Grado,
@@ -21,6 +23,21 @@ class ClassroomEnrollmentAdapter(ClassroomEnrollmentService):
 
     def get_student_by_document(self, documento: str) -> StudentEntity | None:
         statement = select(Estudiante).where(col(Estudiante.documento) == documento)
+
+        result = self.session.exec(statement).first()
+
+        if result is None or result.id is None:
+            return None
+
+        return StudentEntity(
+            id=result.id,
+            nombre=result.nombre,
+            documento=result.documento,
+            grado_id=result.grado_id,
+        )
+
+    def get_student_by_name(self, nombre: str) -> StudentEntity | None:
+        statement = select(Estudiante).where(col(Estudiante.nombre) == nombre)
 
         result = self.session.exec(statement).first()
 
@@ -61,10 +78,7 @@ class ClassroomEnrollmentAdapter(ClassroomEnrollmentService):
         docente_nombre = None
 
         if grado.docente_titular_id is not None:
-            docente = self.session.get(
-                Docente,
-                grado.docente_titular_id,
-            )
+            docente = self.session.get(Docente, grado.docente_titular_id)
 
             if docente is not None:
                 docente_nombre = docente.nombre
@@ -89,10 +103,7 @@ class ClassroomEnrollmentAdapter(ClassroomEnrollmentService):
             docente_nombre = None
 
             if grado.docente_titular_id is not None:
-                docente = self.session.get(
-                    Docente,
-                    grado.docente_titular_id,
-                )
+                docente = self.session.get(Docente, grado.docente_titular_id)
 
                 if docente is not None:
                     docente_nombre = docente.nombre
@@ -106,3 +117,23 @@ class ClassroomEnrollmentAdapter(ClassroomEnrollmentService):
             )
 
         return resultado
+
+    async def get_complementary_by_name(
+        self, nombre: str
+    ) -> ComplementarioEntity | None:
+        statement = select(Complementario).where(
+            col(Complementario.nombre) == nombre,
+            col(Complementario.estado_complemento) == "Activo",
+        )
+
+        comp = self.session.exec(statement).first()
+
+        if comp is None or comp.id is None:
+            return None
+
+        return ComplementarioEntity(
+            id=comp.id,
+            nombre=comp.nombre,
+            valor=comp.valor,
+            anio=comp.anio,
+        )

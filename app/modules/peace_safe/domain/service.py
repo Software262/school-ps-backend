@@ -109,7 +109,7 @@ class PeaceSafeService:
 
     def _check_pupitre(self, estudiante_id: int) -> ModuloStatus:
         pupitre = self.repo.get_pupitre_by_student(estudiante_id)
-        if pupitre and not pupitre.estado_pupitre:
+        if pupitre and not pupitre.estado:
             obs = pupitre.observacion or "Sin detalles"
             return ModuloStatus(
                 clave="pupitre",

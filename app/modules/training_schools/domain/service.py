@@ -2,9 +2,11 @@ from datetime import datetime
 
 from app.modules.training_schools.application.contracts import EnrollmentDataService
 from app.modules.training_schools.domain.entities import (
+    ComplementarioInfo,
     PeriodInfo,
     ProgramInfo,
     StudentInfo,
+    TipoComplementarioInfo,
 )
 from app.modules.training_schools.domain.repositories import (
     TrainingSchoolRepositoryInterface,
@@ -162,3 +164,154 @@ class TrainingSchoolService:
             estudiante_id
         )
         return all(e.estado_escuela for e in enrollments)
+
+    # === Gestión de tipos de complementario ===
+
+    async def list_tipos_complementario(self) -> list[TipoComplementarioInfo]:
+        return await self.enrollment.list_tipos_complementario()
+
+    async def create_tipo_complementario(
+        self, nombre: str, sub_tipo_complementario: int | None
+    ) -> TipoComplementarioInfo:
+        if not nombre or len(nombre.strip()) < 2:
+            raise ValueError(
+                "El nombre del tipo de complementario debe tener al menos 2 caracteres."
+            )
+        nombre = nombre.strip()
+        tipos = await self.enrollment.list_tipos_complementario()
+        if any(tipo.nombre.lower() == nombre.lower() for tipo in tipos):
+            raise ValueError(
+                f"Ya existe un tipo de complementario con el nombre '{nombre}'."
+            )
+        if sub_tipo_complementario is not None:
+            padre = await self.enrollment.get_tipo_complementario(
+                sub_tipo_complementario
+            )
+            if not padre:
+                raise ValueError("El tipo de complementario padre no existe.")
+        return await self.enrollment.create_tipo_complementario(
+            nombre=nombre, sub_tipo_complementario=sub_tipo_complementario
+        )
+
+    async def update_tipo_complementario(
+        self,
+        tipo_id: int,
+        nombre: str | None,
+        estado: bool | None,
+        sub_tipo_complementario: int | None,
+    ) -> TipoComplementarioInfo:
+        existing = await self.enrollment.get_tipo_complementario(tipo_id)
+        if not existing:
+            raise ValueError("Tipo de complementario no encontrado.")
+        if nombre is not None:
+            if len(nombre.strip()) < 2:
+                raise ValueError(
+                    "El nombre del tipo de complementario debe tener al menos 2 caracteres."
+                )
+            nombre = nombre.strip()
+            tipos = await self.enrollment.list_tipos_complementario()
+            if any(
+                tipo.id != tipo_id and tipo.nombre.lower() == nombre.lower()
+                for tipo in tipos
+            ):
+                raise ValueError(
+                    f"Ya existe un tipo de complementario con el nombre '{nombre}'."
+                )
+        if sub_tipo_complementario is not None:
+            if sub_tipo_complementario == tipo_id:
+                raise ValueError(
+                    "Un tipo de complementario no puede ser su propio padre."
+                )
+            padre = await self.enrollment.get_tipo_complementario(
+                sub_tipo_complementario
+            )
+            if not padre:
+                raise ValueError("El tipo de complementario padre no existe.")
+        return await self.enrollment.update_tipo_complementario(
+            tipo_id=tipo_id,
+            nombre=nombre.strip() if nombre is not None else None,
+            estado=estado,
+            sub_tipo_complementario=sub_tipo_complementario,
+        )
+
+    async def delete_tipo_complementario(self, tipo_id: int) -> None:
+        existing = await self.enrollment.get_tipo_complementario(tipo_id)
+        if not existing:
+            raise ValueError("Tipo de complementario no encontrado.")
+        if await self.enrollment.tipo_complementario_has_children_or_concepts(
+            tipo_id
+        ):
+            raise ValueError(
+                "No se puede eliminar: el tipo tiene subtipos o conceptos asociados."
+            )
+        await self.enrollment.delete_tipo_complementario(tipo_id)
+
+    # === Gestión de complementarios ===
+
+    async def list_complementarios(self) -> list[ComplementarioInfo]:
+        return await self.enrollment.list_complementarios()
+
+    async def create_complementario(
+        self,
+        nombre: str,
+        anio: int,
+        valor: int,
+        estado_complemento: str,
+        tipo_complementario_id: int,
+    ) -> ComplementarioInfo:
+        if not nombre or len(nombre.strip()) < 2:
+            raise ValueError("El nombre del complementario es obligatorio.")
+        if valor < 0:
+            raise ValueError("El valor del complementario no puede ser negativo.")
+        tipo = await self.enrollment.get_tipo_complementario(tipo_complementario_id)
+        if not tipo:
+            raise ValueError("El tipo de complementario no existe.")
+        return await self.enrollment.create_complementario(
+            nombre=nombre.strip(),
+            anio=anio,
+            valor=valor,
+            estado_complemento=estado_complemento,
+            tipo_complementario_id=tipo_complementario_id,
+        )
+
+    async def update_complementario(
+        self,
+        complementario_id: int,
+        nombre: str | None,
+        anio: int | None,
+        valor: int | None,
+        estado_complemento: str | None,
+        tipo_complementario_id: int | None,
+    ) -> ComplementarioInfo:
+        existing = await self.enrollment.get_complementario(complementario_id)
+        if not existing:
+            raise ValueError("Complementario no encontrado.")
+        if nombre is not None and len(nombre.strip()) < 2:
+            raise ValueError("El nombre del complementario es obligatorio.")
+        if valor is not None and valor < 0:
+            raise ValueError("El valor del complementario no puede ser negativo.")
+        if tipo_complementario_id is not None:
+            tipo = await self.enrollment.get_tipo_complementario(
+                tipo_complementario_id
+            )
+            if not tipo:
+                raise ValueError("El tipo de complementario no existe.")
+        return await self.enrollment.update_complementario(
+            complementario_id=complementario_id,
+            nombre=nombre.strip() if nombre is not None else None,
+            anio=anio,
+            valor=valor,
+            estado_complemento=estado_complemento,
+            tipo_complementario_id=tipo_complementario_id,
+        )
+
+    async def delete_complementario(self, complementario_id: int) -> None:
+        existing = await self.enrollment.get_complementario(complementario_id)
+        if not existing:
+            raise ValueError("Complementario no encontrado.")
+        if await self.enrollment.complementario_has_references(complementario_id):
+            raise ValueError(
+                "No se puede eliminar: el complementario está en uso en "
+                "matrículas o inscripciones."
+            )
+        await self.enrollment.delete_complementario(complementario_id)

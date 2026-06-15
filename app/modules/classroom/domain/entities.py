@@ -2,10 +2,10 @@
 from pydantic import BaseModel
 
 
-class PupitreEntity(BaseModel):
+class DetallePupitreEntity(BaseModel):
     id: int
     estudiante_id: int
-    estado_pupitre: bool
+    estado: str
     observacion: str | None
 
 
@@ -20,3 +20,10 @@ class GradeEntity(BaseModel):
     id: int
     nombre: str
     docente_titular: str | None
+
+
+class ComplementarioEntity(BaseModel):
+    id: int
+    nombre: str
+    valor: int
+    anio: int

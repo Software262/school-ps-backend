@@ -10,8 +10,11 @@ from app.modules.classroom.schemas.response import PupitreStudentOutSchema
 class GetPupitreByStudent:
     def __init__(self, session: SessionDep):
         self.repository = PupitreRepositoryImpl(session=session)
-        self.service = PupitreService(repositorio=self.repository)
         self.student_provider = ClassroomEnrollmentAdapter(session=session)
+        self.service = PupitreService(
+            repositorio=self.repository,
+            enrollment_service=self.student_provider,
+        )
 
     async def execute(
         self, documento_estudiante: str
@@ -33,6 +36,6 @@ class GetPupitreByStudent:
             documento=estudiante.documento,
             grado=grado.nombre if grado else "Sin grado",
             docente_titular=grado.docente_titular if grado else None,
-            estado_pupitre=pupitre.estado_pupitre,
+            estado=pupitre.estado,
             observacion=pupitre.observacion,
         )

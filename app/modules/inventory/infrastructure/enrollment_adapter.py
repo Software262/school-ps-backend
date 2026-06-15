@@ -1,3 +1,5 @@
+from sqlmodel import col, select
+
 from app.core.db import SessionDep
 from app.modules.enrollment.infrastructure.models import Estudiante
 from app.modules.inventory.application.contracts import InventoryEnrollmentService
@@ -11,7 +13,12 @@ class InventoryEnrollmentAdapter(InventoryEnrollmentService):
         self.session = session
 
     def get_student_by_id(self, student_id: int) -> StudentEntity | None:
-        student = self.session.get(Estudiante, student_id)
+        student = self.session.exec(
+            select(Estudiante).where(
+                Estudiante.id == student_id, col(Estudiante.activo).is_(True)
+            )
+        ).first()
+
         if not student:
             return None
         return StudentEntity(

@@ -1,12 +1,18 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, File, Query, UploadFile, status
+from fastapi.responses import Response as FileDownloadResponse
 
 from app.core.db import SessionDep
+from app.modules.inventory.application.import_items_flow import import_items_from_upload
+from app.modules.inventory.utils.file import build_template
 from app.modules.musical_band.application.create_borrowing import (
     CreateInstrumentBorrowMusicalBand,
 )
 from app.modules.musical_band.application.create_item import CreateItemMusicalBand
+from app.modules.musical_band.application.create_items_from_file import (
+    CreateItemsMusicalBandFromFile,
+)
 from app.modules.musical_band.application.get_borrowings import GetBorrowingsMusicalBand
 from app.modules.musical_band.application.get_items import (
     GetItemsMusicalBand,
@@ -133,6 +139,30 @@ async def create_borrow_band(
         data=data,
         message="obtenido los articulos de banda exitosamente",
     ).to_dict()
+
+
+@router.get("/items/template")
+async def download_band_template(
+    file_format: Annotated[Literal["xlsx", "csv"], Query(alias="format")] = "xlsx",
+):
+    content, media_type, filename = build_template(
+        file_format=file_format, type_name="banda"
+    )
+
+    return FileDownloadResponse(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post("/items/import")
+async def upload_band_items_file(
+    session: SessionDep,
+    file: Annotated[UploadFile, File()],
+):
+    importer = CreateItemsMusicalBandFromFile(session=session)
+    return await import_items_from_upload(file=file, importer=importer)
 
 
 @router.patch("/borrowings/{borrow_id}")

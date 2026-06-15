@@ -4,9 +4,10 @@ from sqlmodel import Session, select
 
 from app.core.db import engine
 from app.modules.auth.infrastructure.models import Usuario
-from app.modules.classroom.infrastructure.models import Pupitre
+from app.modules.classroom.infrastructure.models import DetallePupitre
 from app.modules.enrollment.infrastructure.models import (
     Acudiente,
+    Complementario,
     Docente,
     Estudiante,
     Grado,
@@ -117,6 +118,51 @@ def main():
         session.add_all(estados_inventario)
         session.flush()
 
+        # === ESCUELAS DE FORMACIÓN: tipos y complementarios de ejemplo ===
+        escuelas_formacion = tipos_complementario[3]
+        tipo_baloncesto = TipoComplementario(
+            nombre="Baloncesto",
+            estado=True,
+            sub_tipo_complementario=escuelas_formacion.id,
+        )
+        tipo_ajedrez = TipoComplementario(
+            nombre="Ajedrez",
+            estado=True,
+            sub_tipo_complementario=escuelas_formacion.id,
+        )
+        tipo_natacion = TipoComplementario(
+            nombre="Natacion",
+            estado=True,
+            sub_tipo_complementario=escuelas_formacion.id,
+        )
+        session.add_all([tipo_baloncesto, tipo_ajedrez, tipo_natacion])
+        session.flush()
+
+        complementarios_escuelas_formacion: list[Complementario] = [
+            Complementario(
+                nombre="Escuela de Baloncesto",
+                tipo_complementario_id=tipo_baloncesto.id,
+                anio=2026,
+                valor=60000,
+                estado_complemento="Activo",
+            ),
+            Complementario(
+                nombre="Escuela de Ajedrez",
+                tipo_complementario_id=tipo_ajedrez.id,
+                anio=2026,
+                valor=50000,
+                estado_complemento="Activo",
+            ),
+            Complementario(
+                nombre="Escuela de Natacion",
+                tipo_complementario_id=tipo_natacion.id,
+                anio=2026,
+                valor=70000,
+                estado_complemento="Activo",
+            ),
+        ]
+        session.add_all(complementarios_escuelas_formacion)
+
         grados: list[Grado] = [
             Grado(nombre="cuarto", docente_titular_id=docentes[0].id),
             Grado(nombre="quinto"),
@@ -192,10 +238,10 @@ def main():
         session.add_all(estudiantes)
         session.flush()
 
-        pupitres: list[Pupitre] = [
-            Pupitre(
+        pupitres: list[DetallePupitre] = [
+            DetallePupitre(
                 estudiante_id=estudiante.id or 1,
-                estado_pupitre=True,
+                estado="Pendiente",
                 observacion=None,
             )
             for estudiante in estudiantes

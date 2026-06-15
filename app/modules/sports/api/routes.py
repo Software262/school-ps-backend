@@ -1,15 +1,21 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, File, Query, UploadFile, status
+from fastapi.responses import Response as FileDownloadResponse
 
 from app.core.db import SessionDep
+from app.modules.inventory.application.import_items_flow import import_items_from_upload
 from app.modules.inventory.schemas.response import (
     CreateItemBorrowingResponse,
     ReturnItemBorrowingResponse,
     UpdateItemInventoryResponse,
 )
+from app.modules.inventory.utils.file import build_template
 from app.modules.sports.application.create_borrowing import CreateBorrowingDeportes
 from app.modules.sports.application.create_item import CreateItemDeportes
+from app.modules.sports.application.create_items_from_file import (
+    CreateItemsDeportesFromFile,
+)
 from app.modules.sports.application.edit_single import EditItemDeportes
 from app.modules.sports.application.get_borrowing import GetBorrowingsDeportes
 from app.modules.sports.application.get_items import (
@@ -69,6 +75,30 @@ async def create_sport_item(session: SessionDep, item_data: CreateSportItemReque
         data=data,
         message="obtenido los articulos de deporte exitosamente",
     ).to_dict()
+
+
+@router.get("/items/template")
+async def download_sport_template(
+    file_format: Annotated[Literal["xlsx", "csv"], Query(alias="format")] = "xlsx",
+):
+    content, media_type, filename = build_template(
+        file_format=file_format, type_name="deporte"
+    )
+
+    return FileDownloadResponse(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post("/items/import")
+async def upload_sport_items_file(
+    session: SessionDep,
+    file: Annotated[UploadFile, File()],
+):
+    importer = CreateItemsDeportesFromFile(session=session)
+    return await import_items_from_upload(file=file, importer=importer)
 
 
 @router.put("/items/{item_id}")
