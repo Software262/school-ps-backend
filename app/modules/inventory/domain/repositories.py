@@ -12,7 +12,6 @@ from app.modules.inventory.infrastructure.models import (
 from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     CreateItemRequest,
-    InventoryItemRequest,
     ReturnBorrowRequest,
     UpdateCompleteItemRequest,
     UpdateSingleItemRequest,
@@ -126,9 +125,40 @@ class InventoryRepository(ABC):
         pass
 
     @abstractmethod
-    async def create_items_batch(
-        self, create_items_data: list[InventoryItemRequest]
-    ) -> list[Inventario]:
+    async def get_item_by_name(self, nombre: str) -> Inventario | None:
+        pass
+
+    @abstractmethod
+    async def get_stocks_map_by_item_id(
+        self, item_id: int
+    ) -> dict[int, InventarioStock]:
+        pass
+
+    @abstractmethod
+    async def create_imported_item(
+        self,
+        tipo_id: int,
+        nombre: str,
+        cantidad_total: int,
+        observacion: str | None,
+        stocks: dict[int, int],
+    ) -> Inventario:
+        pass
+
+    @abstractmethod
+    async def update_imported_item(
+        self,
+        item: Inventario,
+        tipo_id: int,
+        cantidad_total: int,
+        observacion: str | None,
+        stocks: dict[int, int],
+        existing_stocks: dict[int, InventarioStock],
+    ) -> Inventario:
+        pass
+
+    @abstractmethod
+    def rollback(self) -> None:
         pass
 
     @abstractmethod

@@ -18,7 +18,6 @@ from app.modules.inventory.infrastructure.models import (
 from app.modules.inventory.schemas.request import (
     CreateBorrowRequest,
     CreateItemRequest,
-    InventoryItemRequest,
     ReturnBorrowRequest,
     UpdateCompleteItemRequest,
     UpdateSingleItemRequest,
@@ -316,22 +315,98 @@ class InventoryRepository(InventoryRepositoryInterface):
             query.offset(offset).limit(limit)
         ).all()
 
-    async def create_items_batch(self, create_items_data: list[InventoryItemRequest]):
-        inventory: list[Inventario] = []
+    def rollback(self) -> None:
+        self.session.rollback()
 
-        for _, data in enumerate(create_items_data):
-            item = await self.create_item(
-                item_data=CreateItemRequest(
-                    tipo_inventario_id=data.tipo_inventario_id,
-                    nombre=data.nombre,
-                    cantidad_total=data.cantidad_total,
-                    observacion=data.observacion,
+    def _set_stock(
+        self,
+        item_id: int,
+        state_id: int,
+        amount: int,
+        stock: InventarioStock | None,
+    ) -> None:
+        if stock is not None:
+            stock.cantidad = amount
+            self.session.add(stock)
+        else:
+            self.session.add(
+                InventarioStock(
+                    inventario_id=item_id,
+                    estado_inventario_id=state_id,
+                    cantidad=amount,
                 )
             )
-            if item:
-                inventory.append(item)
 
-        return inventory
+    async def get_item_by_name(self, nombre: str) -> Inventario | None:
+        return self.session.exec(
+            select(Inventario).where(func.lower(Inventario.nombre) == nombre.lower())
+        ).first()
+
+    async def get_stocks_map_by_item_id(
+        self, item_id: int
+    ) -> dict[int, InventarioStock]:
+        return {
+            stock.estado_inventario_id: stock
+            for stock in self.session.exec(
+                select(InventarioStock).where(InventarioStock.inventario_id == item_id)
+            ).all()
+        }
+
+    async def create_imported_item(
+        self,
+        tipo_id: int,
+        nombre: str,
+        cantidad_total: int,
+        observacion: str | None,
+        stocks: dict[int, int],
+    ) -> Inventario:
+        new_item = Inventario(
+            tipo_inventario_id=tipo_id,
+            nombre=nombre,
+            cantidad_total=cantidad_total,
+            observacion=observacion,
+        )
+        self.session.add(new_item)
+        self.session.flush()
+
+        if new_item.id is None:
+            raise ValueError("No se pudo crear el articulo")
+
+        self.session.add_all(
+            [
+                InventarioStock(
+                    inventario_id=new_item.id,
+                    estado_inventario_id=state_id,
+                    cantidad=cantidad,
+                )
+                for state_id, cantidad in stocks.items()
+            ]
+        )
+        self.session.commit()
+        return new_item
+
+    async def update_imported_item(
+        self,
+        item: Inventario,
+        tipo_id: int,
+        cantidad_total: int,
+        observacion: str | None,
+        stocks: dict[int, int],
+        existing_stocks: dict[int, InventarioStock],
+    ) -> Inventario:
+        if item.id is None:
+            raise ValueError("El articulo no tiene identificador")
+
+        item.tipo_inventario_id = tipo_id
+        item.cantidad_total = cantidad_total
+        item.observacion = observacion
+        self.session.add(item)
+
+        for state_id, cantidad in stocks.items():
+            self._set_stock(item.id, state_id, cantidad, existing_stocks.get(state_id))
+
+        self.session.commit()
+        return item
 
     async def create_novedad(self, prestamo_id: int, descripcion: str):
         nueva_novedad = Novedad(

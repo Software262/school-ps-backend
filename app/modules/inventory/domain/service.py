@@ -21,6 +21,10 @@ from app.modules.inventory.schemas.request import (
     UpdateSingleItemExtenseRequest,
     UpdateSingleItemRequest,
 )
+from app.modules.inventory.schemas.response import (
+    ImportItemsResponse,
+    ImportRowError,
+)
 from app.shared.utils.filter_pagination import calculate_offset
 
 
@@ -381,9 +385,160 @@ class InventoryService:
 
         return count, (await self.format_borrowing(borrowings=borrowings))
 
-    async def create_items_inventory_from_file(
-        self, create_items_data: list[InventoryItemRequest]
-    ):
-        return await self.repository.create_items_batch(
-            create_items_data=create_items_data
+    async def upsert_imported_item(self, data: InventoryItemRequest) -> str:
+        tipo_id = await self.repository.get_type_id_by_name(
+            data.tipo_inventario.strip().lower()
+        )
+        if tipo_id is None:
+            raise ValueError(
+                f"El tipo de inventario '{data.tipo_inventario}' no existe"
+            )
+
+        available_id = await self.repository.get_state_id_by_name(self.available_states)
+        borrowed_id = await self.repository.get_state_id_by_name(self.borrowed_states)
+        maintenance_id = await self.repository.get_state_id_by_name(
+            self.maintenance_states
+        )
+        if not available_id or not borrowed_id or not maintenance_id:
+            raise ValueError("Los estados de inventario no estan configurados")
+
+        nombre = data.nombre.strip()
+        existing = await self.repository.get_item_by_name(nombre)
+
+        if existing is not None and existing.id is not None:
+            stocks_by_state = await self.repository.get_stocks_map_by_item_id(
+                existing.id
+            )
+            prestado = (
+                stocks_by_state[borrowed_id].cantidad
+                if borrowed_id in stocks_by_state
+                else 0
+            )
+            current_mant = (
+                stocks_by_state[maintenance_id].cantidad
+                if maintenance_id in stocks_by_state
+                else 0
+            )
+
+            mant = (
+                data.cantidad_mantenimiento
+                if data.cantidad_mantenimiento is not None
+                else current_mant
+            )
+            disp = (
+                data.cantidad_disponible
+                if data.cantidad_disponible is not None
+                else data.cantidad_total - prestado - mant
+            )
+
+            if disp < 0:
+                raise ValueError(
+                    "La cantidad disponible resultante no puede ser negativa "
+                    f"(prestado={prestado}, mantenimiento={mant})"
+                )
+            if disp + prestado + mant != data.cantidad_total:
+                raise ValueError(
+                    f"La suma de disponible({disp}) + prestado({prestado}) + "
+                    f"mantenimiento({mant}) debe ser igual a la cantidad total "
+                    f"({data.cantidad_total})"
+                )
+
+            await self.repository.update_imported_item(
+                item=existing,
+                tipo_id=tipo_id,
+                cantidad_total=data.cantidad_total,
+                observacion=data.observacion,
+                stocks={
+                    available_id: disp,
+                    maintenance_id: mant,
+                    borrowed_id: prestado,
+                },
+                existing_stocks=stocks_by_state,
+            )
+            return "updated"
+
+        mant = data.cantidad_mantenimiento or 0
+        disp = (
+            data.cantidad_disponible
+            if data.cantidad_disponible is not None
+            else data.cantidad_total - mant
+        )
+
+        if disp < 0:
+            raise ValueError(
+                "La cantidad disponible resultante no puede ser negativa "
+                f"(mantenimiento={mant})"
+            )
+        if disp + mant != data.cantidad_total:
+            raise ValueError(
+                f"La suma de disponible({disp}) + mantenimiento({mant}) debe ser "
+                f"igual a la cantidad total ({data.cantidad_total})"
+            )
+
+        await self.repository.create_imported_item(
+            tipo_id=tipo_id,
+            nombre=nombre,
+            cantidad_total=data.cantidad_total,
+            observacion=data.observacion,
+            stocks={
+                available_id: disp,
+                maintenance_id: mant,
+                borrowed_id: 0,
+            },
+        )
+        return "created"
+
+    async def import_items(
+        self,
+        valid_items: list[tuple[int, InventoryItemRequest]],
+        parse_errors: list[ImportRowError],
+        allowed_type: str | None = None,
+    ) -> ImportItemsResponse:
+        created = 0
+        updated = 0
+        errors: list[ImportRowError] = list(parse_errors)
+
+        for row_number, data in valid_items:
+            if allowed_type is not None and data.tipo_inventario != allowed_type:
+                errors.append(
+                    ImportRowError(
+                        row=row_number,
+                        nombre=data.nombre,
+                        error=(
+                            f"El tipo '{data.tipo_inventario}' no corresponde a este "
+                            f"módulo. Solo se aceptan articulos de tipo '{allowed_type}'."
+                        ),
+                    )
+                )
+                continue
+
+            try:
+                result = await self.upsert_imported_item(data)
+                if result == "created":
+                    created += 1
+                else:
+                    updated += 1
+            except ValueError as error:
+                self.repository.rollback()
+                errors.append(
+                    ImportRowError(row=row_number, nombre=data.nombre, error=str(error))
+                )
+            except Exception:
+                self.repository.rollback()
+                errors.append(
+                    ImportRowError(
+                        row=row_number,
+                        nombre=data.nombre,
+                        error="Error inesperado al procesar la fila",
+                    )
+                )
+
+        total = len(valid_items) + len(parse_errors)
+
+        return ImportItemsResponse(
+            total=total,
+            created=created,
+            updated=updated,
+            failed=len(errors),
+            errors=errors,
         )

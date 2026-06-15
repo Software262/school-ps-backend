@@ -1,6 +1,7 @@
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, File, Query, UploadFile, status
+from fastapi.responses import Response as FileDownloadResponse
 
 from app.core.db import SessionDep
 from app.modules.inventory.application.create_borrowing_inventory import (
@@ -12,6 +13,7 @@ from app.modules.inventory.application.create_items_inventory_from_file import (
 )
 from app.modules.inventory.application.create_type_inventory import CreateTypeInventory
 from app.modules.inventory.application.edit_single_item import EditSingleItem
+from app.modules.inventory.application.import_items_flow import import_items_from_upload
 from app.modules.inventory.application.get_borrowings import GetBorrowings
 from app.modules.inventory.application.get_items_inventory import GetItemsInventory
 from app.modules.inventory.application.get_statics import GetStatsInventory
@@ -38,7 +40,7 @@ from app.modules.inventory.schemas.response import (
     ReturnItemBorrowingResponse,
     UpdateItemInventoryResponse,
 )
-from app.modules.inventory.utils.file import validate_data, validate_file
+from app.modules.inventory.utils.file import build_template
 from app.shared.utils.response import Response
 
 router = APIRouter()
@@ -403,33 +405,23 @@ async def get_borrowings(
     )
 
 
+@router.get("/items/template")
+async def download_items_template(
+    file_format: Annotated[Literal["xlsx", "csv"], Query(alias="format")] = "xlsx",
+):
+    content, media_type, filename = build_template(file_format=file_format)
+
+    return FileDownloadResponse(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @router.post("/items/import")
 async def upload_items_file(
     session: SessionDep,
     file: Annotated[UploadFile, File()],
 ):
-    data = await validate_file(file=file)
-
-    if data is None:
-        return Response(
-            data=None,
-            message="Archivo invalido solamente se aceptan csv o excel",
-            success=False,
-            status_code=status.HTTP_400_BAD_REQUEST,
-            details={},
-        ).to_dict()
-
-    items_inventory = await validate_data(filename=file.filename, data=data)
-
-    create_items_inventory_from_file = CreateItemsInventoryFromFile(session=session)
-
-    res = await create_items_inventory_from_file.execute(
-        items_inventory=items_inventory
-    )
-
-    return Response(
-        data=res,
-        message="Archivo cargado exitosamente",
-        status_code=status.HTTP_200_OK,
-        details={"message": "Archivo cargado exitosamente"},
-    ).to_dict()
+    importer = CreateItemsInventoryFromFile(session=session)
+    return await import_items_from_upload(file=file, importer=importer)

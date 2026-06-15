@@ -86,7 +86,15 @@ class ReturnBorrowRequest(BaseModel):
 
 
 class InventoryItemRequest(BaseModel):
-    tipo_inventario_id: int = Field(gt=0)
+    tipo_inventario: Literal["banda", "ajedrez", "deporte"] = Field(
+        description="Nombre del tipo de inventario"
+    )
     nombre: str = Field(min_length=2)
     cantidad_total: int = Field(gt=0)
     observacion: str | None = Field(default=None)
+    cantidad_disponible: int | None = Field(
+        default=None, ge=0, description="Cantidad disponible del item"
+    )
+    cantidad_mantenimiento: int | None = Field(
+        default=None, ge=0, description="Cantidad en mantenimiento del item"
+    )
