@@ -40,6 +40,24 @@ class EnrollmentResponse(BaseModel):
     updated_at: datetime | None
 
 
+class TipoComplementarioResponse(BaseModel):
+    id: int
+    nombre: str
+    estado: bool
+    sub_tipo_complementario: int | None
+    padre_nombre: str | None
+
+
+class ComplementarioResponse(BaseModel):
+    id: int
+    nombre: str
+    anio: int
+    valor: int
+    estado_complemento: str
+    tipo_complementario_id: int
+    tipo_complementario_nombre: str
+
+
 class EnrollmentDetailResponse(BaseModel):
     id: int
     complementario_id: int
