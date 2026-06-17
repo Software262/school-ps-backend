@@ -239,6 +239,13 @@ async def create_chess_item(session: SessionDep, item_data: CreateChessItemReque
             details={"error": result.get("message", "")},
         ).to_dict()
 
+    if result is None:
+        return Response(
+            data=None,
+            message="Error al crear el artículo de ajedrez",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        ).to_dict()
+
     piezas_totales = 32
     if result.observacion and result.observacion.startswith("[PIEZAS:"):
         try:
