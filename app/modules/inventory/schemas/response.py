@@ -9,16 +9,14 @@ class CreateTypeInventoryResponse(BaseModel):
 class CreateItemInventoryResponse(BaseModel):
     id: int
     nombre: str
-    cantidad: int
-    estado_objeto: str
+    cantidad_total: int
     observacion: str | None
 
 
 class UpdateItemInventoryResponse(BaseModel):
     id: int
     nombre: str
-    cantidad: int
-    estado_objeto: str
+    cantidad_total: int
     observacion: str | None
 
 
@@ -38,3 +36,24 @@ class ReturnItemBorrowingResponse(BaseModel):
     cantidad: int
     estado_prestamo: bool
     observacion: str
+
+
+class GetInventoryStatsResponse(BaseModel):
+    total_items: int
+    total_disponibles: int
+    total_prestados: int
+    total_mantenimiento: int
+
+
+class ImportRowError(BaseModel):
+    row: int
+    nombre: str | None = None
+    error: str
+
+
+class ImportItemsResponse(BaseModel):
+    total: int
+    created: int
+    updated: int
+    failed: int
+    errors: list[ImportRowError]

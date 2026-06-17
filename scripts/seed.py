@@ -15,10 +15,11 @@ from app.modules.enrollment.infrastructure.models import (
     Estudiante,
     Grado,
     Matricula,
-    ParametrizarMatricula,
-    Periodo,
     Pago,
     PagoDetalle,
+    ParametrizarMatricula,
+    Periodo,
+    TipoComplementario,
 )
 from app.modules.tuition.infrastructure.models import ParametrizarPension
 
@@ -192,34 +193,40 @@ def seed() -> None:
         assert pension_segundo.id is not None
         assert pension_sexto_2025.id is not None
 
+        # === TIPOS COMPLEMENTARIOS ===
+        tipo_matricula = TipoComplementario(nombre="Matricula", estado=True)
+        session.add(tipo_matricula)
+        session.flush()
+        assert tipo_matricula.id is not None
+
         # === COMPLEMENTARIOS ===
         comp_seguro = Complementario(
-            tipo_complementario="Seguro Estudiantil",
+            nombre="Seguro Estudiantil",
+            tipo_complementario_id=tipo_matricula.id,
             anio=2026,
             valor=120000,
             estado_complemento="Activo",
-            uso_matricula=True,
         )
         comp_agenda = Complementario(
-            tipo_complementario="Agenda Escolar",
+            nombre="Agenda Escolar",
+            tipo_complementario_id=tipo_matricula.id,
             anio=2026,
             valor=45000,
             estado_complemento="Activo",
-            uso_matricula=True,
         )
         comp_carnet = Complementario(
-            tipo_complementario="Carnet Estudiantil",
+            nombre="Carnet Estudiantil",
+            tipo_complementario_id=tipo_matricula.id,
             anio=2026,
             valor=25000,
             estado_complemento="Activo",
-            uso_matricula=True,
         )
         comp_plataforma = Complementario(
-            tipo_complementario="Plataforma Digital",
+            nombre="Plataforma Digital",
+            tipo_complementario_id=tipo_matricula.id,
             anio=2026,
             valor=80000,
             estado_complemento="Activo",
-            uso_matricula=True,
         )
         session.add_all([comp_seguro, comp_agenda, comp_carnet, comp_plataforma])
         session.flush()

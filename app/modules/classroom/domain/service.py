@@ -1,78 +1,111 @@
 from app.modules.classroom.domain.repositories import PupitreRepository
-from app.modules.classroom.domain.entities import PupitreEntity
+from app.modules.classroom.domain.entities import (
+    ComplementarioEntity,
+    DetallePupitreEntity,
+)
+from app.modules.classroom.application.contracts import ClassroomEnrollmentService
+
+ESTADO_PENDIENTE = "pendiente"
+ESTADO_PAGADO = "pagado"
 
 
 class PupitreService:
-    def __init__(self, repositorio: PupitreRepository):
+    def __init__(
+        self,
+        repositorio: PupitreRepository,
+        enrollment_service: ClassroomEnrollmentService,
+    ):
         self.repositorio = repositorio
+        self.enrollment_service = enrollment_service
 
-    # Se actualiza el estado de UN pupitre, se retorna el pupitre actualizado
-    async def update_desk_state(
-        self, estudiante_id: int, nuevo_estado: bool, observacion: str | None
-    ) -> PupitreEntity | None:
-        pupitre = await self.repositorio.get_student_desk(estudiante_id)
+    # Obtiene el complementario de pupitre (valor parametrizado vigente)
+    async def get_complementario_pupitre(
+        self, nombre_complementario: str = "Pupitre"
+    ) -> ComplementarioEntity | None:
+        return await self.enrollment_service.get_complementary_by_name(
+            nombre_complementario
+        )
 
+    def _map_to_entity(self, data) -> DetallePupitreEntity:
+        return DetallePupitreEntity(
+            id=data.id or 0,
+            estudiante_id=data.estudiante_id,
+            estado=data.estado,
+            observacion=data.observacion,
+        )
+
+    # Se confirma el pago de UN pupitre (no recibe valor, solo confirma)
+    async def update_payment_status(
+        self, estudiante_id: int, observacion: str | None
+    ) -> DetallePupitreEntity | None:
+
+        complementario = await self.get_complementario_pupitre()
+        if not complementario:
+            return None
+
+        pupitre = await self.repositorio.get_student_desk(
+            estudiante_id, complementario.id
+        )
         if not pupitre:
             return None
 
-        pupitre.estado_pupitre = nuevo_estado
+        pupitre.estado = (
+            ESTADO_PENDIENTE if pupitre.estado == ESTADO_PAGADO else ESTADO_PAGADO
+        )
         pupitre.observacion = observacion
 
-        actualizado = await self.repositorio.update_desk_state(pupitre)
+        pupitre_actualizado = await self.repositorio.update_desk(pupitre)
+        return self._map_to_entity(pupitre_actualizado)
 
-        return PupitreEntity(
-            id=actualizado.id or 0,
-            estudiante_id=actualizado.estudiante_id,
-            estado_pupitre=actualizado.estado_pupitre,
-            observacion=actualizado.observacion,
-        )
-
-    # Se actualiza el estado de varios pupitres, se retorna la cantidad de pupitres actualizados
+    # Confirma el pago de varios pupitres de un mismo grado, retorna cantidad actualizados
     async def bulk_update_desk_states(
-        self, estudiante_ids: list[int], nuevo_estado: bool, observacion: str | None
+        self, grado_id: int, ids_estudiantes: list[int]
     ) -> dict | None:
-        pupitres = await self.repositorio.list_desks_by_students(estudiante_ids)
+
+        pupitres = await self.repositorio.list_desks_by_grado_id(grado_id)
 
         if not pupitres:
             return None
 
-        for pupitre in pupitres:
-            pupitre.estado_pupitre = nuevo_estado
-            pupitre.observacion = observacion
+        encontrados_ids = {p.estudiante_id for p in pupitres}
 
-        total = await self.repositorio.bulk_update_desk_states(pupitres)
+        ids_validos = [i for i in ids_estudiantes if i in encontrados_ids]
+        ids_no_encontrados = [i for i in ids_estudiantes if i not in encontrados_ids]
 
-        return {"total_actualizados": total}
+        pupitres_a_actualizar = [p for p in pupitres if p.estudiante_id in ids_validos]
 
-    # Se obtiene la lista de los pupitres asociados a los estudiantes que pertenecen a un mismo grado, si no se encuentran pupitres se retorna None
+        for pupitre in pupitres_a_actualizar:
+            pupitre.estado = ESTADO_PAGADO
+
+        total = await self.repositorio.bulk_update_desk_states(pupitres_a_actualizar)
+
+        return {
+            "total_actualizados": total,
+            "ids_no_encontrados": ids_no_encontrados,
+        }
+
+    # Lista los pupitres de un grupo de estudiantes
     async def get_desks_by_students(
         self, estudiante_ids: list[int]
-    ) -> list[PupitreEntity] | None:
+    ) -> list[DetallePupitreEntity] | None:
         pupitres = await self.repositorio.list_desks_by_students(estudiante_ids)
 
         if not pupitres:
             return None
 
-        return [
-            PupitreEntity(
-                id=p.id or 0,
-                estudiante_id=p.estudiante_id,
-                estado_pupitre=p.estado_pupitre,
-                observacion=p.observacion,
-            )
-            for p in pupitres
-        ]
+        return [self._map_to_entity(p) for p in pupitres]
 
-    # Se obtiene el pupitre al cual pertenece el estudiante, si no tiene pupitre se retorna None
-    async def get_desk_by_student(self, estudiante_id: int) -> PupitreEntity | None:
-        pupitre = await self.repositorio.get_student_desk(estudiante_id)
+    # Obtiene el pupitre de un estudiante
+    async def get_desk_by_student(
+        self, estudiante_id: int
+    ) -> DetallePupitreEntity | None:
+        complementario = await self.get_complementario_pupitre()
 
-        if not pupitre:
+        if not complementario:
             return None
 
-        return PupitreEntity(
-            id=pupitre.id or 0,
-            estudiante_id=pupitre.estudiante_id,
-            estado_pupitre=pupitre.estado_pupitre,
-            observacion=pupitre.observacion,
+        pupitre = await self.repositorio.get_student_desk(
+            estudiante_id, complementario.id
         )
+
+        return self._map_to_entity(pupitre) if pupitre else None

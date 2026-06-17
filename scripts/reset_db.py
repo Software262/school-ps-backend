@@ -20,6 +20,7 @@ from app.modules.enrollment.infrastructure.models import (
     PagoDetalle,
     ParametrizarMatricula,
     Periodo,
+    TipoComplementario,
 )
 from app.modules.tests.infrastructure.models import DetallePrueba
 
@@ -210,53 +211,61 @@ def seed_all(session: Session):
         session.refresh(p)
     print(f"   OK: {len(periodos)} periodos\n")
 
-    # -- 5. COMPLEMENTARIOS
+    # -- 5. TIPOS COMPLEMENTARIOS Y COMPLEMENTARIOS
     print("[5] Complementarios...")
-    comps = [
+    tipo_matricula = TipoComplementario(nombre="Matricula", estado=True)
+    tipo_prueba = TipoComplementario(nombre="Prueba", estado=True)
+    session.add_all([tipo_matricula, tipo_prueba])
+    session.flush()
+    assert tipo_matricula.id is not None
+    assert tipo_prueba.id is not None
+
+    comps_matricula = [
         Complementario(
-            tipo_complementario="Seguro Estudiantil",
+            nombre="Seguro Estudiantil",
+            tipo_complementario_id=tipo_matricula.id,
             anio=2026,
             valor=30000,
             estado_complemento="Activo",
-            uso_matricula=True,
         ),
         Complementario(
-            tipo_complementario="Transporte",
+            nombre="Transporte",
+            tipo_complementario_id=tipo_matricula.id,
             anio=2026,
             valor=150000,
             estado_complemento="Activo",
-            uso_matricula=True,
         ),
+    ]
+    comps_prueba = [
         Complementario(
-            tipo_complementario="Simulacro ICFES 2026",
+            nombre="Simulacro ICFES 2026",
+            tipo_complementario_id=tipo_prueba.id,
             anio=2026,
             valor=50000,
             estado_complemento="Activo",
-            uso_matricula=False,
         ),
         Complementario(
-            tipo_complementario="Prueba Saber 11",
+            nombre="Prueba Saber 11",
+            tipo_complementario_id=tipo_prueba.id,
             anio=2026,
             valor=45000,
             estado_complemento="Activo",
-            uso_matricula=False,
         ),
         Complementario(
-            tipo_complementario="Evaluacion Diagnostica",
+            nombre="Evaluacion Diagnostica",
+            tipo_complementario_id=tipo_prueba.id,
             anio=2026,
             valor=20000,
             estado_complemento="Activo",
-            uso_matricula=False,
         ),
     ]
+    comps = comps_matricula + comps_prueba
     session.add_all(comps)
     session.commit()
     for c in comps:
         session.refresh(c)
-    print(f"   OK: {len(comps)} complementarios\n")
-    pruebas = [c for c in comps if not c.uso_matricula]
     print(
-        f"   OK: {len(comps)} complementarios ({len(pruebas)} para pruebas, {len(comps) - len(pruebas)} para matricula)\n"
+        f"   OK: {len(comps)} complementarios ({len(comps_prueba)} para pruebas, {len(comps_matricula)} para matricula)\n"
     )
 
     # -- 6. PARAMETRIZAR MATRICULA

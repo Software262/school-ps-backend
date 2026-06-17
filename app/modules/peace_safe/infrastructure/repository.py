@@ -4,7 +4,7 @@ from sqlmodel import col, select
 
 from app.core.db import SessionDep
 from app.modules.cafeteria.infrastructure.models import Cafeteria
-from app.modules.classroom.infrastructure.models import Pupitre
+from app.modules.classroom.infrastructure.models import DetallePupitre
 from app.modules.classroom_holder.infrastructure.models import Observador
 from app.modules.enrollment.infrastructure.models import (
     DetalleMatricula,
@@ -107,9 +107,9 @@ class PeaceSafeRepository(PeaceSafeRepositoryInterface):
             )
         ).first()
 
-    def get_pupitre_by_student(self, estudiante_id: int) -> Pupitre | None:
+    def get_pupitre_by_student(self, estudiante_id: int) -> DetallePupitre | None:
         return self.session.exec(
-            select(Pupitre).where(Pupitre.estudiante_id == estudiante_id)
+            select(DetallePupitre).where(DetallePupitre.estudiante_id == estudiante_id)
         ).first()
 
     def get_observaciones(self, estudiante_id: int) -> list[Observador]:

@@ -1,6 +1,7 @@
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, File, Query, UploadFile, status
+from fastapi.responses import Response as FileDownloadResponse
 
 from app.core.db import SessionDep
 from app.modules.inventory.application.create_borrowing_inventory import (
@@ -12,8 +13,10 @@ from app.modules.inventory.application.create_items_inventory_from_file import (
 )
 from app.modules.inventory.application.create_type_inventory import CreateTypeInventory
 from app.modules.inventory.application.edit_single_item import EditSingleItem
+from app.modules.inventory.application.import_items_flow import import_items_from_upload
 from app.modules.inventory.application.get_borrowings import GetBorrowings
 from app.modules.inventory.application.get_items_inventory import GetItemsInventory
+from app.modules.inventory.application.get_statics import GetStatsInventory
 from app.modules.inventory.application.get_type_by_name import GetTypeByName
 from app.modules.inventory.application.get_types_inventory import GetTypesInventory
 from app.modules.inventory.application.return_borrowing import ReturnBorrowing
@@ -27,16 +30,17 @@ from app.modules.inventory.schemas.request import (
     FilterPaginationTypesInventory,
     ReturnBorrowRequest,
     UpdateCompleteItemRequest,
-    UpdateSingleItemRequest,
+    UpdateSingleItemExtenseRequest,
 )
 from app.modules.inventory.schemas.response import (
     CreateItemBorrowingResponse,
     CreateItemInventoryResponse,
     CreateTypeInventoryResponse,
+    GetInventoryStatsResponse,
     ReturnItemBorrowingResponse,
     UpdateItemInventoryResponse,
 )
-from app.modules.inventory.utils.file import validate_data, validate_file
+from app.modules.inventory.utils.file import build_template
 from app.shared.utils.response import Response
 
 router = APIRouter()
@@ -66,10 +70,44 @@ async def get_inventory(
     )
 
 
+@router.get("/stats")
+async def get_stats_inventory(
+    session: SessionDep, type_name: Literal["banda", "deporte", "ajedrez"]
+):
+    stats_app = GetStatsInventory(session=session)
+    (
+        total_items,
+        available_items,
+        borrowed_items,
+        maintenance_items,
+    ) = await stats_app.execute(type_name=type_name)
+
+    return Response(
+        data=GetInventoryStatsResponse(
+            total_items=total_items,
+            total_disponibles=available_items,
+            total_prestados=borrowed_items,
+            total_mantenimiento=maintenance_items,
+        ).model_dump(),
+        message="Estadísticas obtenidas exitosamente",
+        status_code=status.HTTP_200_OK,
+        details={"message": "Estadísticas obtenidas exitosamente"},
+    ).to_dict()
+
+
 @router.post("/items")
 async def create_item(session: SessionDep, create_item_request: CreateItemRequest):
     create_item_app = CreateItemInventory(session=session)
     data = await create_item_app.execute(create_item_request)
+
+    if not data:
+        return Response(
+            data=None,
+            message="Error al crear el articulo",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            success=False,
+            details={"message": "Error al crear el articulo"},
+        ).to_dict()
 
     if not data.id:
         return Response(
@@ -93,8 +131,7 @@ async def create_item(session: SessionDep, create_item_request: CreateItemReques
         data=CreateItemInventoryResponse(
             id=data.id,
             nombre=data.nombre,
-            cantidad=data.cantidad,
-            estado_objeto=data.estado_objeto,
+            cantidad_total=data.cantidad_total,
             observacion=data.observacion,
         ),
         message="Articulo creado exitosamente",
@@ -204,8 +241,7 @@ async def update_item(
         data=UpdateItemInventoryResponse(
             id=data.id,
             nombre=data.nombre,
-            cantidad=data.cantidad,
-            estado_objeto=data.estado_objeto,
+            cantidad_total=data.cantidad_total,
             observacion=data.observacion,
         ),
         message="Articulo actualizado exitosamente",
@@ -305,7 +341,9 @@ async def return_borrowing(
 
 @router.patch("/items/{item_id}")
 async def edit_item(
-    session: SessionDep, item_id: int, update_item_request: UpdateSingleItemRequest
+    session: SessionDep,
+    item_id: int,
+    update_item_request: UpdateSingleItemExtenseRequest,
 ):
     edit_item_app = EditSingleItem(session=session)
     data = await edit_item_app.execute(item_id, update_item_request)
@@ -332,8 +370,7 @@ async def edit_item(
         data=UpdateItemInventoryResponse(
             id=data.id,
             nombre=data.nombre,
-            cantidad=data.cantidad,
-            estado_objeto=data.estado_objeto,
+            cantidad_total=data.cantidad_total,
             observacion=data.observacion,
         ),
         message="Articulo editado exitosamente",
@@ -368,33 +405,23 @@ async def get_borrowings(
     )
 
 
+@router.get("/items/template")
+async def download_items_template(
+    file_format: Annotated[Literal["xlsx", "csv"], Query(alias="format")] = "xlsx",
+):
+    content, media_type, filename = build_template(file_format=file_format)
+
+    return FileDownloadResponse(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @router.post("/items/import")
 async def upload_items_file(
     session: SessionDep,
     file: Annotated[UploadFile, File()],
 ):
-    data = await validate_file(file=file)
-
-    if data is None:
-        return Response(
-            data=None,
-            message="Archivo invalido solamente se aceptan csv o excel",
-            success=False,
-            status_code=status.HTTP_400_BAD_REQUEST,
-            details={},
-        ).to_dict()
-
-    items_inventory = await validate_data(filename=file.filename, data=data)
-
-    create_items_inventory_from_file = CreateItemsInventoryFromFile(session=session)
-
-    res = await create_items_inventory_from_file.execute(
-        items_inventory=items_inventory
-    )
-
-    return Response(
-        data=res,
-        message="Archivo cargado exitosamente",
-        status_code=status.HTTP_200_OK,
-        details={"message": "Archivo cargado exitosamente"},
-    ).to_dict()
+    importer = CreateItemsInventoryFromFile(session=session)
+    return await import_items_from_upload(file=file, importer=importer)

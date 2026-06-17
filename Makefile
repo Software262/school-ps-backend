@@ -1,4 +1,4 @@
-.PHONY: run lint format install-dev install-prod
+.PHONY: run lint format install-dev install-prod init reset
 
 run:
 	@uv run fastapi dev app/main.py
@@ -15,3 +15,15 @@ install-dev:
 
 install-prod:
 	@uv sync --group prod
+
+init:
+	@uv run python -m scripts.init
+
+reset:
+	@uv run scripts/reset_all_modules.py
+
+set-db:
+	@uv run alembic upgrade head
+
+downgrade-all:
+	@uv run alembic downgrade base

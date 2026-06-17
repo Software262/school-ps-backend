@@ -9,7 +9,6 @@ class ProgramResponse(BaseModel):
     anio: int
     valor: int
     estado_complemento: str
-    uso_matricula: bool
 
 
 class StudentResponse(BaseModel):
@@ -39,6 +38,24 @@ class EnrollmentResponse(BaseModel):
     motivo_retiro: str | None
     created_at: datetime | None
     updated_at: datetime | None
+
+
+class TipoComplementarioResponse(BaseModel):
+    id: int
+    nombre: str
+    estado: bool
+    sub_tipo_complementario: int | None
+    padre_nombre: str | None
+
+
+class ComplementarioResponse(BaseModel):
+    id: int
+    nombre: str
+    anio: int
+    valor: int
+    estado_complemento: str
+    tipo_complementario_id: int
+    tipo_complementario_nombre: str
 
 
 class EnrollmentDetailResponse(BaseModel):

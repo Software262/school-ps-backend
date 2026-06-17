@@ -74,7 +74,8 @@ class ReprocessPendingStudents:
             )
             or None,
             acudiente_nombre=clean_text(self._get(payload, "acudiente_nombre")) or None,
-            acudiente_telefono=clean_text(self._get(payload, "acudiente_telefono")) or None,
+            acudiente_telefono=clean_text(self._get(payload, "acudiente_telefono"))
+            or None,
             acudiente_correo=clean_text(self._get(payload, "acudiente_correo")) or None,
             raw_data=raw_data,
         )

@@ -163,7 +163,9 @@ class WebcolegiosImportService:
                     if has_real_guardian
                     else "El estudiante ya existe en la tabla estudiante."
                 )
-                self._register_student(summary, student, "OMITIDO_EXISTENTE", observation)
+                self._register_student(
+                    summary, student, "OMITIDO_EXISTENTE", observation
+                )
                 summary.estudiantes_omitidos += 1
                 return
 
@@ -195,7 +197,9 @@ class WebcolegiosImportService:
             )
             summary.estudiantes_insertados += 1
         except Exception as exc:
-            self._register_student(summary, student, "ERROR", f"Error al sincronizar: {exc}")
+            self._register_student(
+                summary, student, "ERROR", f"Error al sincronizar: {exc}"
+            )
             summary.errores += 1
 
     def _sync_teacher(self, teacher: ScrapedTeacher, summary: ImportSummary) -> None:
@@ -213,7 +217,9 @@ class WebcolegiosImportService:
 
             existing_by_name = self.repository.find_teacher_by_name(name)
             existing_document = (
-                normalize_document(existing_by_name.documento) if existing_by_name else ""
+                normalize_document(existing_by_name.documento)
+                if existing_by_name
+                else ""
             )
             if existing_by_name and existing_document:
                 teacher.documento = existing_document
@@ -251,7 +257,9 @@ class WebcolegiosImportService:
             )
             summary.docentes_insertados += 1
         except Exception as exc:
-            self._register_teacher(summary, teacher, "ERROR", f"Error al sincronizar: {exc}")
+            self._register_teacher(
+                summary, teacher, "ERROR", f"Error al sincronizar: {exc}"
+            )
             summary.errores += 1
 
     def _has_real_guardian_data(self, student: ScrapedStudent) -> bool:
@@ -261,7 +269,8 @@ class WebcolegiosImportService:
             student.acudiente_correo,
         )
         return any(
-            clean_text(v) and clean_text(v).upper() != DEFAULT_GUARDIAN_NAME for v in values
+            clean_text(v) and clean_text(v).upper() != DEFAULT_GUARDIAN_NAME
+            for v in values
         )
 
     def _build_missing_grade_observation(self, student: ScrapedStudent) -> str:

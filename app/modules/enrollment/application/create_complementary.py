@@ -14,16 +14,16 @@ class CreateComplementary:
 
     def execute(
         self,
-        tipo_complementario: str,
+        nombre: str,
+        tipo_complementario_id: int,
         anio: int,
         valor: int,
         estado: str,
-        uso_matricula: bool,
     ) -> int:
         return self._service.create_complementary(
-            tipo_complementario=tipo_complementario,
+            nombre=nombre,
+            tipo_complementario_id=tipo_complementario_id,
             anio=anio,
             valor=valor,
             estado=estado,
-            uso_matricula=uso_matricula,
         )

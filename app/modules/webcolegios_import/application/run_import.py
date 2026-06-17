@@ -40,7 +40,10 @@ class RunWebcolegiosImport:
 
     def execute(self, request: RunWebcolegiosImportRequest) -> ImportSummary:
         summary = ImportSummary()
-        logger.info("Iniciando scraping WebColegios para usuario={}", _mask_user(request.usuario))
+        logger.info(
+            "Iniciando scraping WebColegios para usuario={}",
+            _mask_user(request.usuario),
+        )
         logger.info("Limpiando staging")
         self.service.clear_staging()
         try:

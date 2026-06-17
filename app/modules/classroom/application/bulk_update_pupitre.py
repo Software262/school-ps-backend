@@ -10,16 +10,14 @@ from app.modules.classroom.schemas.request import BulkUpdateRequest
 class BulkUpdatePupitreState:
     def __init__(self, session: SessionDep):
         self.repository = PupitreRepositoryImpl(session=session)
-        self.service = PupitreService(repositorio=self.repository)
-        self.students_provider = ClassroomEnrollmentAdapter(session=session)
+        self.enrollment_service = ClassroomEnrollmentAdapter(session=session)
+        self.service = PupitreService(
+            repositorio=self.repository,
+            enrollment_service=self.enrollment_service,
+        )
 
     async def execute(self, grado_id: int, request: BulkUpdateRequest):
-        estudiantes = self.students_provider.get_students_by_grade(grado_id)
-        if not estudiantes:
-            return None
-        estudiante_ids = [e.id for e in estudiantes]
         return await self.service.bulk_update_desk_states(
-            estudiante_ids=estudiante_ids,
-            nuevo_estado=request.estado_pupitre,
-            observacion=request.observacion,
+            grado_id=grado_id,
+            ids_estudiantes=request.estudiante_ids,
         )

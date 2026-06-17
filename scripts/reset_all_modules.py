@@ -3,8 +3,9 @@ Script para limpiar TODA la base de datos.
 Elimina todos los datos de todas las tablas de forma dinámica (TRUNCATE CASCADE).
 """
 
-import sys
 import os
+import sys
+
 from sqlmodel import Session, text
 
 # Asegurarse de que el directorio padre esté en el path para importar la app
