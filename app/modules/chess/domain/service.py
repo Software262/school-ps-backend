@@ -76,7 +76,9 @@ class ChessService:
                 "message": "El ítem de inventario no tiene un ID válido.",
             }
 
-        available_state_id = await self.inventory_repo.get_state_id_by_name("disponible")
+        available_state_id = await self.inventory_repo.get_state_id_by_name(
+            "disponible"
+        )
         if not available_state_id:
             return {
                 "error": "BAD_REQUEST",
@@ -195,8 +197,12 @@ class ChessService:
 
         if item and item.id:
             # Move stock: prestado -> target_category (disponible or mantenimiento)
-            type_target_id = await self.inventory_repo.get_state_id_by_name(target_category)
-            type_borrowed_id = await self.inventory_repo.get_state_id_by_name("prestado")
+            type_target_id = await self.inventory_repo.get_state_id_by_name(
+                target_category
+            )
+            type_borrowed_id = await self.inventory_repo.get_state_id_by_name(
+                "prestado"
+            )
 
             if type_target_id and type_borrowed_id:
                 stock_target = await self.inventory_repo.get_inventory_stock(
@@ -284,8 +290,12 @@ class ChessService:
         if prestamo:
             item = await self.inventory_repo.get_item_by_id(prestamo.inventario_id)
             if item and item.id:
-                type_available_id = await self.inventory_repo.get_state_id_by_name("disponible")
-                type_maintenance_id = await self.inventory_repo.get_state_id_by_name("mantenimiento")
+                type_available_id = await self.inventory_repo.get_state_id_by_name(
+                    "disponible"
+                )
+                type_maintenance_id = await self.inventory_repo.get_state_id_by_name(
+                    "mantenimiento"
+                )
 
                 if type_available_id and type_maintenance_id:
                     stock_available = await self.inventory_repo.get_inventory_stock(
@@ -303,7 +313,9 @@ class ChessService:
                         )
                         await self.inventory_repo.set_amount_stock_category(
                             item_id=item.id,
-                            amount=max(0, stock_maintenance.cantidad - prestamo.cantidad),
+                            amount=max(
+                                0, stock_maintenance.cantidad - prestamo.cantidad
+                            ),
                             category_name="mantenimiento",
                         )
 

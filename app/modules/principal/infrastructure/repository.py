@@ -93,6 +93,7 @@ class PrincipalRepository(PrincipalRepositoryInterface):
         Returns:
             RectoriaObservaciones: The newly created administrative observation record.
         """
+        assert observation_data.periodo_id is not None
         new_observation = RectoriaObservaciones(
             docente_id=observation_data.docente_id,
             periodo_id=observation_data.periodo_id,
@@ -108,6 +109,7 @@ class PrincipalRepository(PrincipalRepositoryInterface):
         if new_observation.id is None:
             raise ValueError("Failed to generate observation ID")
 
+        assert observation_data.id_usuario is not None
         self._register_audit(
             id_usuario=observation_data.id_usuario,
             tabla_nombre=RectoriaObservaciones.__name__,
@@ -137,6 +139,7 @@ class PrincipalRepository(PrincipalRepositoryInterface):
         Returns:
             RectoriaEstado: The newly created administrative status record.
         """
+        assert status_data.periodo_id is not None
         new_status = RectoriaEstado(
             docente_id=status_data.docente_id,
             periodo_id=status_data.periodo_id,
@@ -151,6 +154,7 @@ class PrincipalRepository(PrincipalRepositoryInterface):
         if new_status.id is None:
             raise ValueError("Failed to generate status ID")
 
+        assert status_data.id_usuario is not None
         self._register_audit(
             id_usuario=status_data.id_usuario,
             tabla_nombre=RectoriaEstado.__name__,
@@ -202,6 +206,7 @@ class PrincipalRepository(PrincipalRepositoryInterface):
         if status.id is None:
             raise ValueError("Failed to generate status ID")
 
+        assert status_data.id_usuario is not None
         self._register_audit(
             id_usuario=status_data.id_usuario,
             tabla_nombre=RectoriaEstado.__name__,
@@ -250,9 +255,7 @@ class PrincipalRepository(PrincipalRepositoryInterface):
         return self.session.get(Periodo, period_id)
 
     async def get_active_period(self) -> Periodo | None:
-        return self.session.exec(
-            select(Periodo).where(col(Periodo.estado))
-        ).first()
+        return self.session.exec(select(Periodo).where(col(Periodo.estado))).first()
 
     async def get_admin_user(self) -> Usuario | None:
         return self.session.exec(

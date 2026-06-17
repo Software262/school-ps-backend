@@ -12,10 +12,7 @@ from app.modules.inventory.infrastructure.models import (
     Inventario,
     InventarioStock,
     TipoInventario,
-    Prestamo,
-    Novedad,
 )
-from app.modules.chess.infrastructure.models import ChessNoveltyExtension
 from app.modules.enrollment.infrastructure.models import Estudiante, Grado, Acudiente
 
 test_engine = create_engine(
@@ -35,7 +32,7 @@ def session_fixture():
         prest = EstadoInventario(nombre="prestado")
         mant = EstadoInventario(nombre="mantenimiento")
         tipo = TipoInventario(nombre="ajedrez")
-        
+
         # Seed student relationships to avoid IntegrityErrors
         grado = Grado(nombre="Décimo")
         acudiente = Acudiente(
@@ -73,7 +70,9 @@ def client_fixture(session):
 
 
 def test_create_chess_item_with_custom_pieces(session, client):
-    tipo = session.exec(select(TipoInventario).where(TipoInventario.nombre == "ajedrez")).one()
+    tipo = session.exec(
+        select(TipoInventario).where(TipoInventario.nombre == "ajedrez")
+    ).one()
     payload = {
         "tipo_inventario_id": tipo.id,
         "nombre": "Tablero Premium",
@@ -88,13 +87,17 @@ def test_create_chess_item_with_custom_pieces(session, client):
     assert json_data["data"]["piezas_totales"] == 16
 
     # Verify database state
-    item = session.exec(select(Inventario).where(Inventario.nombre == "Tablero Premium")).one()
+    item = session.exec(
+        select(Inventario).where(Inventario.nombre == "Tablero Premium")
+    ).one()
     assert item.observacion == "[PIEZAS:16] Alta calidad"
     assert item.cantidad_total == 5
 
 
 def test_return_chess_borrow_incomplete_and_resolve(session, client):
-    tipo = session.exec(select(TipoInventario).where(TipoInventario.nombre == "ajedrez")).one()
+    tipo = session.exec(
+        select(TipoInventario).where(TipoInventario.nombre == "ajedrez")
+    ).one()
     estudiante = session.exec(select(Estudiante)).one()
 
     # Create chess item
@@ -122,13 +125,34 @@ def test_return_chess_borrow_incomplete_and_resolve(session, client):
     prestamo_id = borrow_res.json()["data"]["prestamo_id"]
 
     # Verify stock: disponible = 0, prestado = 1, mantenimiento = 0
-    disp_state = session.exec(select(EstadoInventario).where(EstadoInventario.nombre == "disponible")).one()
-    prest_state = session.exec(select(EstadoInventario).where(EstadoInventario.nombre == "prestado")).one()
-    mant_state = session.exec(select(EstadoInventario).where(EstadoInventario.nombre == "mantenimiento")).one()
+    disp_state = session.exec(
+        select(EstadoInventario).where(EstadoInventario.nombre == "disponible")
+    ).one()
+    prest_state = session.exec(
+        select(EstadoInventario).where(EstadoInventario.nombre == "prestado")
+    ).one()
+    mant_state = session.exec(
+        select(EstadoInventario).where(EstadoInventario.nombre == "mantenimiento")
+    ).one()
 
-    stock_disp = session.exec(select(InventarioStock).where(InventarioStock.inventario_id == item_id, InventarioStock.estado_inventario_id == disp_state.id)).one()
-    stock_prest = session.exec(select(InventarioStock).where(InventarioStock.inventario_id == item_id, InventarioStock.estado_inventario_id == prest_state.id)).one()
-    stock_mant = session.exec(select(InventarioStock).where(InventarioStock.inventario_id == item_id, InventarioStock.estado_inventario_id == mant_state.id)).one()
+    stock_disp = session.exec(
+        select(InventarioStock).where(
+            InventarioStock.inventario_id == item_id,
+            InventarioStock.estado_inventario_id == disp_state.id,
+        )
+    ).one()
+    stock_prest = session.exec(
+        select(InventarioStock).where(
+            InventarioStock.inventario_id == item_id,
+            InventarioStock.estado_inventario_id == prest_state.id,
+        )
+    ).one()
+    stock_mant = session.exec(
+        select(InventarioStock).where(
+            InventarioStock.inventario_id == item_id,
+            InventarioStock.estado_inventario_id == mant_state.id,
+        )
+    ).one()
 
     assert stock_disp.cantidad == 0
     assert stock_prest.cantidad == 1
@@ -145,28 +169,59 @@ def test_return_chess_borrow_incomplete_and_resolve(session, client):
 
     # Verify stock: disponible = 0, prestado = 0, mantenimiento = 1
     session.expire_all()
-    stock_disp = session.exec(select(InventarioStock).where(InventarioStock.inventario_id == item_id, InventarioStock.estado_inventario_id == disp_state.id)).one()
-    stock_prest = session.exec(select(InventarioStock).where(InventarioStock.inventario_id == item_id, InventarioStock.estado_inventario_id == prest_state.id)).one()
-    stock_mant = session.exec(select(InventarioStock).where(InventarioStock.inventario_id == item_id, InventarioStock.estado_inventario_id == mant_state.id)).one()
+    stock_disp = session.exec(
+        select(InventarioStock).where(
+            InventarioStock.inventario_id == item_id,
+            InventarioStock.estado_inventario_id == disp_state.id,
+        )
+    ).one()
+    stock_prest = session.exec(
+        select(InventarioStock).where(
+            InventarioStock.inventario_id == item_id,
+            InventarioStock.estado_inventario_id == prest_state.id,
+        )
+    ).one()
+    stock_mant = session.exec(
+        select(InventarioStock).where(
+            InventarioStock.inventario_id == item_id,
+            InventarioStock.estado_inventario_id == mant_state.id,
+        )
+    ).one()
 
     assert stock_disp.cantidad == 0
     assert stock_prest.cantidad == 0
     assert stock_mant.cantidad == 1
 
     # Resolve novelty
-    novedad = session.exec(select(Novedad).where(Novedad.prestamo_id == prestamo_id)).one()
     resolve_payload = {
         "notas_resolucion": "Se repusieron los 2 peones faltantes",
         "usuario_auditoria_id": 1,
     }
-    resolve_res = client.post(f"/api/v1/chess/borrow/{prestamo_id}/resolve-novelty", json=resolve_payload)
+    resolve_res = client.post(
+        f"/api/v1/chess/borrow/{prestamo_id}/resolve-novelty", json=resolve_payload
+    )
     assert resolve_res.status_code == status.HTTP_200_OK
 
     # Verify stock: disponible = 1, prestado = 0, mantenimiento = 0
     session.expire_all()
-    stock_disp = session.exec(select(InventarioStock).where(InventarioStock.inventario_id == item_id, InventarioStock.estado_inventario_id == disp_state.id)).one()
-    stock_prest = session.exec(select(InventarioStock).where(InventarioStock.inventario_id == item_id, InventarioStock.estado_inventario_id == prest_state.id)).one()
-    stock_mant = session.exec(select(InventarioStock).where(InventarioStock.inventario_id == item_id, InventarioStock.estado_inventario_id == mant_state.id)).one()
+    stock_disp = session.exec(
+        select(InventarioStock).where(
+            InventarioStock.inventario_id == item_id,
+            InventarioStock.estado_inventario_id == disp_state.id,
+        )
+    ).one()
+    stock_prest = session.exec(
+        select(InventarioStock).where(
+            InventarioStock.inventario_id == item_id,
+            InventarioStock.estado_inventario_id == prest_state.id,
+        )
+    ).one()
+    stock_mant = session.exec(
+        select(InventarioStock).where(
+            InventarioStock.inventario_id == item_id,
+            InventarioStock.estado_inventario_id == mant_state.id,
+        )
+    ).one()
 
     assert stock_disp.cantidad == 1
     assert stock_prest.cantidad == 0

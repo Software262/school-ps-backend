@@ -27,7 +27,6 @@ from app.modules.chess.application.create_item import CreateChessItem
 router = APIRouter()
 
 
-
 @router.post("/borrow", status_code=status.HTTP_201_CREATED)
 async def create_chess_borrow(
     session: SessionDep, request_data: CreateChessBorrowRequest
@@ -222,30 +221,22 @@ async def get_chess_borrowings(
 
 
 @router.post("/items", status_code=status.HTTP_201_CREATED)
-async def create_chess_item(
-    session: SessionDep, item_data: CreateChessItemRequest
-):
+async def create_chess_item(session: SessionDep, item_data: CreateChessItemRequest):
     app_service = CreateChessItem(session=session)
     result = await app_service.execute(item_data)
 
-    if isinstance(result, dict) and result.get("error"):
+    if isinstance(result, dict):
+        error = result.get("error")
         status_code = (
             status.HTTP_404_NOT_FOUND
-            if result["error"] == "NOT_FOUND"
+            if error == "NOT_FOUND"
             else status.HTTP_400_BAD_REQUEST
         )
         return Response(
             data=None,
             message="Error al crear el artículo de ajedrez",
             status_code=status_code,
-            details={"error": result["message"]},
-        ).to_dict()
-
-    if not result or not result.id:
-        return Response(
-            data=None,
-            message="Error al crear el artículo de ajedrez",
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error": result.get("message", "")},
         ).to_dict()
 
     piezas_totales = 32

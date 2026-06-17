@@ -154,7 +154,9 @@ class PrincipalService:
             ValueError: If user, teacher, or period validations fail.
         """
         # Resolve user (use admin if not provided)
-        resolved_usuario_id = await self._resolve_usuario_id(observation_data.id_usuario)
+        resolved_usuario_id = await self._resolve_usuario_id(
+            observation_data.id_usuario
+        )
         await self._validate_user_role(resolved_usuario_id)
 
         # Validate teacher existence
@@ -163,7 +165,9 @@ class PrincipalService:
             raise ValueError("El docente no existe")
 
         # Resolve period (use active if not provided)
-        resolved_periodo_id = await self._resolve_periodo_id(observation_data.periodo_id)
+        resolved_periodo_id = await self._resolve_periodo_id(
+            observation_data.periodo_id
+        )
 
         observation_data.id_usuario = resolved_usuario_id
         observation_data.periodo_id = resolved_periodo_id

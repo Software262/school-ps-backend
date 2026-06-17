@@ -49,5 +49,6 @@ class CreateChessItemRequest(BaseModel):
     nombre: str = Field(min_length=2, max_length=100, description="Nombre del item")
     cantidad_total: int = Field(ge=1, description="Cantidad del item")
     observacion: str | None = Field(None, description="Observación del item")
-    piezas_totales: int = Field(default=32, ge=1, description="Número de piezas totales del artículo de ajedrez")
-
+    piezas_totales: int = Field(
+        default=32, ge=1, description="Número de piezas totales del artículo de ajedrez"
+    )
