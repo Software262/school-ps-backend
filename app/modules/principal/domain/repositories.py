@@ -162,3 +162,23 @@ class PrincipalRepository(ABC):
             PrincipalStatus | None: The administrative status if found, otherwise None.
         """
         pass
+
+    @abstractmethod
+    async def get_active_period(self) -> Periodo | None:
+        """
+        Retrieves the currently active academic period.
+
+        Returns:
+            Periodo | None: The active academic period if found, otherwise None.
+        """
+        pass
+
+    @abstractmethod
+    async def get_admin_user(self) -> Usuario | None:
+        """
+        Retrieves an active user with administrator or rectoría role.
+
+        Returns:
+            Usuario | None: An admin/rectoría user if found, otherwise None.
+        """
+        pass

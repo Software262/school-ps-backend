@@ -11,6 +11,7 @@ Role: Product Owner and developer of the rectoria module
 
 from datetime import datetime
 
+from sqlalchemy import or_
 from sqlmodel import col, select
 
 from app.core.db import SessionDep
@@ -247,6 +248,22 @@ class PrincipalRepository(PrincipalRepositoryInterface):
             Periodo | None: The academic period entity if found, otherwise None.
         """
         return self.session.get(Periodo, period_id)
+
+    async def get_active_period(self) -> Periodo | None:
+        return self.session.exec(
+            select(Periodo).where(col(Periodo.estado))
+        ).first()
+
+    async def get_admin_user(self) -> Usuario | None:
+        return self.session.exec(
+            select(Usuario).where(
+                col(Usuario.estado).is_(True),
+                or_(
+                    col(Usuario.rol).ilike("%rector%"),
+                    col(Usuario.rol).ilike("%admin%"),
+                ),
+            )
+        ).first()
 
     async def get_status_by_docente_and_period(
         self, docente_id: int, period_id: int
