@@ -105,8 +105,11 @@ def main():
         TipoComplementario(nombre="matricula"),
         TipoComplementario(nombre="pruebas"),
         TipoComplementario(nombre="pupitre"),
-        TipoComplementario(nombre="escuelas_formacion"),
+        TipoComplementario(nombre="escuelas formacion"),
     ]
+
+    tipo_pupitre: int = 0
+    complementario_pupitre: int = 0
 
     with Session(engine) as session:
         session.add(admin)
@@ -115,6 +118,10 @@ def main():
         session.add_all(acudientes)
         session.add_all(tipos_inventario)
         session.add_all(tipos_complementario)
+        session.flush()
+
+        tipo_pupitre = tipos_complementario[2].id or 3
+
         session.add_all(estados_inventario)
         session.flush()
 
@@ -141,21 +148,21 @@ def main():
         complementarios_escuelas_formacion: list[Complementario] = [
             Complementario(
                 nombre="Escuela de Baloncesto",
-                tipo_complementario_id=tipo_baloncesto.id,
+                tipo_complementario_id=tipo_baloncesto.id or 1,
                 anio=2026,
                 valor=60000,
                 estado_complemento="Activo",
             ),
             Complementario(
                 nombre="Escuela de Ajedrez",
-                tipo_complementario_id=tipo_ajedrez.id,
+                tipo_complementario_id=tipo_ajedrez.id or 2,
                 anio=2026,
                 valor=50000,
                 estado_complemento="Activo",
             ),
             Complementario(
                 nombre="Escuela de Natacion",
-                tipo_complementario_id=tipo_natacion.id,
+                tipo_complementario_id=tipo_natacion.id or 3,
                 anio=2026,
                 valor=70000,
                 estado_complemento="Activo",
@@ -235,6 +242,19 @@ def main():
             ),
         ]
 
+        com = Complementario(
+            nombre="Pupitre",
+            anio=2026,
+            valor=80000,
+            estado_complemento="Activo",
+            tipo_complementario_id=tipo_pupitre,
+        )
+        session.add(com)
+
+        session.flush()
+
+        complementario_pupitre = com.id or 1
+
         session.add_all(estudiantes)
         session.flush()
 
@@ -242,6 +262,7 @@ def main():
             DetallePupitre(
                 estudiante_id=estudiante.id or 1,
                 estado="Pendiente",
+                complementario_id=complementario_pupitre,
                 observacion=None,
             )
             for estudiante in estudiantes
