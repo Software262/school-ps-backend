@@ -236,6 +236,65 @@ def seed() -> None:
         assert comp_carnet.id is not None
         assert comp_plataforma.id is not None
 
+        # === TIPOS COMPLEMENTARIOS: ESCUELAS DE FORMACIÓN ===
+        tipo_escuelas_formacion = TipoComplementario(
+            nombre="Escuelas de Formacion", estado=True
+        )
+        session.add(tipo_escuelas_formacion)
+        session.flush()
+        assert tipo_escuelas_formacion.id is not None
+
+        tipo_baloncesto = TipoComplementario(
+            nombre="Baloncesto",
+            estado=True,
+            sub_tipo_complementario=tipo_escuelas_formacion.id,
+        )
+        tipo_ajedrez = TipoComplementario(
+            nombre="Ajedrez",
+            estado=True,
+            sub_tipo_complementario=tipo_escuelas_formacion.id,
+        )
+        tipo_natacion = TipoComplementario(
+            nombre="Natacion",
+            estado=True,
+            sub_tipo_complementario=tipo_escuelas_formacion.id,
+        )
+        session.add_all([tipo_baloncesto, tipo_ajedrez, tipo_natacion])
+        session.flush()
+
+        assert tipo_baloncesto.id is not None
+        assert tipo_ajedrez.id is not None
+        assert tipo_natacion.id is not None
+
+        # === COMPLEMENTARIOS: ESCUELAS DE FORMACIÓN ===
+        comp_baloncesto = Complementario(
+            nombre="Escuela de Baloncesto",
+            tipo_complementario_id=tipo_baloncesto.id,
+            anio=2026,
+            valor=60000,
+            estado_complemento="Activo",
+        )
+        comp_ajedrez = Complementario(
+            nombre="Escuela de Ajedrez",
+            tipo_complementario_id=tipo_ajedrez.id,
+            anio=2026,
+            valor=50000,
+            estado_complemento="Activo",
+        )
+        comp_natacion = Complementario(
+            nombre="Escuela de Natacion",
+            tipo_complementario_id=tipo_natacion.id,
+            anio=2026,
+            valor=70000,
+            estado_complemento="Activo",
+        )
+        session.add_all([comp_baloncesto, comp_ajedrez, comp_natacion])
+        session.flush()
+
+        assert comp_baloncesto.id is not None
+        assert comp_ajedrez.id is not None
+        assert comp_natacion.id is not None
+
         # === MATRÍCULAS ===
         # Estudiante 1 (Juan - Sexto): matrícula con pendientes parciales
         matricula1 = Matricula(
@@ -423,7 +482,11 @@ def seed() -> None:
         print(f"     * ID {estudiante1.id}: Juan (Sexto) - Matricula con pendientes")
         print(f"     * ID {estudiante2.id}: Ana (Decimo) - Matricula al dia")
         print(f"     * ID {estudiante3.id}: Pedro (Segundo) - Sin matricula")
-        print("   - 4 complementarios")
+        print("   - 4 complementarios de matricula")
+        print(
+            "   - 3 complementarios de escuelas de formacion "
+            "(Baloncesto, Ajedrez, Natacion)"
+        )
         print("   - 2 matriculas con detalles")
         print(f"   - 1 periodo (ID: {periodo.id})")
         print()

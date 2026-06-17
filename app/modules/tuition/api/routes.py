@@ -1,18 +1,47 @@
 from fastapi import APIRouter, HTTPException
-from sqlmodel import select
+from sqlmodel import select, col
 from app.core.db import SessionDep
 from app.modules.tuition.schemas.request import PaymentCreateRequest
 from app.modules.tuition.schemas.response import (
     TuitionAccountResponse,
     TuitionInstallmentResponse,
+    TuitionStudentSearchListResponse,
+    TuitionStudentSearchItem,
 )
 from app.modules.tuition.application.register_tuition_payment import (
     RegisterTuitionPaymentUseCase,
 )
 from app.modules.tuition.application.get_student_tuition import GetStudentTuitionUseCase
-from app.modules.enrollment.infrastructure.models import Estudiante
+from app.modules.enrollment.infrastructure.models import Estudiante, Grado
 
 router = APIRouter()
+
+
+@router.get("/search", response_model=TuitionStudentSearchListResponse)
+def search_tuition_students(session: SessionDep, q: str):
+    query = (
+        select(Estudiante, Grado)
+        .join(Grado, col(Estudiante.grado_id) == col(Grado.id))
+        .where(
+            (col(Estudiante.nombre).ilike(f"%{q}%")) | (col(Estudiante.documento).ilike(f"%{q}%"))
+        )
+    )
+    
+    results = session.exec(query).all()
+    
+    estudiantes_list = []
+    for estudiante, grado in results:
+        estudiantes_list.append(
+            TuitionStudentSearchItem(
+                estudiante_id=estudiante.id or 0,
+                documento=estudiante.documento,
+                nombre=estudiante.nombre,
+                grado_nombre=grado.nombre,
+                estado_matricula="activo" if estudiante.activo else "inactivo",
+            )
+        )
+        
+    return TuitionStudentSearchListResponse(estudiantes=estudiantes_list)
 
 
 @router.get("/student/documento/{documento}", response_model=TuitionAccountResponse)

@@ -11,7 +11,7 @@ from app.main import app
 from app.core.db import get_session
 from app.modules.cafeteria.domain.service import CafeteriaService
 from app.modules.cafeteria.infrastructure.models import Cafeteria
-from app.modules.enrollment.domain.entities import StudentGeneralInfo
+from app.modules.cafeteria.domain.entities import StudentInfoEntity
 
 # --- CONFIGURACIÓN DE MOCKS ---
 mock_db_session = MagicMock()
@@ -36,8 +36,8 @@ async def test_get_status_list_logic():
     fake_debtor = Cafeteria(id=1, estudiante_id=10, estado_cafeteria=False)
     mock_repo.get_all_debtors = AsyncMock(return_value=[fake_debtor])
 
-    fake_student_info = StudentGeneralInfo(
-        id=10, nombre="Sara", documento="2000", grado_nombre="Décimo"
+    fake_student_info = StudentInfoEntity(
+        id=10, nombre="Sara", documento="2000", grado="Décimo"
     )
     mock_enrollment.get_students_bulk = MagicMock(return_value=[fake_student_info])
 

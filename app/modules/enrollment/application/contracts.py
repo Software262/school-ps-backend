@@ -1,2 +1,6 @@
-# Este archivo fue vaciado: StudentQueryService se eliminó.
-# Cada módulo consumidor define su propio contrato en application/contracts.py.
+from abc import ABC, abstractmethod
+
+class TuitionServiceContract(ABC):
+    @abstractmethod
+    def create_pension_account(self, student_id: int, grade_id: int, year: int) -> None:
+        pass

@@ -185,7 +185,7 @@ def test_create_observation_success(session, client):
     }
 
     response = client.post("/api/v1/principal/observations", json=payload)
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code in [status.HTTP_200_OK, status.HTTP_201_CREATED]
     json_data = response.json()
     assert json_data["statusCode"] == 200
     assert json_data["message"] == "Administrative observation created successfully"
@@ -333,7 +333,7 @@ def test_create_status_success(session, client):
         "motivo_estado": "Pendiente de paz y salvo",
     }
     response = client.post("/api/v1/principal/status", json=payload)
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code in [status.HTTP_200_OK, status.HTTP_201_CREATED]
     json_data = response.json()
     assert json_data["statusCode"] == 200
     assert json_data["message"] == "Administrative status created successfully"

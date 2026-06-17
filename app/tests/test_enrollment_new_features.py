@@ -433,7 +433,7 @@ def test_disassociate_complementary_error_already_paid(session, client):
 
 def test_get_complementaries_list(session, client):
     # 1. Seed some complementaries
-    tipo = TipoComplementario(nombre="General", estado=True)
+    tipo = TipoComplementario(nombre="Matricula", estado=True)
     session.add(tipo)
     session.flush()
     comp1 = Complementario(

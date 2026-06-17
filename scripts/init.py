@@ -167,6 +167,15 @@ def main():
             Grado(nombre="cuarto", docente_titular_id=docentes[0].id),
             Grado(nombre="quinto"),
             Grado(nombre="sexto", docente_titular_id=docentes[2].id),
+            Grado(nombre="Preescolar"),
+            Grado(nombre="Primero"),
+            Grado(nombre="Segundo"),
+            Grado(nombre="Tercero"),
+            Grado(nombre="Séptimo"),
+            Grado(nombre="Octavo"),
+            Grado(nombre="Noveno"),
+            Grado(nombre="Décimo"),
+            Grado(nombre="Once"),
         ]
         session.add_all(grados)
         session.flush()

@@ -15,7 +15,7 @@ class CreateComplementary:
     def execute(
         self,
         nombre: str,
-        tipo_complementario_id: int,
+        tipo_complementario_id: int | None,
         anio: int,
         valor: int,
         estado: str,
