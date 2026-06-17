@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from sqlmodel import select
+from sqlmodel import select, col
 from app.core.db import SessionDep
 from app.modules.tuition.schemas.request import PaymentCreateRequest
 from app.modules.tuition.schemas.response import (
@@ -21,9 +21,9 @@ router = APIRouter()
 def search_tuition_students(session: SessionDep, q: str):
     query = (
         select(Estudiante, Grado)
-        .join(Grado, Estudiante.grado_id == Grado.id)
+        .join(Grado, col(Estudiante.grado_id) == col(Grado.id))
         .where(
-            (Estudiante.nombre.ilike(f"%{q}%")) | (Estudiante.documento.ilike(f"%{q}%"))
+            (col(Estudiante.nombre).ilike(f"%{q}%")) | (col(Estudiante.documento).ilike(f"%{q}%"))
         )
     )
     
