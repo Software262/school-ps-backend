@@ -137,7 +137,7 @@ class EnrollmentAdapter(EnrollmentDataService):
             anio=anio,
             valor=valor,
             estado_complemento="Activo",
-            tipo_complementario_id=tipo_prueba.id,
+            tipo_complementario_id=int(tipo_prueba.id or 0),
         )
         self.session.add(nuevo_comp)
         self.session.commit()
