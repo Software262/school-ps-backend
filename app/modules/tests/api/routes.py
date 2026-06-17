@@ -21,11 +21,13 @@ from app.modules.tests.application.get_internal_by_student import (
 from app.modules.tests.application.get_periodos import GetPeriodos
 from app.modules.tests.application.get_student_status import GetStudentTestStatus
 from app.modules.tests.application.register_payment import RegisterTestPayment
+from app.modules.tests.application.create_complementary import CreateTestComplementary
 from app.modules.tests.application.update_complementary import (
     UpdateTestComplementary,
 )
 from app.modules.tests.application.update_internal import UpdateInternalTest
 from app.modules.tests.schemas.request import (
+    ComplementaryCreateBody,
     ComplementaryUpdateBody,
     CreateTestDetailRequest,
     MassiveAssignmentRequest,
@@ -512,6 +514,33 @@ async def update_test_complementary(
         return Response(
             data=None,
             message="Error al actualizar la prueba",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error": str(e)},
+        ).to_dict()
+
+
+@router.post("/complementary")
+async def create_test_complementary(
+    session: SessionDep,
+    body: ComplementaryCreateBody,
+):
+    try:
+        use_case = CreateTestComplementary(session=session)
+        comp_id = await use_case.execute(
+            nombre=body.nombre,
+            valor=body.valor,
+            anio=body.anio,
+        )
+        return Response(
+            data={"id": comp_id},
+            message="Prueba creada exitosamente",
+            status_code=status.HTTP_201_CREATED,
+            details={"id": comp_id},
+        ).to_dict()
+    except Exception as e:
+        return Response(
+            data=None,
+            message="Error al crear la prueba",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error": str(e)},
         ).to_dict()
