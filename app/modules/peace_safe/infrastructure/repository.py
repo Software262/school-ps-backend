@@ -148,7 +148,7 @@ class PeaceSafeRepository(PeaceSafeRepositoryInterface):
             self.session.exec(
                 select(Novedad).where(
                     col(Novedad.prestamo_id).in_(ids),
-                    not col(Novedad.resuelta),
+                    col(Novedad.resuelta).is_(False),
                 )
             ).all()
         )

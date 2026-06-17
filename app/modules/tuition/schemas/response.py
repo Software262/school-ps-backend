@@ -20,3 +20,15 @@ class TuitionAccountResponse(BaseModel):
     valor_total_anual: int
     estado_pension_general: bool
     installments: List[TuitionInstallmentResponse]
+
+
+class TuitionStudentSearchItem(BaseModel):
+    estudiante_id: int
+    documento: str
+    nombre: str
+    grado_nombre: str
+    estado_matricula: str
+
+
+class TuitionStudentSearchListResponse(BaseModel):
+    estudiantes: List[TuitionStudentSearchItem]

@@ -273,7 +273,7 @@ def test_student_endpoints(session, client):
 
 def test_get_complementary_concepts_endpoint(session, client):
     # Seed complementary concepts
-    tipo = TipoComplementario(nombre="General", estado=True)
+    tipo = TipoComplementario(nombre="Matricula", estado=True)
     session.add(tipo)
     session.flush()
 

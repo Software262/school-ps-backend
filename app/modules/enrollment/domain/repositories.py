@@ -71,6 +71,18 @@ class EnrollmentRepository(ABC):
         ...
 
     @abstractmethod
+    def find_active_period_by_year(self, year: int) -> int | None:
+        """Busca el ID del periodo académico activo correspondiente al año dado."""
+        ...
+
+    @abstractmethod
+    def get_or_create_matricula_tipo_id(self) -> int:
+        """Busca o crea el ID del tipo de complementario 'Matricula'."""
+        ...
+
+
+
+    @abstractmethod
     def create_enrollment(
         self,
         para_matricula_id: int,
@@ -243,6 +255,11 @@ class EnrollmentRepository(ABC):
     @abstractmethod
     def get_total_paid(self, matricula_id: int) -> int:
         """Retorna la suma total de pagos registrados para una matrícula."""
+        ...
+
+    @abstractmethod
+    def get_base_paid_amount(self, matricula_id: int) -> int:
+        """Retorna la suma total de pagos realizados a la matrícula base."""
         ...
 
     @abstractmethod

@@ -7,7 +7,12 @@ client = TestClient(app)
 def test_assign_massive_tests_invalid_grado():
     response = client.post(
         "/api/v1/tests/assign-massive",
-        json={"grado_id": 9999, "complementario_id": 1, "tipo_prueba": "icfes"},
+        json={
+            "grado_id": 9999,
+            "complementario_id": 1,
+            "tipo_prueba": "icfes",
+            "periodo_id": 1,
+        },
     )
     # En este diseño, la API puede devolver HTTP 200 pero el statusCode interno ser de error.
     # Pero si revienta con IntegrityError u otra excepción, el código encapsula el status.

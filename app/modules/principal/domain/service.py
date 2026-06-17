@@ -10,6 +10,7 @@ Role: Product Owner and developer of the rectoria module
 
 from typing import Any
 
+from app.modules.auth.infrastructure.models import Usuario
 from app.modules.principal.domain.repositories import PrincipalRepository
 from app.modules.principal.schemas.request import (
     CreateObservationRequest,
@@ -100,6 +101,45 @@ class PrincipalService:
 
         return teachers_list
 
+    async def _resolve_periodo_id(self, periodo_id: int | None) -> int:
+        if periodo_id is not None:
+            period = await self.repository.get_period_by_id(periodo_id)
+            if not period:
+                raise ValueError("El periodo no existe")
+            return periodo_id
+
+        active = await self.repository.get_active_period()
+        if not active or active.id is None:
+            raise ValueError("No hay un periodo activo configurado")
+        return active.id
+
+    async def _resolve_usuario_id(self, usuario_id: int | None) -> int:
+        if usuario_id is not None:
+            user = await self.repository.get_user_by_id(usuario_id)
+            if not user:
+                raise ValueError("El usuario no existe")
+            return usuario_id
+
+        admin = await self.repository.get_admin_user()
+        if not admin or admin.id is None:
+            raise ValueError("No se encontró un usuario administrador o de rectoría")
+        return admin.id
+
+    async def _validate_user_role(self, user_id: int) -> Usuario:
+        user = await self.repository.get_user_by_id(user_id)
+        if not user:
+            raise ValueError("El usuario no existe")
+        if user.rol.lower() not in [
+            "rectoría",
+            "rectoria",
+            "rector",
+            "administrador",
+            "administrador del sistema",
+            "admin",
+        ]:
+            raise ValueError("El usuario no tiene permisos de Rectoría o Administrador")
+        return user
+
     async def create_observation(self, observation_data: CreateObservationRequest):
         """
         Validates and registers a new administrative observation.
@@ -113,32 +153,24 @@ class PrincipalService:
         Raises:
             ValueError: If user, teacher, or period validations fail.
         """
-        # Validate user existence
-        user = await self.repository.get_user_by_id(observation_data.id_usuario)
-        if not user:
-            raise ValueError("El usuario no existe")
-
-        # Validate user role
-        if user.rol.lower() not in [
-            "rectoría",
-            "rectoria",
-            "rector",
-            "administrador",
-            "administrador del sistema",
-            "admin",
-        ]:
-            raise ValueError("El usuario no tiene permisos de Rectoría o Administrador")
+        # Resolve user (use admin if not provided)
+        resolved_usuario_id = await self._resolve_usuario_id(
+            observation_data.id_usuario
+        )
+        await self._validate_user_role(resolved_usuario_id)
 
         # Validate teacher existence
         teacher = await self.repository.get_teacher_by_id(observation_data.docente_id)
         if not teacher:
             raise ValueError("El docente no existe")
 
-        # Validate period existence
-        period = await self.repository.get_period_by_id(observation_data.periodo_id)
-        if not period:
-            raise ValueError("El periodo no existe")
+        # Resolve period (use active if not provided)
+        resolved_periodo_id = await self._resolve_periodo_id(
+            observation_data.periodo_id
+        )
 
+        observation_data.id_usuario = resolved_usuario_id
+        observation_data.periodo_id = resolved_periodo_id
         return await self.repository.create_observation(observation_data)
 
     async def create_status(self, status_data: CreateStatusRequest):
@@ -154,41 +186,29 @@ class PrincipalService:
         Raises:
             ValueError: If user, teacher, period, or duplicate status checks fail.
         """
-        # Validate user existence
-        user = await self.repository.get_user_by_id(status_data.id_usuario)
-        if not user:
-            raise ValueError("El usuario no existe")
-
-        # Validate user role
-        if user.rol.lower() not in [
-            "rectoría",
-            "rectoria",
-            "rector",
-            "administrador",
-            "administrador del sistema",
-            "admin",
-        ]:
-            raise ValueError("El usuario no tiene permisos de Rectoría o Administrador")
+        # Resolve user (use admin if not provided)
+        resolved_usuario_id = await self._resolve_usuario_id(status_data.id_usuario)
+        await self._validate_user_role(resolved_usuario_id)
 
         # Validate teacher existence
         teacher = await self.repository.get_teacher_by_id(status_data.docente_id)
         if not teacher:
             raise ValueError("El docente no existe")
 
-        # Validate period existence
-        period = await self.repository.get_period_by_id(status_data.periodo_id)
-        if not period:
-            raise ValueError("El periodo no existe")
+        # Resolve period (use active if not provided)
+        resolved_periodo_id = await self._resolve_periodo_id(status_data.periodo_id)
 
         # Validate duplicate status check
         existing = await self.repository.get_status_by_docente_and_period(
-            status_data.docente_id, status_data.periodo_id
+            status_data.docente_id, resolved_periodo_id
         )
         if existing:
             raise ValueError(
                 "Ya existe un estado administrativo para ese docente y periodo"
             )
 
+        status_data.id_usuario = resolved_usuario_id
+        status_data.periodo_id = resolved_periodo_id
         return await self.repository.create_status(status_data)
 
     async def update_status(self, status_id: int, status_data: UpdateStatusRequest):
@@ -210,20 +230,9 @@ class PrincipalService:
         if not status:
             return None
 
-        # Validate user existence
-        user = await self.repository.get_user_by_id(status_data.id_usuario)
-        if not user:
-            raise ValueError("El usuario no existe")
+        # Resolve user (use admin if not provided)
+        resolved_usuario_id = await self._resolve_usuario_id(status_data.id_usuario)
+        await self._validate_user_role(resolved_usuario_id)
 
-        # Validate user role
-        if user.rol.lower() not in [
-            "rectoría",
-            "rectoria",
-            "rector",
-            "administrador",
-            "administrador del sistema",
-            "admin",
-        ]:
-            raise ValueError("El usuario no tiene permisos de Rectoría o Administrador")
-
+        status_data.id_usuario = resolved_usuario_id
         return await self.repository.update_status(status, status_data)

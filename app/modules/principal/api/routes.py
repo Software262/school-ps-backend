@@ -137,7 +137,7 @@ async def create_observation(
     return Response(
         data=response_data,
         message="Administrative observation created successfully",
-        status_code=status.HTTP_201_CREATED,
+        status_code=status.HTTP_200_OK,
     ).to_dict()
 
 
@@ -146,7 +146,7 @@ async def create_observation(
     summary="Assign administrative status",
     description="Assign a new administrative status (paz y salvo) to a teacher for a specific academic period. Fails if a status already exists.",
     responses={
-        201: {
+        200: {
             "description": "Administrative status created successfully",
         },
         400: {
@@ -198,7 +198,7 @@ async def create_status(
     return Response(
         data=response_data,
         message="Administrative status created successfully",
-        status_code=status.HTTP_201_CREATED,
+        status_code=status.HTTP_200_OK,
     ).to_dict()
 
 

@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Query
+from sqlmodel import col, select
 
 from app.core.db import SessionDep
 from app.modules.enrollment.application.assign_complementary import (
@@ -30,6 +31,7 @@ from app.modules.enrollment.application.search_active_students import (
     SearchActiveStudents,
 )
 from app.modules.enrollment.application.search_students import SearchStudents
+from app.modules.enrollment.infrastructure.models import Estudiante, Grado
 from app.modules.enrollment.schemas.request import (
     AssignComplementaryRequest,
     ComplementaryCreateRequest,
@@ -46,6 +48,8 @@ from app.modules.enrollment.schemas.response import (
     PaymentDistributionResponse,
     PaymentHistoryItemResponse,
     PaymentReceiptResponse,
+    StudentBasicSearchItemResponse,
+    StudentBasicSearchListResponse,
     ComplementaryConceptResponse,
     PaymentResultResponse,
     StudentInfoResponse,
@@ -124,6 +128,65 @@ async def get_enrollment_balance(
         pendiente_base=balance.pending_base,
         pagos_realizados=balance.payments_count,
         matricula_id=balance.matricula_id,
+    )
+
+
+@router.get(
+    "/students/basic",
+    response_model=StudentBasicSearchListResponse,
+    summary="Buscar estudiantes con datos básicos",
+    description=(
+        "Retorna estudiantes por nombre o documento sin calcular balance de "
+        "matrícula ni consultar complementarios."
+    ),
+)
+async def search_students_basic(
+    session: SessionDep,
+    documento: str | None = Query(
+        default=None,
+        description="Coincidencia parcial del documento/código",
+    ),
+    nombre: str | None = Query(
+        default=None,
+        description="Coincidencia parcial del nombre",
+    ),
+    query: str | None = Query(
+        default=None,
+        description="Búsqueda unificada por documento/código o nombre",
+    ),
+    limit: int = Query(default=10, ge=1, le=50),
+) -> StudentBasicSearchListResponse:
+    statement = select(Estudiante, Grado).join(
+        Grado, col(Estudiante.grado_id) == col(Grado.id)
+    )
+
+    if documento:
+        statement = statement.where(col(Estudiante.documento).contains(documento))
+    if nombre:
+        statement = statement.where(col(Estudiante.nombre).ilike(f"%{nombre}%"))
+    if query:
+        statement = statement.where(
+            col(Estudiante.documento).contains(query)
+            | col(Estudiante.nombre).ilike(f"%{query}%")
+        )
+
+    rows = session.exec(
+        statement.order_by(col(Estudiante.nombre)).limit(limit)
+    ).all()
+    items = [
+        StudentBasicSearchItemResponse(
+            id=student.id or 0,
+            nombre=student.nombre,
+            documento=student.documento,
+            grado=grade.nombre,
+            curso=None,
+        )
+        for student, grade in rows
+    ]
+
+    return StudentBasicSearchListResponse(
+        estudiantes=items,
+        total_resultados=len(items),
     )
 
 

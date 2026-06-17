@@ -1,7 +1,6 @@
-from sqlmodel import Session, create_engine
+from sqlmodel import Session
 from app.modules.auth.infrastructure.models import Usuario
-
-engine = create_engine("postgresql://postgres:password@localhost:5433/postgres")
+from app.core.db import engine
 
 
 def seed_users():

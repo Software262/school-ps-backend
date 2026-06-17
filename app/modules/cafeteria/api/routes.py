@@ -88,13 +88,13 @@ async def get_individual_status(
 
 
 @router.get("/export/{periodo_id}")
-async def export_csv(periodo_id: int, session: SessionDep):
+async def export_pdf(periodo_id: int, session: SessionDep):
     use_case = ExportReport(session)
-    csv_content = await use_case.execute(periodo_id)
+    pdf_content = await use_case.execute(periodo_id)
     return StreamingResponse(
-        iter([csv_content]),
-        media_type="text/csv",
+        iter([pdf_content]),
+        media_type="application/pdf",
         headers={
-            "Content-Disposition": f"attachment; filename=reporte_{periodo_id}.csv"
+            "Content-Disposition": f"attachment; filename=reporte_{periodo_id}.pdf"
         },
     )

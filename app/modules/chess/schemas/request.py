@@ -20,7 +20,7 @@ class CreateChessBorrowRequest(BaseModel):
 
 
 class ReturnChessBorrowRequest(BaseModel):
-    conteo_piezas: int = Field(ge=0, le=32, description="Número de piezas devueltas")
+    conteo_piezas: int = Field(ge=0, description="Número de piezas devueltas")
     observacion: str | None = Field(None, description="Observación al devolver")
 
 
@@ -39,4 +39,16 @@ class ResolveBorrowNoveltyRequest(BaseModel):
     )
     usuario_auditoria_id: int = Field(
         ge=1, description="ID del responsable que cierra la novedad"
+    )
+
+
+class CreateChessItemRequest(BaseModel):
+    tipo_inventario_id: int = Field(
+        ge=1, description="ID del tipo de inventario al que pertenece el item"
+    )
+    nombre: str = Field(min_length=2, max_length=100, description="Nombre del item")
+    cantidad_total: int = Field(ge=1, description="Cantidad del item")
+    observacion: str | None = Field(None, description="Observación del item")
+    piezas_totales: int = Field(
+        default=32, ge=1, description="Número de piezas totales del artículo de ajedrez"
     )

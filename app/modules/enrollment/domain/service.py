@@ -11,6 +11,7 @@ from app.modules.enrollment.domain.entities import (
     StudentInfo,
 )
 from app.modules.enrollment.domain.repositories import EnrollmentRepository
+from app.modules.enrollment.application.contracts import TuitionServiceContract
 from app.modules.enrollment.schemas.request import ModifyEnrollmentRequest
 from app.modules.enrollment.schemas.response import (
     GradeResponse,
@@ -22,8 +23,13 @@ from app.modules.enrollment.schemas.response import (
 class EnrollmentService:
     """Servicio de dominio que calcula el balance de matrícula."""
 
-    def __init__(self, repository: EnrollmentRepository) -> None:
+    def __init__(
+        self,
+        repository: EnrollmentRepository,
+        tuition_service: TuitionServiceContract | None = None,
+    ) -> None:
         self.repo = repository
+        self.tuition_service = tuition_service
 
     def get_balance(self, student_id: int, year: int) -> EnrollmentBalance:
         """
@@ -61,6 +67,9 @@ class EnrollmentService:
                 raise ValueError(
                     "El id de la matrícula no puede ser nulo cuando existe"
                 )
+            base_paid = self.repo.get_base_paid_amount(matricula_id)
+            base_cost = pending_base + base_paid
+
             total_pending = pending_base + sum(
                 item.valor_pendiente for item in complementary_items
             )
@@ -91,7 +100,7 @@ class EnrollmentService:
         )
 
     def register_enrollment(
-        self, student_id: int, period_id: int, year: int
+        self, student_id: int, period_id: int | None, year: int
     ) -> EnrollmentCreated:
         """
         Genera la matrícula automáticamente para un estudiante.
@@ -100,9 +109,15 @@ class EnrollmentService:
         2. Asigna complementarios activos del tipo Matricula
         4. Crea registro Matricula + DetalleMatricula
         """
-        if not self.repo.period_exists(period_id):
-            msg = f"El período académico con ID {period_id} no existe en el sistema"
-            raise ValueError(msg)
+        if period_id is None:
+            period_id = self.repo.find_active_period_by_year(year)
+            if period_id is None:
+                msg = f"No se encontró un período académico activo para el año {year}"
+                raise ValueError(msg)
+        else:
+            if not self.repo.period_exists(period_id):
+                msg = f"El período académico con ID {period_id} no existe en el sistema"
+                raise ValueError(msg)
 
         student = self.repo.get_student_by_id(student_id)
         if student is None:
@@ -160,6 +175,14 @@ class EnrollmentService:
             base_cost=base_cost,
             complementary_details=comp_details,
         )
+
+        # Auto-create Pension record via tuition service
+        if self.tuition_service is not None:
+            self.tuition_service.create_pension_account(
+                student_id=student_id,
+                grade_id=student.grado_id,
+                year=year,
+            )
 
         for entity, d_id in zip(comp_entities, detail_ids):
             entity.detalle_id = d_id
@@ -503,11 +526,13 @@ class EnrollmentService:
     def create_complementary(
         self,
         nombre: str,
-        tipo_complementario_id: int,
+        tipo_complementario_id: int | None,
         anio: int,
         valor: int,
         estado: str,
     ) -> int:
+        if tipo_complementario_id is None:
+            tipo_complementario_id = self.repo.get_or_create_matricula_tipo_id()
         return self.repo.create_complementary(
             nombre=nombre,
             tipo_complementario_id=tipo_complementario_id,
@@ -563,7 +588,7 @@ class EnrollmentService:
         nombre: str,
         grado_str: str,
         nombre_acudiente: str,
-        period_id: int,
+        period_id: int | None,
         year: int,
     ) -> int:
         grado_id = self.resolve_grade_id(grado_str)

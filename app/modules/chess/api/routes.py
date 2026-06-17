@@ -1,6 +1,12 @@
-from typing import Any
-from fastapi import APIRouter, status
+from typing import Annotated, Any
+from fastapi import APIRouter, Query, status
 from app.core.db import SessionDep
+from app.modules.inventory.application.get_items_inventory import GetItemsInventory
+from app.modules.inventory.application.get_borrowings import GetBorrowings
+from app.modules.inventory.schemas.request import (
+    FilterPaginationInventory,
+    FilterPaginationBorrowings,
+)
 from app.shared.utils.response import Response
 
 from app.modules.chess.schemas.request import (
@@ -8,6 +14,7 @@ from app.modules.chess.schemas.request import (
     ReturnChessBorrowRequest,
     ResolveChessNoveltyRequest,
     ResolveBorrowNoveltyRequest,
+    CreateChessItemRequest,
 )
 
 from app.modules.chess.application.create_borrowing import CreateChessBorrowing
@@ -15,6 +22,7 @@ from app.modules.chess.application.return_borrowing import ReturnChessBorrowing
 from app.modules.chess.application.resolve_novelty import ResolveChessNovelty
 from app.modules.chess.application.resolve_borrow_novelty import ResolveBorrowNovelty
 from app.modules.chess.application.get_clearance import GetChessClearance
+from app.modules.chess.application.create_item import CreateChessItem
 
 router = APIRouter()
 
@@ -141,4 +149,119 @@ async def get_chess_clearance(session: SessionDep, estudiante_id: int):
         data={"paz_y_salvo": result.get("paz_y_salvo")},
         message=mensaje,
         status_code=status.HTTP_200_OK,
+    ).to_dict()
+
+
+@router.get("/items", status_code=status.HTTP_200_OK)
+async def get_chess_items(
+    session: SessionDep,
+    filter_pagination_query: Annotated[FilterPaginationInventory, Query()],
+):
+    filter_pagination_query.item_type = "ajedrez"
+    inventory_app = GetItemsInventory(session=session)
+    total, data = await inventory_app.execute(filter_pagination=filter_pagination_query)
+
+    return (
+        Response(
+            data=data,
+            message="Inventario de ajedrez obtenido exitosamente",
+            status_code=status.HTTP_200_OK,
+        )
+        .filterPagination(
+            page=filter_pagination_query.page,
+            limit=filter_pagination_query.limit,
+            total=total,
+        )
+        .to_dict()
+    )
+
+
+@router.get("/borrowings", status_code=status.HTTP_200_OK)
+async def get_chess_borrowings(
+    session: SessionDep,
+    filter_pagination_query: Annotated[FilterPaginationBorrowings, Query()],
+):
+    from app.modules.inventory.infrastructure.repository import InventoryRepository
+
+    filter_pagination_query.item_type = "ajedrez"
+    borrowings_app = GetBorrowings(session=session)
+    total, data = await borrowings_app.execute(
+        filter_pagination=filter_pagination_query
+    )
+
+    inventory_repo = InventoryRepository(session=session)
+    enriched_data = []
+    for borrow in data:
+        borrow_dict = borrow.model_dump()
+        item = await inventory_repo.get_item_by_id(borrow.inventario_id)
+        piezas_totales = 32
+        if item and item.observacion and item.observacion.startswith("[PIEZAS:"):
+            try:
+                parts = item.observacion.split("]", 1)
+                num_part = parts[0].replace("[PIEZAS:", "").strip()
+                piezas_totales = int(num_part)
+            except (ValueError, IndexError):
+                pass
+        borrow_dict["piezas_totales"] = piezas_totales
+        enriched_data.append(borrow_dict)
+
+    return (
+        Response(
+            data=enriched_data,
+            message="Préstamos de ajedrez obtenidos exitosamente",
+            status_code=status.HTTP_200_OK,
+        )
+        .filterPagination(
+            page=filter_pagination_query.page,
+            limit=filter_pagination_query.limit,
+            total=total,
+        )
+        .to_dict()
+    )
+
+
+@router.post("/items", status_code=status.HTTP_201_CREATED)
+async def create_chess_item(session: SessionDep, item_data: CreateChessItemRequest):
+    app_service = CreateChessItem(session=session)
+    result = await app_service.execute(item_data)
+
+    if isinstance(result, dict):
+        error = result.get("error")
+        status_code = (
+            status.HTTP_404_NOT_FOUND
+            if error == "NOT_FOUND"
+            else status.HTTP_400_BAD_REQUEST
+        )
+        return Response(
+            data=None,
+            message="Error al crear el artículo de ajedrez",
+            status_code=status_code,
+            details={"error": result.get("message", "")},
+        ).to_dict()
+
+    if result is None:
+        return Response(
+            data=None,
+            message="Error al crear el artículo de ajedrez",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        ).to_dict()
+
+    piezas_totales = 32
+    if result.observacion and result.observacion.startswith("[PIEZAS:"):
+        try:
+            parts = result.observacion.split("]", 1)
+            num_part = parts[0].replace("[PIEZAS:", "").strip()
+            piezas_totales = int(num_part)
+        except (ValueError, IndexError):
+            pass
+
+    return Response(
+        data={
+            "id": result.id,
+            "nombre": result.nombre,
+            "cantidad_total": result.cantidad_total,
+            "piezas_totales": piezas_totales,
+        },
+        message="Artículo de ajedrez creado exitosamente",
+        status_code=status.HTTP_201_CREATED,
     ).to_dict()
