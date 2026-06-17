@@ -10,9 +10,7 @@ Role: Product Owner and developer of the rectoria module
 """
 
 from datetime import datetime
-
-from sqlalchemy import or_
-from sqlmodel import col, select
+from sqlmodel import col, select, or_
 
 from app.core.db import SessionDep
 from app.modules.enrollment.infrastructure.models import Docente, Periodo
