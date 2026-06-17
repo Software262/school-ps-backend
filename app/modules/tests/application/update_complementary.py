@@ -7,15 +7,6 @@ from app.modules.tests.infrastructure.repository import InternalTestRepository
 class UpdateTestComplementary:
     """Actualiza el nombre y valor de un complementario de tipo prueba."""
 
-from app.core.db import SessionDep
-from app.modules.tests.domain.service import InternalTestService
-from app.modules.tests.infrastructure.enrollment_adapter import EnrollmentAdapter
-from app.modules.tests.infrastructure.repository import InternalTestRepository
-
-
-class UpdateTestComplementary:
-    """Actualiza el nombre y valor de un complementario de tipo prueba."""
-
     def __init__(self, session: SessionDep):
         self.service = InternalTestService(
             repository=InternalTestRepository(session),

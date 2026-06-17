@@ -1,4 +1,4 @@
-from sqlmodel import col, or_, select
+from sqlmodel import col, select
 
 from app.core.db import SessionDep
 from app.modules.enrollment.infrastructure.models import (
@@ -122,7 +122,9 @@ class EnrollmentAdapter(EnrollmentDataService):
         self, nombre: str, valor: int, anio: int
     ) -> ComplementarioEntity:
         tipo_prueba = self.session.exec(
-            select(TipoComplementario).where(col(TipoComplementario.nombre).ilike("%prueba%"))
+            select(TipoComplementario).where(
+                col(TipoComplementario.nombre).ilike("%prueba%")
+            )
         ).first()
 
         if not tipo_prueba:

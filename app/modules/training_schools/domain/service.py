@@ -238,9 +238,7 @@ class TrainingSchoolService:
         existing = await self.enrollment.get_tipo_complementario(tipo_id)
         if not existing:
             raise ValueError("Tipo de complementario no encontrado.")
-        if await self.enrollment.tipo_complementario_has_children_or_concepts(
-            tipo_id
-        ):
+        if await self.enrollment.tipo_complementario_has_children_or_concepts(tipo_id):
             raise ValueError(
                 "No se puede eliminar: el tipo tiene subtipos o conceptos asociados."
             )
@@ -291,9 +289,7 @@ class TrainingSchoolService:
         if valor is not None and valor < 0:
             raise ValueError("El valor del complementario no puede ser negativo.")
         if tipo_complementario_id is not None:
-            tipo = await self.enrollment.get_tipo_complementario(
-                tipo_complementario_id
-            )
+            tipo = await self.enrollment.get_tipo_complementario(tipo_complementario_id)
             if not tipo:
                 raise ValueError("El tipo de complementario no existe.")
         return await self.enrollment.update_complementario(

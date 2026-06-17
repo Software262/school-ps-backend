@@ -122,9 +122,7 @@ class EnrollmentAdapter(EnrollmentDataService):
     def _tipo_to_info(self, tipo: TipoComplementario) -> TipoComplementarioInfo:
         padre_nombre = None
         if tipo.sub_tipo_complementario is not None:
-            padre = self.session.get(
-                TipoComplementario, tipo.sub_tipo_complementario
-            )
+            padre = self.session.get(TipoComplementario, tipo.sub_tipo_complementario)
             padre_nombre = padre.nombre if padre else None
         return TipoComplementarioInfo(
             id=tipo.id if tipo.id is not None else 0,
@@ -190,9 +188,7 @@ class EnrollmentAdapter(EnrollmentDataService):
         self.session.add(tipo)
         self.session.commit()
 
-    async def tipo_complementario_has_children_or_concepts(
-        self, tipo_id: int
-    ) -> bool:
+    async def tipo_complementario_has_children_or_concepts(self, tipo_id: int) -> bool:
         hijo = self.session.exec(
             select(TipoComplementario).where(
                 TipoComplementario.sub_tipo_complementario == tipo_id
