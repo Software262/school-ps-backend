@@ -2,8 +2,10 @@ import os
 import re
 import tempfile
 import time
+import urllib.parse
 from pathlib import Path
 from typing import Any
+import requests
 
 import pdfplumber
 from playwright.sync_api import sync_playwright
@@ -19,6 +21,7 @@ from app.modules.webcolegios_import.domain.service import normalize_grade_name
 ELEMENT_TIMEOUT_MS = 15_000
 DOWNLOAD_TIMEOUT_SECONDS = 45
 DEFAULT_CHROMIUM_ARGS = ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
+REQUEST_TIMEOUT_SECONDS = 45
 
 logger = setup_logger()
 
@@ -54,17 +57,308 @@ TEACHER_PATTERN = re.compile(
 
 class WebcolegiosScraperAdapter:
     def run(self, url: str, usuario: str, contrasena: str) -> WebcolegiosScrapeResult:
-        return self._run_with_browser(url, usuario, contrasena, "all")
+        return self._run_with_requests_or_browser(url, usuario, contrasena, "all")
 
     def run_students(
         self, url: str, usuario: str, contrasena: str
     ) -> WebcolegiosScrapeResult:
-        return self._run_with_browser(url, usuario, contrasena, "students")
+        return self._run_with_requests_or_browser(url, usuario, contrasena, "students")
 
     def run_teachers(
         self, url: str, usuario: str, contrasena: str
     ) -> WebcolegiosScrapeResult:
-        return self._run_with_browser(url, usuario, contrasena, "teachers")
+        return self._run_with_requests_or_browser(url, usuario, contrasena, "teachers")
+
+    def _run_with_requests_or_browser(
+        self, url: str, usuario: str, contrasena: str, mode: str
+    ) -> WebcolegiosScrapeResult:
+        if os.getenv("WEBCOLEGIOS_EXTRACTOR", "requests").lower() == "playwright":
+            return self._run_with_browser(url, usuario, contrasena, mode)
+
+        try:
+            return self._run_with_requests(url, usuario, contrasena, mode)
+        except Exception as exc:
+            logger.warning(
+                "Scraping por requests fallo; usando Playwright como respaldo: {}",
+                exc,
+            )
+            return self._run_with_browser(url, usuario, contrasena, mode)
+
+    def _run_with_requests(
+        self, url: str, usuario: str, contrasena: str, mode: str
+    ) -> WebcolegiosScrapeResult:
+        with tempfile.TemporaryDirectory(prefix="school_ps_webcolegios_http_") as temp_dir:
+            students = []
+            teachers = []
+
+            if mode in ("all", "students"):
+                session = self._authenticate_requests(url, usuario, contrasena)
+                student_pdf = self._download_listing_pdf(
+                    session, url, "Estudiantes", temp_dir
+                )
+                students = self._build_students_from_records(
+                    self._extract_from_pdf(student_pdf, "estudiantes")
+                )
+
+            if mode in ("all", "teachers"):
+                session = self._authenticate_requests(url, usuario, contrasena)
+                holders_pdf = self._download_listing_pdf(
+                    session, url, "Estudiantes", temp_dir, "titulares_maestro.pdf"
+                )
+                holders = self._extract_holders_from_pdf_path(holders_pdf)
+                teacher_pdf = self._download_listing_pdf(
+                    session, url, "Docentes", temp_dir, "docentes_listado.pdf"
+                )
+                teachers = self._build_teachers(
+                    self._extract_from_pdf(teacher_pdf, "docentes"), holders
+                )
+
+            return WebcolegiosScrapeResult(students=students, teachers=teachers)
+
+    def _authenticate_requests(self, url: str, usuario: str, contrasena: str):
+
+        session = requests.Session()
+        session.headers.update(
+            {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/120.0.0.0 Safari/537.36"
+                ),
+                "Accept": (
+                    "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                    "image/avif,image/webp,*/*;q=0.8"
+                ),
+                "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+                "Connection": "keep-alive",
+            }
+        )
+
+        response = session.get(url, timeout=REQUEST_TIMEOUT_SECONDS)
+        response.raise_for_status()
+        login_form = self._find_form_html(
+            response.text,
+            lambda form: "index.php" in form.lower()
+            or "login" in form.lower()
+            or "identidad" in form.lower(),
+        )
+        if not login_form:
+            raise RuntimeError("No se encontro el formulario de login en WebColegios.")
+
+        action_url = urllib.parse.urljoin(
+            response.url, self._form_action(login_form) or "index.php"
+        )
+        data = self._extract_form_fields(login_form)
+        captcha_answer = self._solve_math_captcha(self._find_captcha_text(response.text))
+
+        for key in ("identidad", "identidad1"):
+            if key in data or key == "identidad":
+                data[key] = usuario
+        for key in ("clave", "clave1", "password"):
+            if key in data or key == "clave":
+                data[key] = contrasena
+        for key in ("nivel", "nivel1"):
+            if key in data:
+                data[key] = "Administrativo"
+        data["captcha_respuesta"] = captcha_answer
+        data["wc_login_request"] = "1"
+
+        login_response = session.post(
+            action_url, data=data, timeout=REQUEST_TIMEOUT_SECONDS
+        )
+        login_response.raise_for_status()
+        if re.search(
+            r"Acceso Denegado|Contrase(?:n|ñ)a Incorrecta|Captcha Incorrecto",
+            login_response.text,
+            re.IGNORECASE,
+        ):
+            raise RuntimeError("Login fallido en WebColegios.")
+
+        modal_form = self._find_form_html(
+            login_response.text,
+            lambda form: 'id="form1"' in form.lower()
+            or "administrativo" in form.lower(),
+        )
+        if modal_form:
+            modal_action = self._form_action(modal_form)
+            if modal_action:
+                confirm = session.post(
+                    urllib.parse.urljoin(login_response.url, modal_action),
+                    timeout=REQUEST_TIMEOUT_SECONDS,
+                )
+                confirm.raise_for_status()
+        else:
+            session.post(
+                urllib.parse.urljoin(url, "/administrativo/index.php"),
+                timeout=REQUEST_TIMEOUT_SECONDS,
+            )
+
+        return session
+
+    def _download_listing_pdf(
+        self,
+        session,
+        url_base: str,
+        tipo_datos: str,
+        temp_dir: str,
+        filename: str | None = None,
+    ) -> str:
+        form_response = session.get(
+            urllib.parse.urljoin(url_base, "/admin_lista_uso_general.php"),
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        form_response.raise_for_status()
+        first_form = self._find_form_html(
+            form_response.text,
+            lambda form: 'name="form1"' in form.lower() or "destino" in form.lower(),
+        )
+        if not first_form:
+            raise RuntimeError("No se encontro form1 en admin_lista_uso_general.php.")
+
+        data = self._extract_form_fields(first_form)
+        data["destino"] = "DO" if tipo_datos.lower() == "docentes" else "ES"
+        data["noretirados"] = "1"
+        listing_response = session.post(
+            urllib.parse.urljoin(
+                form_response.url, self._form_action(first_form) or form_response.url
+            ),
+            data=data,
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        listing_response.raise_for_status()
+
+        print_form = self._find_form_html(
+            listing_response.text,
+            lambda form: "btn-dark" in form.lower()
+            or "imprimir" in form.lower()
+            or "print_p" in form.lower(),
+        )
+        if not print_form:
+            raise RuntimeError("No se encontro el formulario de impresion.")
+
+        pdf_data = self._extract_form_fields(print_form)
+        pdf_data["boton"] = (
+            "Imprimir Todos" if tipo_datos.lower() == "docentes" else "Imprimir"
+        )
+        pdf_data.pop("escuela_nueva", None)
+        if tipo_datos.lower() != "docentes":
+            pdf_data.pop("condocumento", None)
+
+        pdf_action = self._resolve_listing_pdf_action(print_form, tipo_datos)
+
+        pdf_url = urllib.parse.urljoin(listing_response.url, pdf_action)
+        pdf_response = session.post(
+            pdf_url,
+            data=pdf_data,
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        pdf_response.raise_for_status()
+        if not pdf_response.content:
+            raise RuntimeError("WebColegios retorno un PDF vacio.")
+
+        target = Path(temp_dir) / (filename or f"{tipo_datos.lower()}_listado.pdf")
+        target.write_bytes(pdf_response.content)
+        logger.info(
+            "PDF WebColegios descargado: tipo={}, url={}, content_type={}, bytes={}, "
+            "path={}",
+            tipo_datos,
+            pdf_response.url,
+            pdf_response.headers.get("content-type", ""),
+            len(pdf_response.content),
+            target,
+        )
+        return str(target)
+
+    def _resolve_listing_pdf_action(self, form_html: str, tipo_datos: str) -> str:
+        if tipo_datos.lower() == "docentes":
+            return "/listas_docentes_uso_general.php"
+        return "/listas_estudiantes_uso_general4.php"
+
+    def _build_students_from_records(
+        self, records: list[dict[str, Any]]
+    ) -> list[ScrapedStudent]:
+        return [
+            ScrapedStudent(
+                nombre=record.get("nombre", ""),
+                documento=record.get("documento", ""),
+                grado_nombre=record.get("grado_nombre") or record.get("grado"),
+                curso=record.get("curso"),
+                sede=record.get("sede"),
+                jornada=record.get("jornada"),
+                titular_nombre=record.get("titular"),
+                acudiente_nombre=record.get("acudiente_nombre"),
+                acudiente_telefono=record.get("acudiente_telefono"),
+                acudiente_correo=record.get("acudiente_correo"),
+                raw_data=record,
+            )
+            for record in records
+        ]
+
+    def _extract_holders_from_pdf_path(self, path: str) -> list[dict[str, str]]:
+        records = []
+        for page_text in self._read_pdf_pages(path):
+            records.extend(self._extract_holders_from_student_text(page_text))
+        return self._dedupe_holder_records(records)
+
+    def _find_form_html(self, html: str, predicate) -> str | None:
+        for match in re.finditer(r"(?is)<form\b.*?</form>", html):
+            form = match.group(0)
+            if predicate(form):
+                return form
+        return None
+
+    def _form_action(self, form_html: str) -> str | None:
+        match = re.search(r"""(?is)\baction\s*=\s*["']?([^"'\s>]+)""", form_html)
+        return match.group(1) if match else None
+
+    def _extract_form_fields(self, form_html: str) -> dict[str, str]:
+        fields = {}
+        for tag in re.findall(r"(?is)<input\b[^>]*>", form_html):
+            name = self._tag_attr(tag, "name")
+            if name:
+                fields[name] = self._tag_attr(tag, "value") or ""
+        for select in re.findall(r"(?is)<select\b[^>]*>.*?</select>", form_html):
+            name = self._tag_attr(select, "name")
+            if not name:
+                continue
+            selected = re.search(
+                r"(?is)<option\b(?=[^>]*\bselected\b)[^>]*\bvalue\s*=\s*"
+                r"""["']?([^"'\s>]*)""",
+                select,
+            )
+            first = re.search(
+                r"""(?is)<option\b[^>]*\bvalue\s*=\s*["']?([^"'\s>]*)""",
+                select,
+            )
+            fields[name] = (
+                selected.group(1)
+                if selected
+                else first.group(1)
+                if first
+                else ""
+            )
+        return fields
+
+    def _tag_attr(self, tag: str, attr: str) -> str | None:
+        match = re.search(
+            rf"""(?is)\b{re.escape(attr)}\s*=\s*["']?([^"'\s>]*)""", tag
+        )
+        return match.group(1) if match else None
+
+    def _find_captcha_text(self, html: str) -> str:
+        captcha_span = re.search(
+            r"""(?is)<span\b[^>]*id\s*=\s*["']captcha_pregunta["'][^>]*>(.*?)</span>""",
+            html,
+        )
+        if captcha_span:
+            text = re.sub(r"<[^>]+>", " ", captcha_span.group(1))
+            if re.search(r"\d+\s*[\+\-\*\/]\s*\d+", text):
+                return text
+
+        match = re.search(r"\d+\s*[\+\-\*\/]\s*\d+", html)
+        if not match:
+            raise RuntimeError("No se pudo localizar el captcha matematico.")
+        return match.group(0)
 
     def _run_with_browser(
         self, url: str, usuario: str, contrasena: str, mode: str
@@ -690,13 +984,35 @@ class WebcolegiosScraperAdapter:
         except ImportError as exc:
             raise RuntimeError("pdfplumber no esta instalado.") from exc
 
-        pages = []
+        all_records = []
         with pdfplumber.open(pdf_path) as pdf:
-            for page in pdf.pages:
+            total_pages = len(pdf.pages)
+            logger.info(
+                "Leyendo PDF WebColegios: path={}, tipo={}, paginas={}, bytes={}",
+                pdf_path,
+                tipo,
+                total_pages,
+                os.path.getsize(pdf_path),
+            )
+            for page_number, page in enumerate(pdf.pages, start=1):
                 text = page.extract_text()
-                if text:
-                    pages.append(text)
-        return self._parse_text("\n".join(pages), tipo)
+                records = self._parse_text(text or "", tipo)
+                all_records.extend(records)
+                grade = self._page_grade(records, text or "")
+                logger.info(
+                    "PDF WebColegios pagina {}/{}: tipo={}, grado={}, registros={}",
+                    page_number,
+                    total_pages,
+                    tipo,
+                    grade or "NO_DETECTADO",
+                    len(records),
+                )
+        logger.info(
+            "PDF WebColegios extraccion finalizada: tipo={}, total_registros={}",
+            tipo,
+            len(all_records),
+        )
+        return all_records
 
     def _extract_holders_from_pdfs(self, paths: list[str]) -> dict[str, dict[str, str]]:
         holders = {}
@@ -740,58 +1056,98 @@ class WebcolegiosScraperAdapter:
         if not text:
             return []
 
-        jornada = self._extract_header(text, r"Jornada:\s*([^\n\r]+?)(?=\s+Grado:|$)")
-        grade = self._extract_header(text, r"Grado:\s*([^\n\r]+?)(?=\s+Curso:|$)")
-        course = self._extract_header(text, r"Curso:\s*([^\n\r]+?)(?=\s+Sede:|$)")
-        sede = self._extract_header(text, r"Sede:\s*([^\n\r]+)")
-        titular = self._extract_header(text, r"Titular:\s*([^\n\r]+?)(?=\s+Fecha:|$)")
+        records = []
+        state = {
+            "jornada": "",
+            "grado": "",
+            "curso": "",
+            "sede": "",
+            "titular": "",
+        }
 
-        if not jornada and "Jornada:" in sede:
+        for line in text.splitlines():
+            self._update_page_state(line, state)
+
+            if tipo == "docentes":
+                match = TEACHER_PATTERN.match(line)
+                if not match:
+                    continue
+
+                name = self._clean_name(match.group(3))
+                document = match.group(2).strip()
+                if name and document:
+                    records.append(
+                        {
+                            "consecutivo": int(match.group(1) or 0),
+                            "documento": document,
+                            "nombre": name,
+                            "jornada": state["jornada"],
+                            "grado_nombre": state["grado"],
+                            "curso": state["curso"],
+                            "sede": state["sede"],
+                            "titular": state["titular"],
+                        }
+                    )
+                continue
+
+            match = PERSON_PATTERN.match(line)
+            if not match:
+                continue
+
+            consecutive, document, name, grade_code, course_code = match.groups()
+            clean_name = self._clean_name(name)
+            if clean_name and document.strip():
+                records.append(
+                    {
+                        "consecutivo": int(consecutive),
+                        "documento": document.strip(),
+                        "nombre": clean_name,
+                        "jornada": state["jornada"],
+                        "grado_nombre": GRADE_MAP.get(grade_code, grade_code)
+                        if grade_code
+                        else state["grado"],
+                        "curso": self._map_course(course_code)
+                        if course_code
+                        else self._map_course(state["curso"]),
+                        "sede": state["sede"],
+                        "titular": state["titular"],
+                    }
+                )
+
+        return records
+
+    def _update_page_state(self, line: str, state: dict[str, str]) -> None:
+        patterns = {
+            "jornada": r"Jornada:\s*([^\n\r]+?)(?=\s+Grado:|$)",
+            "grado": r"Grado:\s*([^\n\r]+?)(?=\s+Curso:|$)",
+            "curso": r"Curso:\s*([^\n\r]+?)(?=\s+Sede:|$)",
+            "sede": r"Sede:\s*([^\n\r]+?)(?=\s+Titular:|\s+Jornada:|$)",
+            "titular": r"Titular:\s*([^\n\r]+?)(?=\s+Fecha:|$)",
+        }
+        for key, pattern in patterns.items():
+            match = re.search(pattern, line, re.IGNORECASE)
+            if match:
+                state[key] = self._clean_header_value(match.group(1))
+
+        sede = state["sede"]
+        if "Jornada:" in sede:
             jornada_match = re.search(
                 r"Jornada:\s*([a-zA-Z0-9_]+)", sede, re.IGNORECASE
             )
             if jornada_match:
-                jornada = jornada_match.group(1).strip()
-            sede = re.sub(
+                state["jornada"] = jornada_match.group(1).strip()
+            state["sede"] = re.sub(
                 r"\s*Jornada:\s*[a-zA-Z0-9_]+", "", sede, flags=re.IGNORECASE
             ).strip()
 
-        if tipo == "docentes":
-            return [
-                {
-                    "consecutivo": int(match[0] or 0),
-                    "documento": match[1].strip(),
-                    "nombre": self._clean_name(match[2]),
-                    "jornada": jornada,
-                    "grado_nombre": grade,
-                    "curso": course,
-                    "sede": sede,
-                    "titular": titular,
-                }
-                for match in TEACHER_PATTERN.findall(text)
-                if self._clean_name(match[2]) and match[1].strip()
-            ]
+    def _page_grade(self, records: list[dict[str, Any]], text: str) -> str:
+        for record in records:
+            grade = record.get("grado_nombre")
+            if grade:
+                return str(grade)
 
-        return [
-            {
-                "consecutivo": int(consecutive),
-                "documento": document.strip(),
-                "nombre": self._clean_name(name),
-                "jornada": jornada,
-                "grado_nombre": GRADE_MAP.get(grade_code, grade_code)
-                if grade_code
-                else grade,
-                "curso": self._map_course(course_code)
-                if course_code
-                else self._map_course(course),
-                "sede": sede,
-                "titular": titular,
-            }
-            for consecutive, document, name, grade_code, course_code in PERSON_PATTERN.findall(
-                text
-            )
-            if self._clean_name(name) and document.strip()
-        ]
+        grade = self._extract_header(text, r"Grado:\s*([^\n\r]+?)(?=\s+Curso:|$)")
+        return normalize_grade_name(grade) if grade else ""
 
     def _extract_header(self, text: str, pattern: str) -> str:
         match = re.search(pattern, text, re.IGNORECASE)
