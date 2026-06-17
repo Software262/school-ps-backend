@@ -101,6 +101,19 @@ class StudentSearchListResponse(BaseModel):
     total_resultados: int
 
 
+class StudentBasicSearchItemResponse(BaseModel):
+    id: int
+    nombre: str
+    documento: str
+    grado: str
+    curso: str | None = None
+
+
+class StudentBasicSearchListResponse(BaseModel):
+    estudiantes: list[StudentBasicSearchItemResponse]
+    total_resultados: int
+
+
 class PaymentHistoryItemResponse(BaseModel):
     """DTO para un ítem del historial de pagos (auditoría)."""
 
