@@ -1,4 +1,4 @@
-from sqlmodel import col, or_, select
+from sqlmodel import col, select
 
 from app.core.db import SessionDep
 from app.modules.enrollment.infrastructure.models import (
@@ -85,26 +85,12 @@ class EnrollmentAdapter(EnrollmentDataService):
         )
 
     async def get_available_tests(self) -> list[ComplementarioEntity]:
-        matricula_type = self.session.exec(
-            select(TipoComplementario).where(TipoComplementario.nombre == "Matricula")
-        ).first()
-
-        stmt = select(Complementario).where(
-            Complementario.estado_complemento == "Activo"
+        stmt = (
+            select(Complementario)
+            .join(TipoComplementario)
+            .where(Complementario.estado_complemento == "Activo")
+            .where(col(TipoComplementario.nombre).ilike("%prueba%"))
         )
-
-        if matricula_type and matricula_type.id is not None:
-            matricula_ids = self.session.exec(
-                select(col(TipoComplementario.id)).where(
-                    or_(
-                        TipoComplementario.id == matricula_type.id,
-                        TipoComplementario.sub_tipo_complementario == matricula_type.id,
-                    )
-                )
-            ).all()
-            stmt = stmt.where(
-                col(Complementario.tipo_complementario_id).not_in(matricula_ids)
-            )
 
         results = self.session.exec(stmt).all()
         return [
@@ -130,6 +116,38 @@ class EnrollmentAdapter(EnrollmentDataService):
             tipo_complementario=comp.nombre,
             valor=comp.valor,
             anio=comp.anio,
+        )
+
+    async def create_complementary(
+        self, nombre: str, valor: int, anio: int
+    ) -> ComplementarioEntity:
+        tipo_prueba = self.session.exec(
+            select(TipoComplementario).where(
+                col(TipoComplementario.nombre).ilike("%prueba%")
+            )
+        ).first()
+
+        if not tipo_prueba:
+            tipo_prueba = TipoComplementario(nombre="pruebas", estado=True)
+            self.session.add(tipo_prueba)
+            self.session.flush()
+
+        nuevo_comp = Complementario(
+            nombre=nombre,
+            anio=anio,
+            valor=valor,
+            estado_complemento="Activo",
+            tipo_complementario_id=int(tipo_prueba.id or 0),
+        )
+        self.session.add(nuevo_comp)
+        self.session.commit()
+        self.session.refresh(nuevo_comp)
+
+        return ComplementarioEntity(
+            id=nuevo_comp.id or 0,
+            tipo_complementario=nuevo_comp.nombre,
+            valor=nuevo_comp.valor,
+            anio=nuevo_comp.anio,
         )
 
     async def save_complementary(

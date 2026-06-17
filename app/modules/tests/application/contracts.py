@@ -44,6 +44,12 @@ class EnrollmentDataService(ABC):
         pass
 
     @abstractmethod
+    async def create_complementary(
+        self, nombre: str, valor: int, anio: int
+    ) -> ComplementarioEntity:
+        pass
+
+    @abstractmethod
     async def save_complementary(
         self, comp: ComplementarioEntity
     ) -> ComplementarioEntity:

@@ -4,6 +4,8 @@ from app.shared.infrastructure.base import Base
 
 
 class WebcolegiosStagingStudent(Base, table=True):
+    __tablename__ = "webcolegios_staging_student"
+
     nombre: str | None = Field(default=None, max_length=150)
     documento: str | None = Field(default=None, max_length=100, index=True)
     grado_nombre: str | None = Field(default=None, max_length=100)
@@ -18,6 +20,8 @@ class WebcolegiosStagingStudent(Base, table=True):
 
 
 class WebcolegiosStagingTeacher(Base, table=True):
+    __tablename__ = "webcolegios_staging_teacher"
+
     nombre: str | None = Field(default=None, max_length=150)
     documento: str | None = Field(default=None, max_length=100, index=True)
     asignatura: str | None = Field(default=None, max_length=100)
