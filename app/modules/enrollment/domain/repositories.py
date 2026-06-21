@@ -11,6 +11,7 @@ from app.modules.enrollment.infrastructure.models import (
     Complementario,
     Estudiante,
     Pago,
+    Periodo,
 )
 
 
@@ -292,6 +293,11 @@ class EnrollmentRepository(ABC):
     @abstractmethod
     def get_all_grades(self) -> list[GradeInfo]:
         """Obtiene la lista de todos los grados académicos."""
+        ...
+
+    @abstractmethod
+    def get_all_periods(self) -> list[Periodo]:
+        """Obtiene la lista de todos los periodos académicos."""
         ...
 
     @abstractmethod

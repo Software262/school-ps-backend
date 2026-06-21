@@ -181,3 +181,9 @@ class StudentGeneralResponse(BaseModel):
     nombre: str
     documento: str
     grado_nombre: str
+
+
+class PeriodResponse(BaseModel):
+    id: int
+    periodo_electivo: datetime
+    estado: bool

@@ -17,6 +17,7 @@ from app.modules.enrollment.schemas.response import (
     GradeResponse,
     StudentGeneralResponse,
     StudentResponse,
+    PeriodResponse,
 )
 
 
@@ -760,6 +761,19 @@ class StudentService:
         grades = self.repo.get_all_grades()
 
         return [GradeResponse(id=g.id, nombre=g.nombre) for g in grades]
+
+    def get_all_periods(self) -> list[PeriodResponse]:
+        """Servicio: Listado de periodos disponibles en el sistema."""
+        periods = self.repo.get_all_periods()
+        return [
+            PeriodResponse(
+                id=p.id,
+                periodo_electivo=p.periodo_electivo,
+                estado=p.estado,
+            )
+            for p in periods
+            if p.id is not None
+        ]
 
     def get_student_by_id(self, student_id: int) -> StudentResponse | None:
         """Servicio 4: Obtiene el objeto/entidad Estudiante crudo por ID."""

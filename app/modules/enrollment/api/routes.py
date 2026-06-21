@@ -25,6 +25,7 @@ from app.modules.enrollment.application.register_enrollment import (
     RegisterEnrollment,
 )
 from app.modules.enrollment.application.get_all_grades import GetAllGrades
+from app.modules.enrollment.application.get_all_periods import GetAllPeriods
 from app.modules.enrollment.application.get_complementaries import GetComplementaries
 from app.modules.enrollment.application.get_students_bulk import GetStudentsBulk
 from app.modules.enrollment.application.search_active_students import (
@@ -58,6 +59,7 @@ from app.modules.enrollment.schemas.response import (
     StudentSearchListResponse,
     GradeResponse,
     StudentGeneralResponse,
+    PeriodResponse,
 )
 
 router = APIRouter(
@@ -650,4 +652,16 @@ async def get_all_grades(
     session: SessionDep,
 ) -> list[GradeResponse]:
     use_case = GetAllGrades(session=session)
+    return use_case.execute()
+
+
+@router.get(
+    "/periods",
+    response_model=list[PeriodResponse],
+    summary="Listar todos los periodos académicos",
+)
+async def get_all_periods(
+    session: SessionDep,
+) -> list[PeriodResponse]:
+    use_case = GetAllPeriods(session=session)
     return use_case.execute()

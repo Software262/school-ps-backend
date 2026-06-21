@@ -600,6 +600,10 @@ class SQLEnrollmentRepository(EnrollmentRepository):
             GradeInfo(id=gr.id, nombre=gr.nombre) for gr in results if gr.id is not None
         ]
 
+    def get_all_periods(self) -> list[Periodo]:
+        statement = select(Periodo).order_by(col(Periodo.periodo_electivo))
+        return list(self._session.exec(statement).all())
+
     def get_student_entity_by_id(self, student_id: int) -> Estudiante | None:
         statement = select(Estudiante).where(col(Estudiante.id) == student_id)
         return self._session.exec(statement).first()
