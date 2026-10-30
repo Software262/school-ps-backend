@@ -94,3 +94,6 @@ class PeaceSafeRepository(ABC):
 
     @abstractmethod
     def get_detalles(self, pazysalvo_id: int) -> list[DetallePazYSalvo]: ...
+
+    @abstractmethod
+    def get_dashboard_stats(self) -> dict: ...
