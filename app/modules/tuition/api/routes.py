@@ -14,6 +14,15 @@ from app.modules.tuition.application.register_tuition_payment import (
 from app.modules.tuition.application.get_student_tuition import GetStudentTuitionUseCase
 from app.modules.enrollment.infrastructure.models import Estudiante, Grado
 
+from datetime import datetime
+from fastapi import APIRouter, HTTPException
+from sqlmodel import select
+
+from app.core.db import SessionDep
+from app.modules.enrollment.infrastructure.models import Estudiante
+from app.modules.tuition.infrastructure.enrollment_adapter import TuitionEnrollmentAdapter
+# Asegúrate de tener importado tu GetStudentTuitionUseCase
+
 router = APIRouter()
 
 
@@ -54,18 +63,39 @@ def get_tuition_by_documento(session: SessionDep, documento: str):
             status_code=404, detail="No se encontró ningún estudiante con esa cédula."
         )
 
-    if not estudiante.id:
+    if not estudiante.id or not estudiante.grado_id:
         raise HTTPException(
-            status_code=500, detail="Error: El estudiante no tiene ID válido."
+            status_code=500, detail="Error: El estudiante no tiene ID o grado válido."
         )
 
     use_case = GetStudentTuitionUseCase(session)
     account_response = use_case.execute(estudiante.id)
+    
+    # Si no tiene cuenta de pensión registrada, la creamos automáticamente al vuelo
     if not account_response:
-        raise HTTPException(
-            status_code=404,
-            detail="El estudiante no tiene cuenta de pensión registrada.",
-        )
+        try:
+            adapter = TuitionEnrollmentAdapter(session)
+            adapter.create_pension_account(
+                student_id=estudiante.id,
+                grade_id=estudiante.grado_id,
+                year=datetime.now().year
+            )
+            session.commit()
+        except Exception as e:
+            session.rollback()
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error al crear automáticamente la cuenta de pensión: {str(e)}"
+            )
+        
+        # Volvemos a ejecutar el use case para obtener la información recién creada
+        account_response = use_case.execute(estudiante.id)
+        if not account_response:
+            raise HTTPException(
+                status_code=404,
+                detail="No se pudo registrar ni recuperar la cuenta de pensión del estudiante.",
+            )
+
     return account_response
 
 
