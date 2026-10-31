@@ -18,6 +18,8 @@ from app.modules.principal.schemas.request import (
     UpdateStatusRequest,
 )
 
+from datetime import datetime, timezone, timedelta
+
 
 class PrincipalService:
     """
@@ -236,3 +238,55 @@ class PrincipalService:
 
         status_data.id_usuario = resolved_usuario_id
         return await self.repository.update_status(status, status_data)
+
+    
+    async def delete_observation(self, observation_id: int, id_usuario: int | None = None):
+        """
+        Elimina una observación administrativa si no han transcurrido más de 24 horas.
+        """
+        # 1. Validar usuario y rol
+        resolved_usuario_id = await self._resolve_usuario_id(id_usuario)
+        await self._validate_user_role(resolved_usuario_id)
+
+        # 2. Buscar la observación
+        observation = await self.repository.get_observation_by_id(observation_id)
+        if not observation:
+            return None
+
+        # 3. REGLA DE NEGOCIO: Validar la restricción de 24 horas
+        now = datetime.now(timezone.utc)
+        fecha_obs = (
+            observation.fecha.astimezone(timezone.utc)
+            if observation.fecha.tzinfo is not None
+            else observation.fecha.replace(tzinfo=timezone.utc)
+        )
+
+        if now - fecha_obs > timedelta(hours=24):
+            raise ValueError("No es posible eliminar la observación después de 24 horas de su creación")
+
+        # 4. Eliminar el registro a través del repositorio
+        return await self.repository.delete_observation(observation, resolved_usuario_id)
+
+    async def update_observation(self, observation_id: int, descripcion: str, tipo_observacion: str, id_usuario: int | None = None):
+        """
+        Modifica una observación administrativa si no han transcurrido más de 24 horas.
+        """
+        resolved_usuario_id = await self._resolve_usuario_id(id_usuario)
+        await self._validate_user_role(resolved_usuario_id)
+
+        observation = await self.repository.get_observation_by_id(observation_id)
+        if not observation:
+            raise ValueError("La observación no existe")
+
+        # REGLA DE NEGOCIO: Validar la restricción de 24 horas
+        now = datetime.now(timezone.utc)
+        fecha_obs = (
+            observation.fecha.astimezone(timezone.utc)
+            if observation.fecha.tzinfo is not None
+            else observation.fecha.replace(tzinfo=timezone.utc)
+        )
+
+        if now - fecha_obs > timedelta(hours=24):
+            raise ValueError("No es posible modificar la observación después de 24 horas de su creación")
+
+        return await self.repository.update_observation(observation, descripcion, tipo_observacion, resolved_usuario_id)

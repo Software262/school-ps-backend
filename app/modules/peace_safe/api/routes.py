@@ -16,6 +16,10 @@ from app.modules.peace_safe.application.search_teachers import SearchTeachers
 from app.core.db import SessionDep
 from app.shared.utils.response import Response
 
+from app.modules.peace_safe.application.get_dashboard_stats import (
+    GetDashboardStats,
+)
+
 router = APIRouter()
 
 
@@ -136,6 +140,22 @@ async def generate_teacher_pazysalvo(
             status_code=status.HTTP_400_BAD_REQUEST,
         ).to_dict()
 
+
+
+@router.get("/dashboard/stats", status_code=status.HTTP_200_OK)
+async def get_dashboard_stats(
+    session: SessionDep,
+):
+    """
+    Returns aggregated student statistics for the dashboard:
+    total_estudiantes, paz_y_salvo, pendientes, and alertas.
+    """
+    app_service = GetDashboardStats(session=session)
+    result = await app_service.execute()
+    return Response(
+        data=result,
+        message="Estadisticas del dashboard",
+    ).to_dict()
 
 @router.get("/{pazysalvo_id}", status_code=status.HTTP_200_OK)
 async def get_pazysalvo_detail(
