@@ -518,3 +518,7 @@ class PeaceSafeService:
                 for d in (detalles or [])
             ],
         }
+
+    def get_dashboard_stats(self) -> dict:
+        # Delegates purely to the repository aggregate query.
+        return self.repo.get_dashboard_stats()

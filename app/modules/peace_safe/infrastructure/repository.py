@@ -302,3 +302,49 @@ class PeaceSafeRepository(PeaceSafeRepositoryInterface):
                 )
             ).all()
         )
+
+    def get_dashboard_stats(self) -> dict:
+        # Counts active students, paz_y_salvo issued this period,
+        # pendientes (total - paz_y_salvo), and open classroom alerts.
+        from sqlmodel import col, func, select
+        from app.modules.classroom_holder.infrastructure.models import Observador
+        from app.modules.enrollment.infrastructure.models import Estudiante
+        from app.modules.peace_safe.infrastructure.models import PazYSalvo
+
+        total_estudiantes: int = (
+            self.session.exec(
+                select(func.count()).where(col(Estudiante.activo).is_(True))
+            ).one()
+            or 0
+        )
+
+        periodo = self.get_active_period()
+        periodo_id: int = int(periodo.id) if periodo and periodo.id else 0
+
+        paz_y_salvo_count: int = 0
+        if periodo_id:
+            paz_y_salvo_count = (
+                self.session.exec(
+                    select(func.count())
+                    .where(PazYSalvo.entidad_tipo == "estudiante")
+                    .where(PazYSalvo.periodo_id == periodo_id)
+                    .where(PazYSalvo.estado_final == "paz_y_salvo")
+                ).one()
+                or 0
+            )
+
+        pendientes_count: int = max(total_estudiantes - paz_y_salvo_count, 0)
+
+        alertas_count: int = (
+            self.session.exec(
+                select(func.count()).where(col(Observador.esta_abierta).is_(True))
+            ).one()
+            or 0
+        )
+
+        return {
+            "total_estudiantes": total_estudiantes,
+            "paz_y_salvo": paz_y_salvo_count,
+            "pendientes": pendientes_count,
+            "alertas": alertas_count,
+        }

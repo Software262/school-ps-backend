@@ -35,6 +35,10 @@ from app.modules.principal.schemas.response import (
 )
 from app.shared.utils.response import Response
 
+from app.modules.principal.application.delete_observation import (
+    DeleteObservation,
+)
+
 
 router = APIRouter()
 
@@ -272,5 +276,45 @@ async def update_status(
     return Response(
         data=response_data,
         message="Administrative status updated successfully",
+        status_code=status.HTTP_200_OK,
+    ).to_dict()
+
+@router.delete(
+    "/observations/{observation_id}",
+    summary="Delete administrative observation",
+    description="Deletes an administrative observation within 24 hours of creation.",
+    responses={
+        200: {"description": "Observation deleted successfully"},
+        400: {"description": "Bad request or 24-hour expiration rule triggered"},
+        404: {"description": "Observation not found"},
+    },
+)
+async def delete_observation(
+    observation_id: int,
+    session: SessionDep,
+    id_usuario: int | None = None,
+):
+    """
+    HTTP DELETE endpoint to delete an observation if created less than 24 hours ago.
+    """
+    app = DeleteObservation(session=session)
+
+    try:
+        data = await app.execute(observation_id=observation_id, id_usuario=id_usuario)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    if not data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Observation not found",
+        )
+
+    return Response(
+        data=None,
+        message="Observation deleted successfully",
         status_code=status.HTTP_200_OK,
     ).to_dict()
