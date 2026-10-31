@@ -317,3 +317,11 @@ class PrincipalRepository(PrincipalRepositoryInterface):
 
         self.session.add(audit)
         self.session.commit()
+
+    async def get_observation_by_id(self, observation_id: int) -> RectoriaObservaciones | None:
+        return self.session.get(RectoriaObservaciones, observation_id)
+
+    async def delete_observation(self, observation: RectoriaObservaciones, id_usuario: int):
+        self.session.delete(observation)
+        self.session.commit()
+        return True
