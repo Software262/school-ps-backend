@@ -161,3 +161,40 @@ class ManualEnrollmentRequest(BaseModel):
         if any(char.isdigit() for char in v):
             raise ValueError("Los nombres no pueden contener números")
         return v
+
+
+class BaseFeeGradeItem(BaseModel):
+    """Tarifa de matrícula y pensión para un grado."""
+
+    grado_id: int = Field(description="ID del grado")
+    matricula_valor: int = Field(ge=0, description="Costo base de matrícula")
+    pension_valor: int = Field(ge=0, description="Costo mensual base de pensión")
+
+
+class UpsertBaseFeesRequest(BaseModel):
+    """Solicitud para parametrizar costos base por lote."""
+
+    anio: int = Field(ge=2000, le=2100, description="Año electivo a parametrizar")
+    tarifas: list[BaseFeeGradeItem] = Field(description="Lista de tarifas por grado")
+
+
+class CopyBaseFeesRequest(BaseModel):
+    """Solicitud para copiar tarifas de un año a otro."""
+
+    anio_origen: int = Field(ge=2000, le=2100, description="Año de origen")
+    anio_destino: int = Field(ge=2000, le=2100, description="Año de destino")
+    incremento_porcentaje: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=100.0,
+        description="Incremento porcentual opcional (ej: 5.5)",
+    )
+
+
+class SingleGradeFeeRequest(BaseModel):
+    """Solicitud para parametrizar un único grado."""
+
+    anio: int = Field(ge=2000, le=2100, description="Año electivo")
+    matricula_valor: int = Field(ge=0, description="Costo base de matrícula")
+    pension_valor: int = Field(ge=0, description="Costo mensual base de pensión")
+
