@@ -374,3 +374,26 @@ class EnrollmentRepository(ABC):
     ) -> list[ComplementaryConcept]:
         """Obtiene todos los conceptos complementarios registrados, opcionalmente filtrados por año."""
         ...
+
+    @abstractmethod
+    def get_base_fees(self, year: int) -> list[dict]:
+        """Obtiene la parametrización de matrícula y pensión de todos los grados para un año."""
+        ...
+
+    @abstractmethod
+    def upsert_base_fees(self, year: int, tarifas: list[dict]) -> None:
+        """Inserta o actualiza las tarifas de matrícula y pensión para un año."""
+        ...
+
+    @abstractmethod
+    def copy_base_fees(
+        self, anio_origen: int, anio_destino: int, incremento_pct: float = 0.0
+    ) -> None:
+        """Copia las tarifas de un año a otro aplicando un posible incremento porcentual."""
+        ...
+
+    @abstractmethod
+    def initialize_default_base_fees(self, year: int) -> None:
+        """Inicializa las tarifas por defecto recomendadas para todos los grados en un año."""
+        ...
+

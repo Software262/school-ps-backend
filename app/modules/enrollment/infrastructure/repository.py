@@ -24,6 +24,8 @@ from app.modules.enrollment.infrastructure.models import (
     Periodo,
     TipoComplementario,
 )
+from app.modules.tuition.infrastructure.models import ParametrizarPension
+
 
 
 class SQLEnrollmentRepository(EnrollmentRepository):
@@ -771,3 +773,147 @@ class SQLEnrollmentRepository(EnrollmentRepository):
             )
             for comp in results
         ]
+
+    def _ensure_grades_exist(self) -> list[Grado]:
+        grades = list(self._session.exec(select(Grado).order_by(Grado.id)).all())
+        if not grades:
+            grados_nombres = [
+                "Preescolar",
+                "Primero",
+                "Segundo",
+                "Tercero",
+                "Cuarto",
+                "Quinto",
+                "Sexto",
+                "Séptimo",
+                "Octavo",
+                "Noveno",
+                "Décimo",
+                "Once",
+            ]
+            for nombre in grados_nombres:
+                self._session.add(Grado(nombre=nombre))
+            self._session.commit()
+            grades = list(self._session.exec(select(Grado).order_by(Grado.id)).all())
+        return grades
+
+    def get_base_fees(self, year: int) -> list[dict]:
+        grades = self._ensure_grades_exist()
+
+        m_records = self._session.exec(
+            select(ParametrizarMatricula).where(ParametrizarMatricula.anio == year)
+        ).all()
+        matricula_params = {p.grado_id: p for p in m_records}
+
+        p_records = self._session.exec(
+            select(ParametrizarPension).where(ParametrizarPension.anio == year)
+        ).all()
+        pension_params = {p.grado_id: p for p in p_records}
+
+        result = []
+        for g in grades:
+            assert g.id is not None
+            m = matricula_params.get(g.id)
+            p = pension_params.get(g.id)
+            result.append(
+                {
+                    "grado_id": g.id,
+                    "grado_nombre": g.nombre,
+                    "anio": year,
+                    "matricula_id": m.id if m else None,
+                    "matricula_valor": m.valor if m else None,
+                    "pension_id": p.id if p else None,
+                    "pension_valor": p.valor if p else None,
+                    "configurado": (m is not None and p is not None),
+                }
+            )
+        return result
+
+    def upsert_base_fees(self, year: int, tarifas: list[dict]) -> None:
+        now = datetime.now()
+        for item in tarifas:
+            grado_id = item["grado_id"]
+            m_val = item["matricula_valor"]
+            p_val = item["pension_valor"]
+
+            # Upsert Matrícula
+            m_stmt = select(ParametrizarMatricula).where(
+                ParametrizarMatricula.grado_id == grado_id,
+                ParametrizarMatricula.anio == year,
+            )
+            existing_m = self._session.exec(m_stmt).first()
+            if existing_m:
+                existing_m.valor = m_val
+                existing_m.updated_at = now
+                self._session.add(existing_m)
+            else:
+                self._session.add(
+                    ParametrizarMatricula(grado_id=grado_id, anio=year, valor=m_val)
+                )
+
+            # Upsert Pensión
+            p_stmt = select(ParametrizarPension).where(
+                ParametrizarPension.grado_id == grado_id,
+                ParametrizarPension.anio == year,
+            )
+            existing_p = self._session.exec(p_stmt).first()
+            if existing_p:
+                existing_p.valor = p_val
+                existing_p.updated_at = now
+                self._session.add(existing_p)
+            else:
+                self._session.add(
+                    ParametrizarPension(grado_id=grado_id, anio=year, valor=p_val)
+                )
+
+        self._session.commit()
+
+    def copy_base_fees(
+        self, anio_origen: int, anio_destino: int, incremento_pct: float = 0.0
+    ) -> None:
+        source_fees = self.get_base_fees(anio_origen)
+        multiplier = 1.0 + (incremento_pct / 100.0)
+
+        tarifas_to_upsert = []
+        for f in source_fees:
+            m_val = f["matricula_valor"]
+            p_val = f["pension_valor"]
+            new_m = int(round(m_val * multiplier / 1000.0) * 1000) if m_val is not None else 0
+            new_p = int(round(p_val * multiplier / 1000.0) * 1000) if p_val is not None else 0
+            tarifas_to_upsert.append(
+                {
+                    "grado_id": f["grado_id"],
+                    "matricula_valor": new_m,
+                    "pension_valor": new_p,
+                }
+            )
+
+        self.upsert_base_fees(anio_destino, tarifas_to_upsert)
+
+    def initialize_default_base_fees(self, year: int) -> None:
+        grades = self._ensure_grades_exist()
+        tarifas_to_upsert = []
+
+        for idx, g in enumerate(grades):
+            assert g.id is not None
+            val_matricula = 600000 + idx * 50000
+            val_pension = 300000 + idx * 25000
+
+            nombre_norm = g.nombre.lower()
+            if "sexto" in nombre_norm or idx == 5:
+                val_matricula, val_pension = 850000, 450000
+            elif "décimo" in nombre_norm or "decimo" in nombre_norm or idx == 10:
+                val_matricula, val_pension = 950000, 520000
+            elif "segundo" in nombre_norm or idx == 2:
+                val_matricula, val_pension = 750000, 350000
+
+            tarifas_to_upsert.append(
+                {
+                    "grado_id": g.id,
+                    "matricula_valor": val_matricula,
+                    "pension_valor": val_pension,
+                }
+            )
+
+        self.upsert_base_fees(year, tarifas_to_upsert)
+

@@ -187,3 +187,26 @@ class PeriodResponse(BaseModel):
     id: int
     periodo_electivo: datetime
     estado: bool
+
+
+class BaseFeeGradeResponse(BaseModel):
+    """Tarifa base parametrizada para un grado."""
+
+    grado_id: int
+    grado_nombre: str
+    anio: int
+    matricula_id: int | None = None
+    matricula_valor: int | None = None
+    pension_id: int | None = None
+    pension_valor: int | None = None
+    configurado: bool = False
+
+
+class BaseFeesListResponse(BaseModel):
+    """Respuesta con las tarifas base de todos los grados para un año."""
+
+    anio: int
+    total_grados: int
+    total_configurados: int
+    tarifas: list[BaseFeeGradeResponse]
+

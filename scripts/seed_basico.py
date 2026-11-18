@@ -110,9 +110,9 @@ def insert_catalogs(session: Session):
         print("✅ Tipos Complementarios (Matrícula, Escuelas y Pupitre) insertados.")
 
     # 5.1 Complementario por defecto para Pupitres (Soluciona el 404 de classroom/pupitre/complementario)
-    if not session.exec(select(Complementario).where(Complementario.nombre == "Garantía Pupitre")).first():
+    if not session.exec(select(Complementario).where(Complementario.nombre == "Pupitre")).first():
         comp_pupitre = Complementario(
-            nombre="Garantía Pupitre",
+            nombre="Pupitre",
             tipo_complementario_id=tipo_pupitre.id,
             anio=2026,
             valor=0,
@@ -121,32 +121,6 @@ def insert_catalogs(session: Session):
         session.add(comp_pupitre)
         print("✅ Complementario base de Pupitre insertado.")
 
-    # 6. Parámetros Base (Matrícula y Pensión)
-    if grados_creados and not session.exec(select(ParametrizarMatricula)).first():
-        parametros_matricula = []
-        parametros_pension = []
-        
-        for idx, g in enumerate(grados_creados):
-            val_matricula = 600000 + idx * 50000
-            val_pension = 300000 + idx * 25000 
-            
-            if idx == 5: # Sexto
-                val_matricula, val_pension = 850000, 450000
-            elif idx == 10: # Décimo
-                val_matricula, val_pension = 950000, 520000
-            elif idx == 2: # Segundo
-                val_matricula, val_pension = 750000, 350000
-
-            parametros_matricula.append(
-                ParametrizarMatricula(grado_id=g.id, anio=2026, valor=val_matricula)
-            )
-            parametros_pension.append(
-                ParametrizarPension(grado_id=g.id, anio=2026, valor=val_pension)
-            )
-            
-        session.add_all(parametros_matricula)
-        session.add_all(parametros_pension)
-        print("✅ Costos base de Matrícula y Pensión parametrizados para 2026.")
 
 def main():
     print("🚀 Iniciando Inserción de Datos Básicos del Sistema...")

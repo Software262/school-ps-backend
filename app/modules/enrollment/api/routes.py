@@ -28,6 +28,13 @@ from app.modules.enrollment.application.get_all_grades import GetAllGrades
 from app.modules.enrollment.application.get_all_periods import GetAllPeriods
 from app.modules.enrollment.application.get_complementaries import GetComplementaries
 from app.modules.enrollment.application.get_students_bulk import GetStudentsBulk
+from app.modules.enrollment.application.manage_base_fees import (
+    CopyBaseFees,
+    GetBaseFees,
+    InitializeDefaultBaseFees,
+    UpdateSingleGradeFee,
+    UpsertBaseFees,
+)
 from app.modules.enrollment.application.search_active_students import (
     SearchActiveStudents,
 )
@@ -36,14 +43,20 @@ from app.modules.enrollment.infrastructure.models import Estudiante, Grado
 from app.modules.enrollment.schemas.request import (
     AssignComplementaryRequest,
     ComplementaryCreateRequest,
+    CopyBaseFeesRequest,
     DirectedPaymentRequest,
     ManualEnrollmentRequest,
     ModifyEnrollmentRequest,
     RegisterEnrollmentRequest,
+    SingleGradeFeeRequest,
+    UpsertBaseFeesRequest,
 )
 from app.modules.enrollment.schemas.response import (
     AcudienteReceiptInfo,
+    BaseFeeGradeResponse,
+    BaseFeesListResponse,
     ComplementaryItemResponse,
+
     EnrollmentBalanceResponse,
     EnrollmentCreatedResponse,
     PaymentDistributionResponse,
@@ -665,3 +678,83 @@ async def get_all_periods(
 ) -> list[PeriodResponse]:
     use_case = GetAllPeriods(session=session)
     return use_case.execute()
+
+
+# ============================================================================
+# Parametrización de Costos Base (Matrícula y Pensión)
+# ============================================================================
+
+
+@router.get(
+    "/parameters",
+    response_model=BaseFeesListResponse,
+    summary="Obtener tarifas base de matrícula y pensión por año",
+    description="Retorna el listado de todos los grados académicos con sus costos de matrícula y pensión parametrizados para el año indicado.",
+)
+async def get_base_fees(
+    session: SessionDep,
+    year: int = Query(default=2026, description="Año a consultar"),
+) -> BaseFeesListResponse:
+    use_case = GetBaseFees(session=session)
+    return use_case.execute(year)
+
+
+@router.post(
+    "/parameters",
+    response_model=BaseFeesListResponse,
+    summary="Guardar o actualizar tarifas base de matrícula y pensión",
+    description="Guarda o actualiza las tarifas de matrícula y pensión para múltiples grados de un año lectivo.",
+)
+async def upsert_base_fees(
+    session: SessionDep,
+    request: UpsertBaseFeesRequest,
+) -> BaseFeesListResponse:
+    use_case = UpsertBaseFees(session=session)
+    return use_case.execute(request)
+
+
+@router.post(
+    "/parameters/copy",
+    response_model=BaseFeesListResponse,
+    summary="Copiar tarifas de un año a otro con incremento opcional",
+    description="Copia las tarifas parametrizadas de un año origen a un año destino, aplicando un porcentaje de incremento opcional (ej: IPC anual).",
+)
+async def copy_base_fees(
+    session: SessionDep,
+    request: CopyBaseFeesRequest,
+) -> BaseFeesListResponse:
+    use_case = CopyBaseFees(session=session)
+    return use_case.execute(request)
+
+
+@router.post(
+    "/parameters/defaults",
+    response_model=BaseFeesListResponse,
+    summary="Inicializar tarifas sugeridas por defecto para un año",
+    description="Inicializa la estructura tarifaria sugerida estándar para todos los grados académicos en el año especificado.",
+)
+async def initialize_defaults(
+    session: SessionDep,
+    year: int = Query(default=2026, description="Año a inicializar"),
+) -> BaseFeesListResponse:
+    use_case = InitializeDefaultBaseFees(session=session)
+    return use_case.execute(year)
+
+
+@router.put(
+    "/parameters/grade/{grado_id}",
+    response_model=BaseFeeGradeResponse,
+    summary="Actualizar tarifa de un grado individual",
+    description="Actualiza o fija el costo base de matrícula y mensualidad de pensión para un grado específico en un año dado.",
+)
+async def update_single_grade_fee(
+    session: SessionDep,
+    grado_id: int,
+    request: SingleGradeFeeRequest,
+) -> BaseFeeGradeResponse:
+    use_case = UpdateSingleGradeFee(session=session)
+    try:
+        return use_case.execute(grado_id, request)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
