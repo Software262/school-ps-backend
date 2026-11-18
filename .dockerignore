@@ -67,7 +67,6 @@ docker-compose*.yaml
 # Project-specific files not needed at runtime
 alembic.ini
 migrations/
-scripts/
 *.sh
 
 # Keep only the essentials
