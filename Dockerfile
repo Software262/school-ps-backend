@@ -49,6 +49,7 @@ ENV VIRTUAL_ENV=/app/.venv \
   LOG_LEVEL=info
 
 COPY --chown=appuser:appgroup app/ app/
+COPY --chown=appuser:appgroup scripts/ scripts/
 
 USER appuser
 
